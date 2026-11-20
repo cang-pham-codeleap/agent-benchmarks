@@ -1,3 +1,5 @@
+import { Button } from "./components/ui/button.tsx";
+import { cn } from "./lib/utils.ts";
 import { Icon } from "./icons.tsx";
 
 export interface SyncButtonProps {
@@ -20,22 +22,23 @@ export function SyncButton({
   update = false,
 }: SyncButtonProps) {
   return (
-    <button
+    <Button
       aria-busy={busy}
       aria-label={ariaLabel}
-      className={`${tone}-button sync-button${busy ? " is-syncing" : ""}${update ? " has-update" : ""}`}
+      className={cn(busy && "motion-safe:[&_svg]:animate-spin", update && "border-primary/30 bg-accent text-accent-foreground")}
       disabled={busy}
       onClick={onClick}
       type="button"
+      variant={tone === "primary" ? "default" : "outline"}
     >
       <Icon name="refresh" />
-      <span aria-hidden="true" className="sync-button-label">
+      <span aria-hidden="true" className="inline-grid justify-items-center" data-sync-label>
         {labels.map((option) => (
-          <span data-active={option === label} key={option}>
+          <span className="col-start-1 row-start-1 data-[active=false]:invisible" data-active={option === label} key={option}>
             {option}
           </span>
         ))}
       </span>
-    </button>
+    </Button>
   );
 }

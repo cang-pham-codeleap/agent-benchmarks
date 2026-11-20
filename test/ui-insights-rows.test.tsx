@@ -1,6 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { formatInt } from "../src/ui/format.ts";
 import type { Recommendation, SettingsInfo } from "../src/ui/types.ts";
@@ -19,18 +17,6 @@ import {
   recommendationFacts,
 } from "../src/ui/views/insights.tsx";
 
-const styles = readFileSync(join(import.meta.dir, "..", "src", "ui", "styles.css"), "utf8").replace(
-  /\r\n/g,
-  "\n",
-);
-
-function rule(selector: string): string {
-  const start = styles.indexOf(`\n${selector} {`);
-  expect(start).toBeGreaterThanOrEqual(0);
-  const end = styles.indexOf("\n}", start);
-  expect(end).toBeGreaterThan(start);
-  return styles.slice(start, end);
-}
 
 function count(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
@@ -180,16 +166,6 @@ describe("Insights plan panel", () => {
     expect(memoryLayerCopy("Archive")).toBe("Archive");
   });
 
-  test("keeps small labels on the muted token, which passes AA on the row surfaces", () => {
-    const labels = styles.slice(
-      styles.indexOf(".signal-kicker,\n.signal-label,"),
-      styles.indexOf(".signal-hero h3 {"),
-    );
-    expect(labels).toContain("color: var(--muted)");
-    expect(styles).toContain(".promotion-panel dt {\n  color: var(--muted);");
-    expect(styles).toContain(".promotion-panel dd {\n  color: var(--fg);");
-    expect(styles).not.toContain(".suggestion-block");
-  });
 });
 
 describe("Insights prompt preview", () => {

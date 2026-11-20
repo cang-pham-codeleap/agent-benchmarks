@@ -5,7 +5,6 @@ import { readUiSource } from "./ui-source.ts";
 
 const root = join(import.meta.dir, "..");
 const globals = readFileSync(join(root, "src", "ui", "globals.css"), "utf8");
-const styles = readFileSync(join(root, "src", "ui", "styles.css"), "utf8");
 const main = readUiSource();
 
 const SHADCN_THEME_TOKENS = [
@@ -21,15 +20,8 @@ const SHADCN_THEME_TOKENS = [
 ] as const;
 
 const CHART_TOKENS = [
-  "--fg",
-  "--muted",
-  "--faint",
-  "--line",
-  "--surface",
-  "--accent",
-  "--info",
-  "--success",
-  "--warning",
+  "--card-foreground", "--muted-foreground", "--border", "--card",
+  "--chart-1", "--chart-2", "--chart-3", "--chart-4",
 ] as const;
 
 describe("theme tokens", () => {
@@ -39,7 +31,6 @@ describe("theme tokens", () => {
       expect(matches.length).toBeGreaterThanOrEqual(2);
     }
     expect(globals).toMatch(/\.dark,\s*\[data-theme="dark"\]\s*\{/);
-    expect(styles).not.toMatch(/^\s*--(background|foreground|card|primary|border|ring):/m);
   });
 
   test("the theme toggle applies .dark and persists explicit choices", () => {
@@ -49,22 +40,10 @@ describe("theme tokens", () => {
     expect(main).toContain('removeStorage("decant-theme")');
   });
 
-  test("legacy view tokens are aliases owned by globals.css", () => {
-    for (const token of CHART_TOKENS) {
-      expect(globals).toMatch(new RegExp(`^\\s*${token.replace("--", "\\-\\-")}:`, "m"));
-      expect(styles).not.toMatch(new RegExp(`^\\s*${token}:`, "m"));
-    }
-    expect(globals).toContain("--fg: var(--foreground)");
-    expect(globals).toContain("--canvas: var(--background)");
-    expect(globals).toContain("--line: var(--border)");
-    expect(globals).toContain("--surface: var(--card)");
-  });
 
   test("chart tokens match what chartColors() reads", () => {
-    const readNames = [...main.matchAll(/value\("(--[a-z-]+)"\)/g)].flatMap(
-      (match) => match[1] ?? [],
-    );
-    expect(readNames.sort()).toEqual([...CHART_TOKENS].sort());
+    const readNames = [...main.matchAll(/value\("(--[a-z0-9-]+)"\)/g)].map((match) => match[1]);
+    expect([...new Set(readNames)].sort()).toEqual([...CHART_TOKENS].sort());
   });
 
   test("bar charts use a neutral hover band in both themes", () => {
@@ -74,10 +53,4 @@ describe("theme tokens", () => {
     expect(main).toContain('"rgba(20, 20, 20, 0.05)"');
   });
 
-  test("fill-grade colours are never used as text", () => {
-    for (const token of ["accent", "success", "warning", "danger", "info", "claude"]) {
-      expect(styles).not.toContain(`color: var(--${token});`);
-      expect(globals).toContain(`--${token}-text:`);
-    }
-  });
 });

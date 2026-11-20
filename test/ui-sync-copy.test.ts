@@ -6,7 +6,6 @@ import { readUiFile, readUiSource } from "./ui-source.ts";
 const root = join(import.meta.dir, "..");
 const main = readUiSource();
 const globals = readFileSync(join(root, "src", "ui", "globals.css"), "utf8");
-const styles = readFileSync(join(root, "src", "ui", "styles.css"), "utf8");
 
 test("sync stays visually icon-led while retaining a hidden live announcement", () => {
   expect(main).toContain('archiveUpdateAvailable ? "Load new activity" : "Sync session logs"');
@@ -106,13 +105,7 @@ test("sync progress is visible without a second live announcement", () => {
   expect(shell.match(/aria-live=/g)).toHaveLength(1);
   expect(shell).toContain("? syncAnnouncement(syncProgress)");
   expect(readUiFile("sync-progress.tsx")).not.toContain("aria-live");
-  const block = styles.slice(styles.indexOf(".sync-line {"));
-  expect(block).toMatch(
-    /@media \(prefers-reduced-motion: no-preference\) \{[^@]*animation: sync-indeterminate/,
-  );
-  expect(block.slice(0, block.indexOf("@media (prefers-reduced-motion"))).not.toContain(
-    "animation:",
-  );
+  expect(readUiFile("sync-progress.tsx")).toContain("motion-reduce:animate-none");
 });
 
 test("the sidebar never states partial or unloaded totals as facts", () => {

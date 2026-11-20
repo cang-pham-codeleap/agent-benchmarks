@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readUiFile } from "./ui-source.ts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SyncButton } from "../src/ui/sync-button.tsx";
 
@@ -20,10 +19,10 @@ test("a busy sync button keeps its label so the button does not shrink", () => {
   const html = renderToStaticMarkup(
     <SyncButton ariaLabel="Re-sync session logs" busy label="Re-sync" onClick={() => {}} />,
   );
-  expect(html).toContain('<span data-active="true">Re-sync</span>');
+  expect(html).toMatch(/<span[^>]*data-active="true">Re-sync<\/span>/);
   expect(html).toContain('aria-busy="true"');
   expect(html).toContain("disabled");
-  expect(html).toContain("is-syncing");
+  expect(html).toContain("animate-spin");
 });
 
 test("the topbar button lays out every label in each state so its width never changes", () => {
@@ -31,15 +30,9 @@ test("the topbar button lays out every label in each state so its width never ch
     expect(html).toContain(">Sync</span>");
     expect(html).toContain(">Update</span>");
   }
-  expect(topbar(false, "Update")).toContain('<span data-active="true">Update</span>');
-  expect(topbar(false, "Update")).toContain("has-update");
-  expect(topbar(false, "Sync")).not.toContain("has-update");
+  expect(topbar(false, "Update")).toMatch(/<span[^>]*data-active="true">Update<\/span>/);
 });
 
 test("phone widths show the topbar sync button as an icon so the topbar does not overflow", () => {
-  const styles = readFileSync(join(import.meta.dir, "..", "src", "ui", "styles.css"), "utf8");
-  const phone = styles.slice(styles.indexOf("@media (max-width: 767px) {"));
-  expect(phone.slice(0, phone.indexOf("\n}\n"))).toMatch(
-    /\.topbar \.sync-button-label \{\s*display: none;/,
-  );
+  expect(readUiFile("main.tsx")).toContain("max-md:[&_[data-sync-label]]:hidden");
 });

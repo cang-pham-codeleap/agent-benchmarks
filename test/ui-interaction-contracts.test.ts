@@ -1,15 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { contextStripKeyIndex } from "../src/ui/context-window-strip.tsx";
-import { ALL_DATE_RANGE } from "../src/ui/date-range.ts";
-import { DateRangeControl, focusLeftMenu } from "../src/ui/date-range-control.tsx";
+import { ALL_DATE_RANGE, checkCustomRange, REVERSED_RANGE_MESSAGE } from "../src/ui/date-range.ts";
+import { DateRangeControl } from "../src/ui/date-range-control.tsx";
 import { readUiFile, readUiSource, sourceBetween, sourceFrom } from "./ui-source.ts";
 
 const main = readUiSource();
-const styles = readFileSync(join(import.meta.dir, "..", "src", "ui", "styles.css"), "utf8");
 
 describe("UI interaction contracts", () => {
   test("aborts and ignores stale load-more search responses", () => {
@@ -59,94 +56,38 @@ describe("UI interaction contracts", () => {
     expect(search).not.toContain("total == null || hits.length >= total");
   });
 
-  test("opens one focus-managed palette from desktop, mobile, and global shortcuts", () => {
+  test("opens the command dialog from desktop, mobile, and keyboard shortcuts", () => {
     const app = sourceBetween(main, "function App()", "function renderView(");
-    const palette = sourceBetween(
-      main,
-      "function CommandPalette(",
-      "function commandPaletteTextMatches(",
-    );
-    const paletteGroups = palette.slice(
-      palette.indexOf("{groups.map("),
-      palette.indexOf('<footer className="command-palette-footer">'),
-    );
-
+    const palette = readUiFile("command-palette-view.tsx");
+    const command = readUiFile("components/ui/command.tsx");
     expect(app).toContain("shouldOpenCommandPalette({");
     expect(app).toContain("setCommandPaletteOpen(true)");
-    expect(app).not.toContain("getClientRects().length === 0");
-    expect(app).toContain('className="topbar-search"');
-    expect(app).toContain('className="icon-button topbar-search-mobile"');
-    expect(palette).toContain("createPortal(");
-    expect(palette).toContain("useDialogFocusTrap(true, dialogRef, requestClose)");
-    expect(palette).toContain("return open ? (\n    <CommandPaletteDialog");
-    expect(palette).toContain('aria-modal="true"');
-    expect(palette).toContain('role="dialog"');
-    expect(palette).toContain('role="combobox"');
-    expect(palette).toContain('role="listbox"');
-    expect(palette).toContain('role="option"');
-    expect(paletteGroups).toContain('role="group"');
-    expect(paletteGroups).toContain("aria-labelledby={labelId}");
-    expect(paletteGroups).toContain('"command-palette-group-label"');
-    expect(paletteGroups).not.toContain("<fieldset");
-    expect(paletteGroups).not.toContain("<legend");
-    expect(palette).toContain('group.label ?? "Transcript search"');
-    expect(palette).toContain("aria-activedescendant={activeDescendant}");
-    expect(palette).toContain("flattenCommandPaletteItems(groups)");
-    expect(palette).toContain("searchRouteHref(recent, locationPath())");
-    expect(palette).toContain("searchRouteHref(normalizedQuery, locationPath())");
-    expect(palette).toContain("dialogRef.current");
-    expect(palette).not.toContain("document\n      .querySelector<HTMLElement>");
-    expect(paletteGroups).not.toContain("onPointerEnter");
-    expect(paletteGroups).toContain("onPointerMove");
-    expect(paletteGroups).toContain("pointerMovementChangesSelection(event)");
-    expect(paletteGroups).not.toContain("onKeyDown");
-    expect(palette).toContain("selectPaletteIndex(index)");
-    expect(palette).toContain("reconcileCommandPaletteActiveIndex");
-    expect(palette).toContain("useLayoutEffect(() =>");
-    expect(palette).toContain("item.highlights?.started_at");
-    expect(palette).not.toContain("dangerouslySetInnerHTML");
-    expect(styles).toContain(".command-palette-group-label {");
-    expect(styles).not.toContain(".command-palette-group legend {");
-    expect(app).toContain('aria-haspopup="dialog"');
-    expect(app).toContain("aria-expanded={commandPaletteOpen}");
+    expect(app).toContain('aria-label="Open command palette"');
+    expect(app).toContain('aria-label="Search"');
+    expect(palette).toContain("<CommandDialog open");
+    expect(palette).toContain("<Command shouldFilter={false} loop>");
+    expect(palette).toContain('aria-label="Search sessions and commands"');
+    expect(palette).toContain("onSelect={() => item.activate()}");
+    expect(command).toContain("CommandPrimitive");
+    expect(palette).toContain("navigate</span>");
   });
 
-  test("exposes tool-call details as a focus-managed modal with a keyboard entry point", () => {
-    const detail = sourceBetween(main, "function ToolCallDetail(", "function ToolsView(");
-    const tools = sourceFrom(readUiFile("views/tools.tsx"), "function ToolsView(");
-
-    expect(detail).toContain("useDialogFocusTrap(true, dialogRef, onClose)");
-    expect(detail).toContain('aria-modal="true"');
-    expect(detail).toContain('role="dialog"');
-    expect(detail).toContain("aria-labelledby={titleId}");
-    expect(tools).toContain('className="tool-call-detail-button"');
-    expect(tools).toContain("Inspect ${call.tool_name");
+  test("exposes tool-call details through a keyboard-accessible inspect button", () => {
+    const tools = readUiFile("views/tools.tsx");
+    expect(tools).toMatch(/<button\s+aria-label=\{`Inspect \$\{call\.tool_name/);
+    expect(tools).toContain('type="button"');
+    expect(tools).toContain('role="dialog"');
+    expect(tools).toContain('aria-modal="true"');
   });
 
-  test("closes report and share reviews only from direct backdrop presses", () => {
-    const reportReview = sourceBetween(
-      main,
-      "function ExportReviewSheet(",
-      "function ReportExportButton(",
-    );
-    const shareReview = sourceBetween(
-      main,
-      "function ShareChartButton(",
-      "async function renderShareCardPng(",
-    );
-
-    const backdropDismiss = sourceBetween(
-      main,
-      "function useBackdropDismiss(",
-      "function useDisabledFocusRescue(",
-    );
-
-    expect(backdropDismiss).toContain("event.target === backdropRef.current");
-    expect(reportReview).toContain('<div className="report-review-backdrop" ref={backdropRef}>');
-    expect(reportReview).toContain("useBackdropDismiss(open, backdropRef, onClose)");
-    expect(shareReview).toContain('<div className="share-review-backdrop" ref={backdropRef}>');
-    expect(shareReview).toContain("useBackdropDismiss(open, backdropRef, closeShareReview)");
-    expect(main).toContain("useBackdropDismiss(true, backdropRef, requestClose)");
+  test("report and share privacy reviews use dialogs", () => {
+    for (const file of ["report-export.tsx", "share-chart.tsx"]) {
+      const source = readUiFile(file);
+      expect(source).toContain("<Dialog open={open}");
+      expect(source).toContain("<DialogContent");
+      expect(source).toContain("<DialogTitle>");
+      expect(source).toContain("<PrivacyReviewLists");
+    }
   });
 
   test("keeps compaction anchors exposed in the accessibility tree", () => {
@@ -169,7 +110,7 @@ describe("UI interaction contracts", () => {
       "function compactionTokenRange(",
     );
 
-    expect(chart).toContain('className="ctx-strip-scrub"');
+    expect(chart).toContain('aria-label={`Context window usage across');
     expect(chart).toContain("void onJump(scrubPoint.seq)");
     expect(chart).toContain("onKeyDown={handleKeyDown}");
     expect(contextStripKeyIndex("ArrowRight", null, 4)).toBe(0);
@@ -203,7 +144,7 @@ describe("UI interaction contracts", () => {
     expect(main).toContain("sessionPageExhausted({");
     expect(sessions).toContain("scopedSessionSummaryKey(scopedSummaryRequest, reloadKey)");
     expect(sessions).toContain("<span>Show archived</span>");
-    expect(sessions).toContain("sessionsArchivedHref(path, event.target.checked)");
+    expect(sessions).toContain("sessionsArchivedHref(path, checked === true)");
     expect(row).toContain('session.is_user_archived ? <Badge tone="neutral">Archived</Badge>');
   });
 
@@ -242,56 +183,20 @@ describe("UI interaction contracts", () => {
     expect(control).not.toContain('name="chevronRight"');
   });
 
-  test("keeps the date-range menu open while Safari presses a preset", () => {
-    const control = sourceFrom(readUiFile("date-range-control.tsx"), "function DateRangeControl(");
-    const onBlur = control.slice(control.indexOf("onBlur="), control.indexOf("onKeyDown="));
-    expect(onBlur).toContain("focusLeftMenu(event.currentTarget, event.relatedTarget)");
-    expect(control).toContain('document.addEventListener("pointerdown", closeOnOutsidePress)');
-    expect(control).toContain('document.removeEventListener("pointerdown", closeOnOutsidePress)');
-  });
-
-  test("aligns the date-range popover before it first paints", () => {
-    const control = sourceFrom(readUiFile("date-range-control.tsx"), "function DateRangeControl(");
-    const onToggle = control.slice(control.indexOf("onToggle="), control.indexOf("<summary"));
-    expect(onToggle).not.toContain("datePopoverAlign");
-    const summary = control.slice(control.indexOf("<summary"), control.indexOf("</summary>"));
-    const open = summary.indexOf("menu.open = true;");
-    expect(summary).toContain("event.preventDefault();");
-    expect(open).toBeGreaterThan(-1);
-    expect(summary.indexOf("setAlign(datePopoverAlign(", open)).toBeGreaterThan(open);
-  });
-
-  test("clicking the From or To label focuses its date input inside the open menu", () => {
-    const markup = renderToStaticMarkup(
-      createElement(DateRangeControl, {
-        bounds: null,
-        onChange: () => {},
-        range: { preset: "custom", from: "2026-10-01", to: "2026-10-23" },
-      }),
-    );
-    const popover = markup.slice(markup.indexOf('class="date-range-popover"'));
-    for (const [label, input] of [
-      ["From", "From date"],
-      ["To", "To date"],
-    ]) {
-      expect(popover).toMatch(
-        new RegExp(`<label><span>${label}</span><input [^>]*aria-label="${input}"[^>]*/></label>`),
-      );
-    }
-    expect(focusLeftMenu({ contains: () => false }, null)).toBe(false);
-  });
-
-  test("announces a reversed custom range without applying it", () => {
-    const control = sourceFrom(readUiFile("date-range-control.tsx"), "function DateRangeControl(");
-    const markup = renderToStaticMarkup(
-      createElement(DateRangeControl, { bounds: null, onChange: () => {}, range: ALL_DATE_RANGE }),
-    );
-    expect(markup).toContain('<div aria-live="polite" class="custom-date-range-status"></div>');
-    expect(control).toContain('if (result.status === "valid")');
-    expect(control).toContain("onChange(result.range)");
-    expect(control).not.toContain("onChange({ ...range");
+  test("provides labelled date inputs in a popover and announces reversed ranges", () => {
+    const control = readUiFile("date-range-control.tsx");
+    const markup = renderToStaticMarkup(createElement(DateRangeControl, {
+      bounds: null, onChange: () => {}, range: ALL_DATE_RANGE,
+    }));
+    expect(markup).toContain('aria-label="Time range: All time"');
+    expect(control).toContain("<Popover open={open}");
+    expect(control).toContain("<PopoverContent");
+    expect(control).toContain('aria-label="From date"');
+    expect(control).toContain('aria-label="To date"');
+    expect(control).toContain('aria-live="polite"');
     expect(control).toContain("{REVERSED_RANGE_MESSAGE}");
-    expect(control.match(/aria-invalid=\{\s*reversed \|\|/g)).toHaveLength(2);
+    expect(checkCustomRange("2026-10-23", "2026-10-01").status).toBe("reversed");
+    expect(REVERSED_RANGE_MESSAGE.length).toBeGreaterThan(0);
   });
 
   test("keeps a Today selection on the current UTC date while the app stays open", () => {

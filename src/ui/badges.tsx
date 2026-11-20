@@ -136,7 +136,7 @@ export function ToolBadge({ tool }: { tool: string | null | undefined }) {
 export function ModelBadge({ model }: { model: string | null | undefined }) {
   const label = displayModelLabel(model);
   if (label == null) {
-    return <span className="faint">-</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
   const tone = brandTone(label);
   const theme = modelTheme(label);
@@ -146,10 +146,10 @@ export function ModelBadge({ model }: { model: string | null | undefined }) {
       mono
       title={model?.trim() ?? label}
       tone={tone}
-      className={theme == null ? undefined : `model-${theme}`}
+      className={theme == null ? undefined : { astra: "border-chart-4/30 text-chart-4", sol: "border-chart-1/30 text-chart-1", luna: "border-chart-3/30 text-chart-3" }[theme]}
     >
       {icon == null ? null : <BrandMark name={icon} />}
-      <span className="model-label">{label}</span>
+      <span className="min-w-0 truncate">{label}</span>
     </Badge>
   );
 }
@@ -174,7 +174,7 @@ export function EffortBadge({
   const displayLabel = effortDisplayLabel(effort, labeled);
   if (label == null || label === "") {
     return (
-      <span className="faint" title={effortTooltip(effort, levels)}>
+      <span className="text-muted-foreground" title={effortTooltip(effort, levels)}>
         {displayLabel}
       </span>
     );

@@ -7,7 +7,7 @@ import { DosuProvenanceBadge } from "../src/ui/views/sessions.tsx";
 describe("source and provenance marks", () => {
   test("Cursor has a brand mark in source badges and assistant turns", () => {
     const html = renderToStaticMarkup(<ToolBadge tool="cursor" />);
-    expect(html).toContain('class="brand-mark"');
+    expect(html).toContain("<svg");
     expect(html).toContain("<path d=");
     expect(html).toContain("Cursor");
     expect(providerIdentity("cursor").icon).toBe("cursor");
@@ -15,7 +15,7 @@ describe("source and provenance marks", () => {
 
   test("Copilot Chat in VS Code has a brand mark in source badges and assistant turns", () => {
     const html = renderToStaticMarkup(<ToolBadge tool="vscode_copilot" />);
-    expect(html).toContain('class="brand-mark"');
+    expect(html).toContain("<svg");
     expect(html).toContain("Copilot Chat");
     expect(providerIdentity("vscode_copilot")).toEqual({
       key: "assistant",
@@ -27,7 +27,7 @@ describe("source and provenance marks", () => {
 
   test("Hermes Agent has a labeled badge without a brand mark", () => {
     const html = renderToStaticMarkup(<ToolBadge tool="hermes" />);
-    expect(html).not.toContain('class="brand-mark"');
+    expect(html).not.toContain("<svg");
     expect(html).toContain("Hermes");
     expect(providerIdentity("hermes")).toEqual({
       key: "assistant",
@@ -39,7 +39,7 @@ describe("source and provenance marks", () => {
 
   test("Pi has a labeled badge without a brand mark", () => {
     const html = renderToStaticMarkup(<ToolBadge tool="pi" />);
-    expect(html).not.toContain('class="brand-mark"');
+    expect(html).not.toContain("<svg");
     expect(html).toContain("Pi");
     expect(providerIdentity("pi")).toEqual({
       key: "assistant",
@@ -51,7 +51,7 @@ describe("source and provenance marks", () => {
 
   test("GitHub Copilot CLI has a brand mark in source badges and assistant turns", () => {
     const html = renderToStaticMarkup(<ToolBadge tool="copilot" />);
-    expect(html).toContain('class="brand-mark"');
+    expect(html).toContain("<svg");
     expect(html).toContain("<path d=");
     expect(html).toContain("Copilot");
     expect(providerIdentity("copilot")).toEqual({
@@ -92,7 +92,7 @@ describe("source and provenance marks", () => {
       />,
     );
     expect(html).toContain('aria-label="Dosu MCP tool call"');
-    expect(html).toContain('class="dosu-tool-mark"');
+    expect(html).toContain('<img alt=""');
     expect(html).toContain("mcp__dosu__read_knowledge");
     expect(html).not.toContain("Optimized");
   });

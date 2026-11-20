@@ -1,6 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   planSessionPageLoad,
   sessionPageExhausted,
@@ -9,7 +7,6 @@ import {
 import { readUiSource, sourceBetween } from "./ui-source.ts";
 
 const main = readUiSource();
-const styles = readFileSync(join(import.meta.dir, "..", "src", "ui", "styles.css"), "utf8");
 
 function sessionsViewSource(): string {
   return sourceBetween(main, "function SessionsView(", "function SessionTableSkeletonRows()");

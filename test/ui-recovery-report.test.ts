@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { ReportRouteExportActions } from "../src/ui/report-export.tsx";
 import { UI_ROUTE_PATHS } from "../src/route-paths.ts";
 import { readUiFile, readUiSource, sourceBetween, sourceFrom } from "./ui-source.ts";
 
@@ -116,16 +119,13 @@ describe("report preview routes", () => {
   test("provide the requested local preview toolbar", () => {
     expect(main).toContain('pathOnly(path) === "/reports/analytics"');
     expect(main).toContain("/reports/session/");
-    expect(main).toContain("Download HTML");
-    expect(main).toContain("Save as PDF");
-    expect(main).not.toContain("Save as PDF…");
-    expect(main).toContain('<Icon name="filePdf" />');
-    expect(main).toContain('<Icon name="fileCode" />');
-    expect(main).toContain('<Icon name="eye" />');
-    expect(main).toContain("View report");
-    expect(main).not.toMatch(/>\s*Export\s*</);
-    expect(main).toContain('className="primary-button report-action-button"');
-    expect(main).toContain("report-route-toolbar");
+    const toolbar = renderToStaticMarkup(createElement(ReportRouteExportActions, {
+      downloadHref: "/report.html", excluded: [], includes: [], onPrint: () => {},
+      printDisabled: false, title: "Analytics report",
+    }));
+    expect(toolbar).toMatch(/<button[^>]*>[\s\S]*?Download HTML<\/button>/);
+    expect(toolbar).toMatch(/<button[^>]*>[\s\S]*?Save as PDF<\/button>/);
+    expect(readUiFile("report-export.tsx")).toContain("View report");
     expect(main).toContain("srcDoc={documentHtml}");
     expect(main).toContain(
       'sandbox="allow-same-origin allow-modals allow-popups allow-popups-to-escape-sandbox"',
@@ -147,7 +147,7 @@ describe("transcript presentation", () => {
   test("uses the same compaction numbering in the chart and thread", () => {
     expect(main).toContain("compactionNumberBySeq");
     expect(main).toMatch(/Compaction \$\{compactionNumber\}/);
-    expect(main).toContain('className="ctx-strip-compaction-marker"');
+    expect(main).toContain('href={`#message-${compaction.seq}`}');
     expect(main).toContain("groupContextMarkers");
   });
 });

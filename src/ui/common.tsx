@@ -177,7 +177,7 @@ export function Tooltip({
       {open
         ? createPortal(
             <div
-              className="floating-tooltip"
+              className="fixed z-[1000] w-max max-w-[min(28rem,calc(100vw-24px))] rounded-md border bg-popover px-2.5 py-2 text-xs leading-normal text-popover-foreground shadow-lg"
               id={id}
               onMouseEnter={openTooltip}
               onMouseLeave={closeTooltip}
@@ -201,16 +201,21 @@ export function Tooltip({
 export function Sparkline({ tone = "accent", values }: { tone?: BadgeTone; values: number[] }) {
   const points = sparkPoints(values);
   if (points == null) {
-    return <span className="spark-empty">-</span>;
+    return <span className="text-xs text-muted-foreground">-</span>;
   }
   return (
     <svg
       aria-hidden="true"
-      className={`sparkline tone-${tone}`}
+      className={cn("h-6 w-28", {
+        neutral: "text-muted-foreground", accent: "text-primary", success: "text-emerald-500",
+        warning: "text-amber-500", danger: "text-destructive", info: "text-chart-3",
+        claude: "text-chart-1", openai: "text-muted-foreground", gemini: "text-chart-3",
+        opencode: "text-chart-5", zai: "text-chart-2", meta: "text-chart-4",
+      }[tone])}
       preserveAspectRatio="none"
       viewBox="0 0 100 24"
     >
-      <polyline points={points} />
+      <polyline points={points} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -243,7 +248,7 @@ export function CostValue({
 }) {
   const { text, title } = costDisplay(cost, sessions, usageSessions, dense);
   return (
-    <span className={sessions > 0 && usageSessions === 0 ? "faint" : undefined} title={title}>
+    <span className={sessions > 0 && usageSessions === 0 ? "text-muted-foreground" : undefined} title={title}>
       {text}
     </span>
   );
@@ -273,7 +278,7 @@ export function StatCard({
   return (
     <div
       aria-busy={loading || updating ? true : undefined}
-      className="stat-card"
+      className="flex min-w-0 items-start justify-between gap-4 rounded-xl border bg-card p-6 text-card-foreground shadow-sm [&>div]:grid [&>div]:gap-1"
       data-alert={alert ? "true" : undefined}
       data-slot="card"
       data-updating={updating ? "true" : undefined}
@@ -282,18 +287,18 @@ export function StatCard({
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         {loading ? (
           <strong>
-            <i aria-label="Loading" className="skeleton-line stat-skeleton inline-block h-6 w-20 animate-pulse rounded-md bg-accent" role="img" />
+            <i aria-label="Loading" className="inline-block h-6 w-20 animate-pulse rounded-md bg-accent" role="img" />
           </strong>
         ) : (
           <strong className="text-xl font-semibold tracking-tight" title={valueTitle}>{value}</strong>
         )}
         {detail != null && !loading ? (
-          <small className="stat-detail text-xs text-muted-foreground" title={detailTitle}>
+          <small className="text-xs text-muted-foreground" title={detailTitle}>
             {detail}
           </small>
         ) : null}
       </div>
-      <span className="stat-icon text-muted-foreground">
+      <span className="text-muted-foreground [&_svg]:size-4">
         <Icon name={icon} />
       </span>
     </div>
@@ -314,7 +319,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "empty-state flex flex-col items-center justify-center rounded-xl border border-dashed bg-card/50 p-8 text-center text-card-foreground",
+        "flex flex-col items-center justify-center rounded-xl border border-dashed bg-card/50 p-8 text-center text-card-foreground",
       )}
       data-slot="card"
     >
@@ -323,7 +328,7 @@ export function EmptyState({
       </span>
       <h3 className="text-base font-semibold tracking-tight">{title}</h3>
       <p className="mt-1 text-sm text-muted-foreground max-w-sm">{message}</p>
-      {action != null ? <div className="state-actions mt-4 flex items-center gap-2">{action}</div> : null}
+      {action != null ? <div className="mt-4 flex items-center gap-2">{action}</div> : null}
     </div>
   );
 }
@@ -344,7 +349,7 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        "error-state relative grid w-full grid-cols-[auto_1fr] items-start gap-3 rounded-lg border border-destructive/50 bg-card p-4 text-card-foreground shadow-xs",
+        "relative grid w-full grid-cols-[auto_1fr] items-start gap-3 rounded-lg border border-destructive/50 bg-card p-4 text-card-foreground shadow-xs",
       )}
       data-slot="alert"
       role="alert"
@@ -356,7 +361,7 @@ export function ErrorState({
         <h3 className="font-medium tracking-tight text-destructive">{title}</h3>
         <p className="text-sm text-muted-foreground mt-0.5">{detail}</p>
         {action != null || secondaryAction != null ? (
-          <div className="state-actions mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
             {action}
             {secondaryAction}
           </div>
@@ -369,8 +374,13 @@ export function ErrorState({
 export function Bar({ fraction, tone }: { fraction: number; tone: BadgeTone }) {
   const pct = Math.max(0, Math.min(1, Number.isFinite(fraction) ? fraction : 0)) * 100;
   return (
-    <div className="bar">
-      <span className={`tone-${tone}`} style={{ width: `${pct}%` }} />
+    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+      <span className={cn("block h-full rounded-full", {
+        neutral: "bg-primary", accent: "bg-primary", success: "bg-emerald-500",
+        warning: "bg-amber-500", danger: "bg-destructive", info: "bg-chart-3",
+        claude: "bg-chart-1", openai: "bg-primary", gemini: "bg-chart-3",
+        opencode: "bg-chart-5", zai: "bg-chart-2", meta: "bg-chart-4",
+      }[tone])} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -379,7 +389,7 @@ export function OverflowMenu({ children, label }: { children: ReactNode; label: 
   const menuRef = useRef<HTMLDetailsElement | null>(null);
   return (
     <details
-      className="overflow-menu"
+      className="relative inline-block"
       onBlur={(event) => {
         if (
           !(event.relatedTarget instanceof Node) ||
@@ -391,7 +401,7 @@ export function OverflowMenu({ children, label }: { children: ReactNode; label: 
       onClick={(event) => {
         if (
           event.target instanceof Element &&
-          event.target.closest(".overflow-menu-popover :is(a, button)") != null &&
+          event.target.closest("a, button") != null &&
           menuRef.current != null
         ) {
           menuRef.current.open = false;
@@ -410,10 +420,10 @@ export function OverflowMenu({ children, label }: { children: ReactNode; label: 
       }}
       ref={menuRef}
     >
-      <summary aria-label={label} title="More actions">
+      <summary aria-label={label} className="flex size-8 cursor-pointer list-none items-center justify-center rounded-md hover:bg-accent [&_svg]:size-4" title="More actions">
         <Icon name="ellipsis" />
       </summary>
-      <div className="overflow-menu-popover">{children}</div>
+      <div className="absolute right-0 z-20 mt-1 min-w-40 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">{children}</div>
     </details>
   );
 }

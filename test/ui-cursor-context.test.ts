@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { cleanSessionTitle, cursorUserQuery } from "../src/ui/session-title.ts";
+import { cleanSessionTitle, cursorUserQuery, stripMarkupTags } from "../src/ui/session-title.ts";
 import { tocPresentation } from "../src/ui/thread-toc.tsx";
 import { specialTranscriptBlock } from "../src/ui/transcript.tsx";
 
@@ -7,6 +7,12 @@ const prompt =
   "<timestamp>Monday, Jul 14, 2025, 10:30 AM (UTC+0)</timestamp>\n<user_query>\nList the demo's exports.\n</user_query>";
 
 describe("Cursor CLI transcript context", () => {
+  test("removes leading terminal private-use glyphs without removing emoji", () => {
+    expect(stripMarkupTags("\uf407 PR20: Make PR 20 pipeline green")).toBe("PR20: Make PR 20 pipeline green");
+    expect(stripMarkupTags("🚀 Launch")).toBe("🚀 Launch");
+    expect(stripMarkupTags("▏ Progress")).toBe("▏ Progress");
+  });
+
   test("a wrapped prompt reads as the text the user typed", () => {
     expect(cursorUserQuery(prompt)).toBe("List the demo's exports.");
     expect(cursorUserQuery("<user_query>\nNo timestamp.\n</user_query>")).toBe("No timestamp.");

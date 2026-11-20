@@ -6,6 +6,7 @@ import { ApiFailureState } from "./api-failure.tsx";
 import { paletteShortcutLabel, shouldOpenCommandPalette } from "./command-palette.ts";
 import { CommandPalette } from "./command-palette-view.tsx";
 import { CostValue, EmptyState, ErrorState } from "./common.tsx";
+import { Alert } from "./components/ui/alert.tsx";
 import { Button } from "./components/ui/button.tsx";
 import {
   DropdownMenu,
@@ -110,7 +111,6 @@ import { SessionsView } from "./views/sessions.tsx";
 import { SettingsView } from "./views/settings.tsx";
 import { ToolsView } from "./views/tools.tsx";
 import "./globals.css";
-import "./styles.css";
 
 const LIVE_DISCONNECT_GRACE_MS = 15_000;
 const VIEWS_WITHOUT_HEADING = new Set(["not-found"]);
@@ -757,13 +757,13 @@ function App() {
   }
 
   return (
-    <SidebarProvider className="app-shell">
+    <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild size="lg">
-                <Link className="brand" href="/" setPath={setPath}>
+                <Link href="/" setPath={setPath}>
                   <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Gauge className="size-4" /></span>
                   <span className="truncate font-semibold">Agent Benchmarks</span>
                 </Link>
@@ -774,7 +774,7 @@ function App() {
         <SidebarContent>
           {navGroups.map((group) => (
             <SidebarGroup key={group.label}>
-              <SidebarGroupLabel className="nav-group-label">{group.label}</SidebarGroupLabel>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarMenu aria-label={group.label}>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.href}>
@@ -787,7 +787,7 @@ function App() {
             </SidebarGroup>
           ))}
         </SidebarContent>
-        <SidebarFooter className="border-t text-xs text-muted-foreground">
+        <SidebarFooter className="border-t text-xs text-muted-foreground [&_svg]:size-4">
           {firstSync ? (
             <div className="flex items-center gap-2 px-2 py-1"><Icon name="trend" /><span>Totals after the first sync</span></div>
           ) : (
@@ -802,28 +802,28 @@ function App() {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">
-        <header className="topbar sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 max-md:[&_[data-sync-label]]:hidden">
           <SidebarTrigger className="-ml-1" />
           {VIEWS_WITHOUT_HEADING.has(activeView) ? <h1 className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</h1> : <p className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</p>}
-          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Open command palette" className="topbar-search" onClick={() => setCommandPaletteOpen(true)} size="sm" type="button" variant="outline"><Search /><span className="topbar-search-label">Search sessions, messages, and tools…</span><kbd className="rounded border bg-muted px-1.5 font-mono text-[11px]">{paletteShortcutLabel(navigator.userAgent)}</kbd></Button>
-          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Search" className="icon-button topbar-search-mobile" onClick={() => setCommandPaletteOpen(true)} size="icon" type="button" variant="ghost"><Search /></Button>
+          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Open command palette" className="hidden min-w-0 max-w-lg flex-1 justify-start font-normal text-muted-foreground md:inline-flex" onClick={() => setCommandPaletteOpen(true)} size="sm" type="button" variant="outline"><Search /><span className="truncate">Search sessions, messages, and tools…</span><kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-[11px]">{paletteShortcutLabel(navigator.userAgent)}</kbd></Button>
+          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Search" className="md:hidden" onClick={() => setCommandPaletteOpen(true)} size="icon" type="button" variant="ghost"><Search /></Button>
           <div className="ml-auto hidden sm:block" />
           <SyncButton ariaLabel={archiveUpdateAvailable ? "Load new activity" : "Sync session logs"} busy={syncInProgress} label={archiveUpdateAvailable ? "Update" : "Sync"} labels={TOPBAR_SYNC_LABELS} onClick={archiveUpdateAvailable ? loadArchiveUpdates : runSync} update={archiveUpdateAvailable} />
           <span aria-live="polite" className="sr-only" role="status">{syncInProgress ? syncAnnouncement(syncProgress) : syncCompleteShown ? syncCompleteLabel(syncProgress) : ""}</span>
           <Button asChild aria-label="Settings" size="icon" title="Settings" variant="ghost"><Link href="/settings" setPath={setPath}><Settings /></Link></Button>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button aria-label="Choose theme" className="theme-toggle" size="icon" variant="ghost">{theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />}</Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button aria-label="Choose theme" className="shrink-0" size="icon" variant="ghost">{theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />}</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end"><DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as ThemeChoice)}><DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem><DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem><DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem></DropdownMenuRadioGroup></DropdownMenuContent>
           </DropdownMenu>
           {syncInProgress || syncComplete ? <SyncProgressLine complete={syncCompleteShown} progress={syncProgress} /> : null}
         </header>
-        <div className="content min-w-0 flex-1 px-8 pb-12 pt-6">
-          <div className="content-wrap mx-auto w-full min-w-0 max-w-[96rem]">
+        <div className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-8">
+          <div className="mx-auto w-full min-w-0 max-w-[96rem]">
             {syncNoticeShown && (syncInProgress || syncComplete) ? <SyncProgressNotice complete={syncCompleteShown} firstSync={firstSync} progress={syncProgress} /> : null}
-            {liveDisconnected ? <div className="live-disconnected" role="status"><span>Live updates disconnected · the browser will reconnect automatically.</span><button className="secondary-button" onClick={reconnectLiveUpdates} type="button">Reconnect</button></div> : null}
-            {syncError != null ? <div className="inline-recovery"><ApiFailureState error={syncError} onRetry={runSync} /></div> : null}
-            {activeFailedSlices.length > 0 ? <div className="notice danger slice-load-notice" role="alert"><span>Some dashboard data could not be loaded. Available data is still shown. Failed: {activeFailedSlices.join(", ")}.</span><button className="secondary-button" onClick={requestRefresh} type="button">Retry</button></div> : null}
-            {activeView === "sessions" && sessionFailure === "notice" ? <div className="notice danger slice-load-notice" role="alert"><span>The session list could not be refreshed. The sessions shown may be out of date.</span><button className="secondary-button" onClick={requestRefresh} type="button">Retry</button></div> : null}
+            {liveDisconnected ? <Alert className="mb-4 flex flex-wrap items-center justify-between gap-3" role="status"><span>Live updates disconnected · the browser will reconnect automatically.</span><Button onClick={reconnectLiveUpdates} size="sm" type="button" variant="outline">Reconnect</Button></Alert> : null}
+            {syncError != null ? <div className="mb-4"><ApiFailureState error={syncError} onRetry={runSync} /></div> : null}
+            {activeFailedSlices.length > 0 ? <Alert className="mb-4 flex flex-wrap items-center justify-between gap-3" variant="destructive"><span>Some dashboard data could not be loaded. Available data is still shown. Failed: {activeFailedSlices.join(", ")}.</span><Button onClick={requestRefresh} size="sm" type="button" variant="outline">Retry</Button></Alert> : null}
+            {activeView === "sessions" && sessionFailure === "notice" ? <Alert className="mb-4 flex flex-wrap items-center justify-between gap-3" variant="destructive"><span>The session list could not be refreshed. The sessions shown may be out of date.</span><Button onClick={requestRefresh} size="sm" type="button" variant="outline">Retry</Button></Alert> : null}
             {activeView === "sessions" && sessionFailure === "replace" ? <ApiFailureState error={sessionPageState.error} onRetry={requestRefresh} onSync={runSync} /> : renderView(activeView, path, data, {
               dashboardQuery,
               dateRange: dateRangeSelection,
@@ -980,9 +980,7 @@ function NotFoundView({ pathname }: { pathname: string }) {
   return (
     <ErrorState
       action={
-        <Link className="primary-button" href="/">
-          Back to Analytics
-        </Link>
+        <Button asChild><Link href="/">Back to Analytics</Link></Button>
       }
       detail={`There is no page at ${pathname}.`}
       icon="inbox"

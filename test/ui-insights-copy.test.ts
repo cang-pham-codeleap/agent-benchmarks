@@ -1,10 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { readUiSource, sourceBetween, sourceFrom } from "./ui-source.ts";
 
 const main = readUiSource();
-const styles = readFileSync(join(import.meta.dir, "..", "src", "ui", "styles.css"), "utf8");
 const insightsView = sourceBetween(main, "function InsightsView(", "function DosuInsightsRow()");
 
 describe("Insights information hierarchy", () => {
@@ -23,7 +20,6 @@ describe("Insights information hierarchy", () => {
     expect(main).toContain("function DosuInsightsRow()");
     expect(main).toContain('dosuLink("insights_card")');
     expect(main).not.toContain("function DosuInsightsCard()");
-    expect(styles).not.toContain(".dosu-insights-card");
   });
 
   test("always renders the Dosu suggestion without a settings gate", () => {
@@ -41,11 +37,8 @@ describe("Insights information hierarchy", () => {
 
   test("moves secondary links into an accessible compact overflow menu", () => {
     expect(main).toContain("function OverflowMenu(");
-    expect(main).toContain('className="overflow-menu"');
     expect(main).toMatch(/More actions for \$\{row\.title\}/);
     expect(main).toContain('event.key !== "Escape"');
-    expect(styles).toContain(".overflow-menu-popover");
-    expect(styles).toContain(".overflow-menu > summary:focus-visible");
   });
 
   test("falls back when the clipboard API is unavailable and announces the result", () => {
@@ -70,7 +63,6 @@ describe("Insights information hierarchy", () => {
     expect(insightsView).toMatch(
       /!loading && !loadFailed && signals\.length === 0 \? \(\s*<EmptyState/,
     );
-    expect(styles).toContain(".insights-signals-skeleton");
   });
 
   test("keeps recommendations archive-wide so date changes cannot latch the skeleton", () => {

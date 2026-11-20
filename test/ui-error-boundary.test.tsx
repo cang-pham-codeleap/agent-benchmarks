@@ -22,7 +22,7 @@ describe("root error boundary", () => {
     expect(html).toContain('role="alert"');
     expect(html).toContain("Something went wrong");
     expect(html).toContain("Reload Decant");
-    expect(html).toContain('class="primary-button"');
+    expect(html).toMatch(/<button[^>]*>[\s\S]*?Reload Decant<\/button>/);
     expect(html).not.toContain("child-content");
   });
 

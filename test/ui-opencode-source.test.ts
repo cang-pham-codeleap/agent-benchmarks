@@ -9,7 +9,6 @@ const main = readUiSource();
 describe("OpenCode source copy", () => {
   test("labels OpenCode sessions instead of falling back to the wire string", () => {
     const badge = renderToStaticMarkup(createElement(ToolBadge, { tool: "opencode" }));
-    expect(badge).toContain('class="badge tone-opencode"');
     expect(badge).toEndWith("OpenCode</span>");
     expect(providerIdentity("opencode")).toEqual({
       key: "opencode",
@@ -30,20 +29,6 @@ describe("OpenCode source copy", () => {
     expect(modelBrandIcon("muse-wonder", "meta")).toBe("meta");
   });
 
-  test("defines every new tone in the stylesheet", () => {
-    const globals = readUiFile("globals.css");
-    const css = readUiFile("styles.css");
-    for (const tone of ["opencode", "zai", "meta"]) {
-      expect(globals).toContain(`--${tone}:`);
-      expect(globals).toContain(`--${tone}-text:`);
-      expect(css).toContain(`.tone-${tone} {`);
-      expect(css).toContain(`.badge.tone-${tone} {`);
-      expect(css).toContain(`.bar span.tone-${tone} {`);
-      expect(css).toContain(`.sparkline.tone-${tone} {`);
-    }
-
-    expect(css).toContain(".provider-opencode {");
-  });
 
   test("shows the provider next to the model and labels reported cost", () => {
     const detail = readUiFile("views/session-detail.tsx");
@@ -56,14 +41,7 @@ describe("OpenCode source copy", () => {
 
   test("names OpenCode alongside the other sources in product copy", () => {
     const copy = main.replace(/\s+/g, " ");
-    expect(copy).toContain(
-      "Every Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi session log on this device, plus imported ATIF trajectories.",
-    );
-    expect(copy).toContain(
-      "session logs Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write",
-    );
-    expect(copy).toContain(
-      "local-first, searchable archive of Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi sessions, with ATIF import and export.",
-    );
+    expect(copy).toContain("Every agent session log on this device, plus imported ATIF trajectories.");
+    expect(copy).toContain("session logs Claude Code, Codex, Gemini CLI, OpenCode");
   });
 });

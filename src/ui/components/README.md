@@ -1,10 +1,10 @@
 # Component Guidelines for Agent Benchmarks Views
 
-This guide establishes the conventions for migrating views from legacy `styles.css` to standard **Tailwind v4** and vendored **shadcn/ui** components.
+This guide establishes the conventions for views using **Tailwind v4** and vendored **shadcn/ui** components.
 
 ## Golden Rule
-**New and migrated view code MUST NOT write new rules in `styles.css` and MUST NOT add custom palettes.**
-Use only Tailwind utility classes and the primitives vendored under `@/components/ui/` (`src/ui/components/ui/`). Legacy `styles.css` is retained solely for views that are not yet migrated.
+**Use Tailwind utilities and existing semantic tokens; do not add custom palettes.**
+Use the primitives vendored under `@/components/ui/` (`src/ui/components/ui/`).
 
 ---
 

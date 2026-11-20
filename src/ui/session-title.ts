@@ -60,6 +60,7 @@ export function cursorUserQuery(value: string): string | null {
 
 export function stripMarkupTags(value: string): string {
   return value
+    .replace(/^[\s\p{Co}\p{Cc}]+/u, "")
     .replace(/<\/?[a-z][a-z0-9_-]*\b[^>]*>/gi, " ")
     .replace(/\s+/g, " ")
     .trim();

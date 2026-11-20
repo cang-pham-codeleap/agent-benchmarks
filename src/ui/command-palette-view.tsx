@@ -16,6 +16,7 @@ import { locationPath } from "./link.tsx";
 import { navItems } from "./nav-items.ts";
 import { readRecentSearches, rememberSearch } from "./recent-searches.ts";
 import { searchRouteHref } from "./search-request.ts";
+import { stripMarkupTags } from "./session-title.ts";
 import type { IconName } from "./types.ts";
 
 export type PaletteItemKind = "recent" | "session" | "page" | "action" | "content-search";
@@ -65,7 +66,7 @@ export function CommandPalette({
         if (controller.signal.aborted) {
           return;
         }
-        setRows(nextRows);
+        setRows(nextRows.map((row) => ({ ...row, title: row.title == null ? null : stripMarkupTags(row.title) })));
         setLoadedRefreshKey(refreshKey);
       })
       .catch((error: unknown) => {

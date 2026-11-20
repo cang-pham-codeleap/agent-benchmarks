@@ -197,9 +197,7 @@ export function SessionsView({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
           <p className="text-sm text-muted-foreground">
-            Every Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot
-            Chat in VS Code, Hermes Agent, and Pi session log on this device, plus imported ATIF
-            trajectories.
+            Every agent session log on this device, plus imported ATIF trajectories.
           </p>
         </div>
         <DateRangeControl bounds={data.dateBounds} range={dateRange} onChange={onDateRangeChange} />
