@@ -32,7 +32,7 @@ Format: `[ID] [P?] [Story] Description`. `[P]` = parallel-safe (disjoint files).
 ## Phase 4: Verify (owner: lead)
 
 - [x] T030 `bun test`, `bunx tsc --noEmit`, `bunx biome check .`.
-- [ ] T031 E2E with real harnesses through the browser UI on a real repository commit; source repo unchanged; report offline check.
+- [x] T031 E2E with real harnesses through the browser UI on a real repository commit; source repo unchanged; report offline check.
 
 ## Dependencies
 
