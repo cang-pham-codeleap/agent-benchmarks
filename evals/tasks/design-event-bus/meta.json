@@ -1,0 +1,14 @@
+{
+  "id": "design-event-bus",
+  "category": "design",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["design", "event-bus", "reentrancy"],
+  "description": "Design a re-entrancy-safe event bus with once, wildcard listeners and error isolation.",
+  "broken": "removing a listener during emit skips the next listener (splice during live iteration)",
+  "verifyTimeoutMs": 60000
+}

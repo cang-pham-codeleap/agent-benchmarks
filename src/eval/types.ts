@@ -278,6 +278,7 @@ export interface EvalResults {
 export interface EvalTask {
   id: string;
   language: string;
+  category: string;
   description: string;
   suites: string[];
 }

@@ -872,12 +872,20 @@ rows. Delete a run's directory to remove it.
 | `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit) |
 | `plan.json`, `plan.default.json` | The `ach` matrix plan for the `current` and `default` configuration groups |
 | `ledger.jsonl`, `ledger.default.jsonl` | One `ach` record per cell and trial |
+| `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/` |
+| `bin/` | PATH shims that adapt a harness CLI's flags to the installed version |
 | `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit |
 | `reference/` | Replays: the human change from the replayed commit |
 | `real-spec.json` | Real tasks: what the grader needs (base commit, hidden paths, profile) |
 | `cells/<config>/<cell>/` | Real tasks: each cell's `diff.patch`, `result.json`, and `checks/` and `hidden/` logs |
 | `ach-state/` | `ach` state; real-task cell worktrees are created under it |
 | `home/codex/` | The clean Codex home of a `default` group, holding only a copy of `~/.codex/auth.json` at mode `0600` |
+
+The task picker groups tasks by their `meta.json` `category`, or by `language`
+when a task has none. `evals/tasks/` adds design, UI/UX, architecture,
+security, and database-design tasks graded with only `sh` and Node.js; `bun
+test test/eval-bundled-tasks.test.ts` proves each starter fails, reference
+passes, and planted bug fails.
 
 A real-task run never writes to your repository. Each cell works in its own
 git worktree of the private clone, and `ach trial --cleanup` removes the

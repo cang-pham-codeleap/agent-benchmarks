@@ -1,0 +1,14 @@
+{
+  "id": "sec-path-traversal",
+  "category": "security",
+  "language": "javascript",
+  "kind": "fix",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["security", "path-traversal", "fix"],
+  "description": "Fix a static file server's path resolver that lets requests escape the web root.",
+  "broken": "containment check uses startsWith(root) without a trailing separator, so a sibling dir like root-evil passes",
+  "verifyTimeoutMs": 60000
+}

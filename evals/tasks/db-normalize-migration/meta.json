@@ -1,0 +1,14 @@
+{
+  "id": "db-normalize-migration",
+  "category": "db-design",
+  "language": "sql",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["sqlite", "normalization", "migration"],
+  "description": "Write a transactional SQLite migration splitting a CSV tags column into tags/contact_tags tables.",
+  "broken": "does not lowercase tag names, so 'A' and 'a' become separate tags",
+  "verifyTimeoutMs": 60000
+}

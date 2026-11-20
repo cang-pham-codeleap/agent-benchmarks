@@ -148,8 +148,9 @@ async function startBenchmarkRun(
   prepareRunDir(runDir, input.setups);
   mkdirSync(join(runDir, "tasks"), { recursive: true });
   const taskHashes: Record<string, string> = {};
+  const taskDirs = new Map(readEvalTasks(achDir).map((source) => [source.task.id, source.dir]));
   for (const taskId of input.taskIds) {
-    const source = join(achDir, "tasks", taskId);
+    const source = taskDirs.get(taskId)!;
     const target = join(runDir, "tasks", taskId);
     cpSync(source, target, { recursive: true });
     taskHashes[taskId] = hashTree(target);
@@ -807,7 +808,7 @@ function validateInput(raw: unknown, achDir: string): BenchmarkRunInput {
     )
       throw new EvalRequestError(`${setup.harness} is not installed`, 503, "harness_missing");
   }
-  const taskSet = new Set(readEvalTasks(achDir).map((task) => task.id));
+  const taskSet = new Set(readEvalTasks(achDir).map((source) => source.task.id));
   if (
     !Array.isArray(input.taskIds) ||
     input.taskIds.length === 0 ||

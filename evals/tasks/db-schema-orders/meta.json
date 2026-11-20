@@ -1,0 +1,14 @@
+{
+  "id": "db-schema-orders",
+  "category": "db-design",
+  "language": "sql",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["sqlite", "schema", "constraints", "indexes"],
+  "description": "Design a SQLite shop schema with constraints, FK rules and indexes for the key queries.",
+  "broken": "no index serves order_items lookups by order_id (unique key leads with product_id)",
+  "verifyTimeoutMs": 60000
+}

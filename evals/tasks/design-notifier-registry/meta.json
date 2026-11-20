@@ -1,0 +1,14 @@
+{
+  "id": "design-notifier-registry",
+  "category": "design",
+  "language": "javascript",
+  "kind": "refactor",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["design", "refactor", "open-closed", "registry"],
+  "description": "Refactor a growing channel switch into an open/closed notifier registry.",
+  "broken": "channel registry is module-level, so channels registered on one notifier leak into every other",
+  "verifyTimeoutMs": 60000
+}

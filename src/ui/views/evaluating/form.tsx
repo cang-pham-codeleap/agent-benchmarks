@@ -119,7 +119,7 @@ export function EvalForm({
 }) {
   const installed = catalog.harnesses.filter((harness) => harness.installed);
   const reason = evaluationStartReason(input, catalog, busy);
-  const languages = [...new Set(catalog.tasks.map((task) => task.language))].sort();
+  const categories = [...new Set(catalog.tasks.map((task) => task.category))].sort();
   function updateSetup(index: number, patch: Partial<EvalSetup>) {
     onChange({
       ...input,
@@ -285,11 +285,11 @@ export function EvalForm({
         <fieldset className="space-y-3">
           <legend className="font-semibold">Tasks</legend>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {languages.map((language) => {
-              const tasks = catalog.tasks.filter((task) => task.language === language);
+            {categories.map((category) => {
+              const tasks = catalog.tasks.filter((task) => task.category === category);
               const selected = tasks.filter((task) => input.taskIds.includes(task.id)).length;
               return (
-                <div key={language} className="space-y-2 rounded-md border p-3">
+                <div key={category} className="space-y-2 rounded-md border p-3">
                   <label className="flex items-center gap-2 text-sm font-medium">
                     <Checkbox
                       checked={
@@ -303,7 +303,7 @@ export function EvalForm({
                         )
                       }
                     />
-                    {language}{" "}
+                    {category}{" "}
                     <span className="text-muted-foreground">
                       ({selected}/{tasks.length})
                     </span>

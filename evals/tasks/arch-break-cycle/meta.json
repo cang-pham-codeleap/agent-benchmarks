@@ -1,0 +1,14 @@
+{
+  "id": "arch-break-cycle",
+  "category": "architecture",
+  "language": "javascript",
+  "kind": "fix",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["architecture", "circular-dependency", "commonjs", "refactor"],
+  "description": "Break a catalog/pricing/inventory require cycle that makes exports undefined by entry point.",
+  "broken": "hides the cycle behind a lazy require inside a function; the static require graph still has a cycle",
+  "verifyTimeoutMs": 60000
+}

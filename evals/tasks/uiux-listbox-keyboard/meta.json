@@ -1,0 +1,14 @@
+{
+  "id": "uiux-listbox-keyboard",
+  "category": "ui-ux",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["ui-ux", "a11y", "keyboard", "aria", "reducer"],
+  "description": "Build a pure WAI-ARIA listbox reducer: arrow/Home/End keys, typeahead, select, ARIA props.",
+  "broken": "typeahead buffer never resets after the 500 ms gap",
+  "verifyTimeoutMs": 60000
+}

@@ -1,0 +1,14 @@
+{
+  "id": "sec-sql-injection",
+  "category": "security",
+  "language": "javascript",
+  "kind": "fix",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["security", "sql-injection", "sqlite"],
+  "description": "Make three string-built SQLite queries injection-safe, incl. literal LIKE matching and a sort whitelist.",
+  "broken": "escapes quotes by hand but leaves LIKE wildcards % and _ unescaped",
+  "verifyTimeoutMs": 60000
+}

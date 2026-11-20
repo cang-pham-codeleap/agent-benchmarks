@@ -1,0 +1,14 @@
+{
+  "id": "uiux-accessible-form",
+  "category": "ui-ux",
+  "language": "javascript",
+  "kind": "fix",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["ui-ux", "accessibility", "wcag", "html", "forms"],
+  "description": "Fix an inaccessible signup form: labels, ARIA error wiring, real button, autocomplete, alert summary.",
+  "broken": "does not HTML-escape user-supplied values in the value attribute",
+  "verifyTimeoutMs": 60000
+}

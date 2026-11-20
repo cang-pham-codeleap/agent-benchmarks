@@ -1,0 +1,14 @@
+{
+  "id": "arch-ports-adapters",
+  "category": "architecture",
+  "language": "javascript",
+  "kind": "refactor",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["refactor", "architecture", "hexagonal", "dependency-injection"],
+  "description": "Refactor an order module into ports and adapters with a pure, injectable domain layer.",
+  "broken": "domain still requires node:path",
+  "verifyTimeoutMs": 60000
+}

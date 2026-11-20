@@ -32,15 +32,22 @@ export async function readCatalog(db: Database, activeRunId: string | null): Pro
         } as EvalHarnessInfo;
       }),
     ),
-    tasks: checkout.ok ? tasksFrom(achDir) : [],
+    tasks: checkout.ok ? readEvalTasks(achDir).map((source) => source.task) : [],
     presets: Object.values(EVAL_PRESETS),
     limits: { ...EVAL_LIMITS },
     activeRunId,
   };
 }
 
-export function readEvalTasks(achDir: string): EvalTask[] {
-  return tasksFrom(achDir);
+export const BUNDLED_TASKS_DIR = join(import.meta.dir, "..", "..", "evals", "tasks");
+
+export interface EvalTaskSource {
+  task: EvalTask;
+  dir: string;
+}
+
+export function readEvalTasks(achDir: string): EvalTaskSource[] {
+  return [...tasksFrom(join(achDir, "tasks")), ...tasksFrom(BUNDLED_TASKS_DIR)];
 }
 
 function checkAchCheckout(achDir: string): {
@@ -61,9 +68,9 @@ function checkAchCheckout(achDir: string): {
   return { ok: true, problem: null, commit: gitCommit(achDir) };
 }
 
-function tasksFrom(achDir: string): EvalTask[] {
-  const root = join(achDir, "tasks");
-  const tasks: EvalTask[] = [];
+function tasksFrom(root: string): EvalTaskSource[] {
+  if (!existsSync(root)) return [];
+  const tasks: EvalTaskSource[] = [];
   for (const id of readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -76,13 +83,18 @@ function tasksFrom(achDir: string): EvalTask[] {
         unknown
       >;
       const declaredId = typeof meta.id === "string" ? meta.id : id;
+      const language = typeof meta.language === "string" ? meta.language : "unknown";
       tasks.push({
-        id: declaredId,
-        language: typeof meta.language === "string" ? meta.language : "unknown",
-        description: typeof meta.description === "string" ? meta.description : id,
-        suites: Array.isArray(meta.suites)
-          ? meta.suites.filter((value): value is string => typeof value === "string")
-          : [],
+        dir,
+        task: {
+          id: declaredId,
+          language,
+          category: typeof meta.category === "string" ? meta.category : language,
+          description: typeof meta.description === "string" ? meta.description : id,
+          suites: Array.isArray(meta.suites)
+            ? meta.suites.filter((value): value is string => typeof value === "string")
+            : [],
+        },
       });
     } catch (error) {
       console.error(`[eval/catalog] ${id}: ignoring invalid meta.json`, error);

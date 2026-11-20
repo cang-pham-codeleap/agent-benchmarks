@@ -20,7 +20,7 @@ const catalog: EvalCatalog = {
       defaultConfigProblem: null,
     },
   ],
-  tasks: [{ id: "one", language: "shell", description: "One", suites: [] }],
+  tasks: [{ id: "one", language: "shell", category: "shell", description: "One", suites: [] }],
   presets: [],
   limits: {
     maxTrials: 10,
