@@ -8,6 +8,7 @@ export interface EvalRegistryRun {
   runId: string;
   sessionId?: string;
   cwd?: string;
+  hermetic?: { tempDir: string };
   startedAt: number;
   updatedAt?: number;
 }
@@ -104,27 +105,35 @@ type CostRow = {
 };
 
 function findByCwdAndTime(db: Database, tool: string, registry: EvalRegistryRun): { id: number }[] {
-  const cwd = registry.cwd;
-  if (cwd == null) return [];
-  let realCwd: string;
-  try {
-    realCwd = realpathSync(cwd);
-  } catch (error) {
-    console.error(
-      `[eval/cost] run cwd no longer exists for ${registry.runId}; matching its path text`,
-      error,
-    );
-    realCwd = cwd;
+  const tempDir = registry.hermetic?.tempDir;
+  let cwds: [string, string];
+  if (tempDir != null) {
+    // macOS /tmp is a symlink to /private/tmp, and harnesses record either spelling.
+    cwds = [tempDir, tempDir.replace(/^\/private\/tmp\//, "/tmp/")];
+  } else {
+    const cwd = registry.cwd;
+    if (cwd == null) return [];
+    let realCwd: string;
+    try {
+      realCwd = realpathSync(cwd);
+    } catch (error) {
+      console.error(
+        `[eval/cost] run cwd no longer exists for ${registry.runId}; matching its path text`,
+        error,
+      );
+      realCwd = cwd;
+    }
+    cwds = [realCwd, realCwd];
   }
   const start = registry.startedAt - 60_000;
   const end = (registry.updatedAt ?? registry.startedAt) + 60_000;
   return db
-    .query<{ id: number }, [string, string, string, string]>(
+    .query<{ id: number }, [string, string, string, string, string]>(
       `SELECT id FROM session
-     WHERE tool = ?1 AND is_subagent = 0 AND cwd = ?2
+     WHERE tool = ?1 AND is_subagent = 0 AND cwd IN (?2, ?5)
        AND started_at >= ?3 AND started_at <= ?4 LIMIT 2`,
     )
-    .all(tool, realCwd, new Date(start).toISOString(), new Date(end).toISOString());
+    .all(tool, cwds[0], new Date(start).toISOString(), new Date(end).toISOString(), cwds[1]);
 }
 
 function unavailable(reason: "not-found" | "ambiguous"): JoinedSessionCost {
