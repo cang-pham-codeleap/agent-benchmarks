@@ -1,6 +1,6 @@
 {
   "name": "agent-benchmarks",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Private research app for benchmarking models, harnesses, and agentic workflows from local agent session logs.",
   "license": "Apache-2.0",
