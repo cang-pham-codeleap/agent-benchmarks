@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { toCellOutcome } from "../src/eval/ledger.ts";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { lastAgentError, toCellOutcome } from "../src/eval/ledger.ts";
 import { pairedComparisons, setupKey, summarizeSetups } from "../src/eval/stats.ts";
 import type { EvalCell, EvalSetup } from "../src/eval/types.ts";
 
@@ -128,5 +131,24 @@ describe("ledger outcome mapping", () => {
     expect(toCellOutcome("error", "error", "pass")).toBe("agent-error");
     expect(toCellOutcome("error", "timeout", "pass")).toBe("timeout");
     expect(toCellOutcome("verify-failed", "budget_exceeded", "pass")).toBe("budget-stop");
+  });
+
+  test("an unavailable cell explains itself with the error that ended the agent", () => {
+    const path = join(mkdtempSync(join(tmpdir(), "ab-raw-")), "codex.jsonl");
+    writeFileSync(
+      path,
+      [
+        { type: "error", message: "Reconnecting... 1/5 (401 Unauthorized)" },
+        { type: "error", message: "unexpected status 401 Unauthorized: Incorrect API key" },
+        { type: "model_call_end" },
+        { type: "error", message: "codex exited with code 1: ERROR websocket" },
+      ]
+        .map((event) => JSON.stringify(event))
+        .join("\n"),
+    );
+    expect(lastAgentError({ rawTranscript: path })).toBe(
+      "unexpected status 401 Unauthorized: Incorrect API key",
+    );
+    expect(lastAgentError({ rawTranscript: null })).toBeNull();
   });
 });

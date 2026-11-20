@@ -50,6 +50,32 @@ interface RunRecord extends EvalRegistryRun {
     tokens?: { available?: boolean };
   };
   verify?: { durationMs?: number };
+  rawTranscript?: string | null;
+}
+
+const AGENT_ERROR_CHARS = 400;
+
+/** ach keeps an unavailable or crashed agent's reason only in its raw event stream; the last error that is
+ * not a retry notice is the one that ended the run. */
+export function lastAgentError(
+  record: { rawTranscript?: string | null } | null | undefined,
+): string | null {
+  if (record?.rawTranscript == null || !existsSync(record.rawTranscript)) return null;
+  const lines = readFileSync(record.rawTranscript, "utf8").split("\n");
+  let fallback: string | null = null;
+  for (let index = lines.length - 1; index >= 0; index--) {
+    let event: { type?: string; message?: unknown };
+    try {
+      event = JSON.parse(lines[index]!);
+    } catch {
+      continue;
+    }
+    if (event.type !== "error" || typeof event.message !== "string") continue;
+    if (event.message.startsWith("Reconnecting")) continue;
+    if (!/ exited with code /.test(event.message)) return event.message.slice(0, AGENT_ERROR_CHARS);
+    fallback ??= event.message.slice(0, AGENT_ERROR_CHARS);
+  }
+  return fallback;
 }
 
 export function toCellOutcome(
@@ -156,7 +182,11 @@ export function readEvalCells(
             status: row.status,
             exitStatus: row.exitStatus ?? null,
             verify: row.verify ?? null,
-            error: row.error ?? null,
+            error:
+              row.error ??
+              (outcome === "unavailable" || outcome === "agent-error"
+                ? lastAgentError(record)
+                : null),
             runId: row.runId,
           },
         });

@@ -235,7 +235,12 @@ function CompareColumn({
           )}
         </TabsContent>
         {cell && (
-          <TabsContent value="transcript" className="text-sm">
+          <TabsContent value="transcript" className="space-y-2 text-sm">
+            {cell.raw.error && (
+              <pre className="whitespace-pre-wrap break-all rounded-md border p-2 text-xs">
+                {cell.raw.error}
+              </pre>
+            )}
             {session ? (
               <>
                 <Link href={`/sessions/${session.id}`}>Open {session.tool} transcript</Link>
