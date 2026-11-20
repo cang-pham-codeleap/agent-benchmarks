@@ -425,6 +425,8 @@ export function readRealResults(
   const humanLines = human == null ? 0 : human.added + human.removed;
   const summaries: RealResults["cells"] = {};
   for (const cell of cells) {
+    // ach still runs verify after an unavailable agent; that untouched workspace says nothing about the combo.
+    if (cell.outcome === "unavailable") continue;
     const id = parseApiCellId(cell.cellId);
     const result =
       id == null

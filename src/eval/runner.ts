@@ -32,6 +32,7 @@ import {
 } from "./ledger.ts";
 import { apiCellId, ledgerFile, planFile, repoProfilesPath } from "./paths.ts";
 import { prepareRealRun, readRealResults, rememberProfile, validateRealInput } from "./real.ts";
+import { shellQuote } from "./real-verify.ts";
 import { configGroupEnv, EVAL_HARNESSES, EVAL_LIMITS } from "./registry.ts";
 import { pairedComparisons, summarizeSetups } from "./stats.ts";
 import type {
@@ -611,6 +612,9 @@ function spawnGroup(
     AGENTIC_CODING_HARNESS_HERMETIC_ROOT: hermeticRoot ?? undefined,
     AGENT_BENCHMARKS_EVAL_RUN: manifest.id,
   };
+  const codex = Bun.which("codex");
+  if (hermeticRoot == null && codex != null && harnesses.includes("codex"))
+    env.PATH = `${writableCodexShim(runDir, codex)}:${env.PATH ?? ""}`;
   for (const [key, value] of Object.entries(env)) if (value === undefined) delete env[key];
   const child = Bun.spawn(args, {
     cwd: join(runDir, "cwd"),
@@ -629,6 +633,20 @@ function spawnGroup(
     console.error(`[eval/runner] stderr pipe failed for ${manifest.id}`, error),
   );
   return child;
+}
+
+/** `codex exec` defaults to a read-only sandbox and ach has no flag for it, so real tasks get the
+ * interactive default (`workspace-write`) through a `codex` shim placed first on PATH. */
+function writableCodexShim(runDir: string, codex: string): string {
+  const bin = join(runDir, "bin");
+  mkdirSync(bin, { recursive: true });
+  const real = shellQuote(codex);
+  writeFileSync(
+    join(bin, "codex"),
+    `#!/bin/sh\nif [ "$1" = exec ]; then shift; exec ${real} exec --sandbox workspace-write "$@"; fi\nexec ${real} "$@"\n`,
+    { mode: 0o755 },
+  );
+  return bin;
 }
 
 async function syncAfterRun(
