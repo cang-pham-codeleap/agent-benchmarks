@@ -1,0 +1,396 @@
+import { AlertDialog } from "radix-ui";
+import { useEffect, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type {
+  EvalCatalog,
+  EvalProgressEvent,
+  EvalResults,
+  EvalRunInput,
+  EvalRunManifest,
+} from "../../eval/types.ts";
+import { getJson } from "../api.ts";
+import { ApiFailureState } from "../api-failure.tsx";
+import { durationPrecise } from "../format.ts";
+import { Link, visit } from "../link.tsx";
+import { EvalForm } from "./evaluating/form.tsx";
+import { EvalResultsView } from "./evaluating/results.tsx";
+
+function initialInput(catalog: EvalCatalog): EvalRunInput {
+  const preset = catalog.presets.find((item) => item.id === "smoke");
+  const harness = catalog.harnesses.find((item) => item.installed);
+  return {
+    name: `Evaluation ${new Date().toLocaleDateString()}`,
+    setups: harness ? [{ harness: harness.harness, model: "" }] : [],
+    taskIds: preset?.taskIds ?? [],
+    trials: preset?.trials ?? 1,
+    wallMs: catalog.limits.defaultWallMs,
+    preset: preset?.id ?? "custom",
+  };
+}
+
+function ActiveRun({
+  result,
+  busy,
+  onCancel,
+}: {
+  result: EvalResults;
+  busy: boolean;
+  onCancel: (manifest: EvalRunManifest) => void;
+}) {
+  const [now, setNow] = useState(Date.now());
+  const { manifest, progress } = result;
+  useEffect(() => {
+    if (manifest.status !== "running") return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [manifest.status]);
+  const elapsed = Math.max(
+    0,
+    (manifest.endedAt ? new Date(manifest.endedAt).getTime() : now) -
+      new Date(manifest.startedAt).getTime(),
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle>Active run</CardTitle>
+            <CardDescription>
+              {manifest.input.name} · {manifest.status}
+            </CardDescription>
+          </div>
+          {manifest.status === "running" && (
+            <AlertDialog.Root>
+              <AlertDialog.Trigger asChild>
+                <Button type="button" variant="outline" disabled={busy}>
+                  Cancel run
+                </Button>
+              </AlertDialog.Trigger>
+              <AlertDialog.Portal>
+                <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+                <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg">
+                  <AlertDialog.Title className="text-lg font-semibold">
+                    Cancel evaluation?
+                  </AlertDialog.Title>
+                  <AlertDialog.Description className="text-sm text-muted-foreground">
+                    Cancel is best effort; leftover processes are listed if any survive.
+                  </AlertDialog.Description>
+                  <div className="flex justify-end gap-2">
+                    <AlertDialog.Cancel asChild>
+                      <Button variant="outline">Keep running</Button>
+                    </AlertDialog.Cancel>
+                    <AlertDialog.Action asChild>
+                      <Button variant="destructive" onClick={() => onCancel(manifest)}>
+                        Cancel run
+                      </Button>
+                    </AlertDialog.Action>
+                  </div>
+                </AlertDialog.Content>
+              </AlertDialog.Portal>
+            </AlertDialog.Root>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap justify-between gap-2 text-sm">
+          <span>
+            {progress.done} / {progress.total} runs complete
+          </span>
+          <span>Elapsed {Number.isFinite(elapsed) ? durationPrecise(elapsed) : "unavailable"}</span>
+        </div>
+        <progress
+          aria-label="Evaluation progress"
+          value={progress.done}
+          max={Math.max(progress.total, 1)}
+          className="h-2 w-full accent-primary"
+        />
+        <p className="break-words text-sm text-muted-foreground">
+          Current cell: {progress.currentCell || "Waiting for a cell"}
+        </p>
+        {manifest.status === "cancel-incomplete" && (
+          <Alert variant="destructive">
+            <AlertTitle>Cancellation incomplete</AlertTitle>
+            <AlertDescription>
+              Surviving process IDs: {manifest.survivors.join(", ") || "unavailable"}. Resume is
+              unavailable while processes survive.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function EvaluatingView({
+  path,
+  progress,
+}: {
+  path: string;
+  progress: EvalProgressEvent | null;
+}) {
+  const selectedId = new URLSearchParams(path.split("?", 2)[1] ?? "").get("run");
+  const [catalog, setCatalog] = useState<EvalCatalog | null>(null);
+  const [runs, setRuns] = useState<EvalRunManifest[] | null>(null);
+  const [input, setInput] = useState<EvalRunInput | null>(null);
+  const [selected, setSelected] = useState<EvalResults | null>(null);
+  const [active, setActive] = useState<EvalResults | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [resultError, setResultError] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const refresh = () => {
+    setError(null);
+    setRevision((value) => value + 1);
+  };
+  const activeId =
+    catalog?.activeRunId ??
+    runs?.find((run) => run.status === "running" || run.status === "cancel-incomplete")?.id ??
+    null;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void Promise.all([
+      getJson<EvalCatalog>("/api/evals/catalog", { signal: controller.signal }),
+      getJson<EvalRunManifest[]>("/api/evals", { signal: controller.signal }),
+    ])
+      .then(([nextCatalog, nextRuns]) => {
+        if (controller.signal.aborted) return;
+        setCatalog(nextCatalog);
+        setRuns(nextRuns);
+        setInput((current) => current ?? initialInput(nextCatalog));
+      })
+      .catch((failure: unknown) => {
+        if (!controller.signal.aborted) setError(failure);
+      });
+    return () => controller.abort();
+  }, [revision, progress]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setSelected(null);
+      setResultError(null);
+      return;
+    }
+    const controller = new AbortController();
+    setResultError(null);
+    void getJson<EvalResults>(`/api/evals/${encodeURIComponent(selectedId)}`, {
+      signal: controller.signal,
+    })
+      .then((result) => {
+        if (!controller.signal.aborted) setSelected(result);
+      })
+      .catch((failure: unknown) => {
+        if (!controller.signal.aborted) setResultError(failure);
+      });
+    return () => controller.abort();
+  }, [selectedId, revision, progress]);
+
+  useEffect(() => {
+    if (!activeId) {
+      setActive(null);
+      return;
+    }
+    const controller = new AbortController();
+    void getJson<EvalResults>(`/api/evals/${encodeURIComponent(activeId)}`, {
+      signal: controller.signal,
+    })
+      .then((result) => {
+        if (!controller.signal.aborted) setActive(result);
+      })
+      .catch((failure: unknown) => {
+        if (!controller.signal.aborted) setError(failure);
+      });
+    return () => controller.abort();
+  }, [activeId, revision, progress]);
+
+  useEffect(() => {
+    if (!progress?.runId || progress.runId === selectedId || progress.runId === activeId) return;
+    const controller = new AbortController();
+    void getJson<EvalResults>(`/api/evals/${encodeURIComponent(progress.runId)}`, {
+      signal: controller.signal,
+    }).catch((failure: unknown) => {
+      if (!controller.signal.aborted) setError(failure);
+    });
+    return () => controller.abort();
+  }, [progress, selectedId, activeId]);
+
+  function selectRun(id: string) {
+    const params = new URLSearchParams(path.split("?", 2)[1] ?? "");
+    params.set("run", id);
+    visit(`/evaluating?${params}`);
+  }
+  async function mutate(url: string, body: unknown, select: boolean) {
+    setBusy(true);
+    setError(null);
+    try {
+      const manifest = await getJson<EvalRunManifest>(url, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (select) selectRun(manifest.id);
+      refresh();
+    } catch (failure) {
+      setError(failure);
+      setRevision((value) => value + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const current = selected?.manifest.id === selectedId ? selected : null;
+  const activeResult = active?.manifest.id === activeId ? active : null;
+  return (
+    <div className="flex min-w-0 flex-col gap-6 p-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">Evaluating</h1>
+        <p className="text-sm text-muted-foreground">
+          Run the same tasks on several harness and model setups, then compare verified results.
+        </p>
+      </header>
+      {error != null && <ApiFailureState error={error} onRetry={refresh} />}
+      {!catalog || !runs || !input ? (
+        <div className="space-y-4" aria-label="Loading evaluations">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <>
+          {!catalog.ach.ok && (
+            <Alert variant="destructive">
+              <AlertTitle>ach checkout unavailable</AlertTitle>
+              <AlertDescription>
+                {catalog.ach.problem || "Configure the ach checkout."}{" "}
+                <Link href="/settings" className="underline">
+                  Open Settings
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+          {activeId &&
+            (activeResult ? (
+              <ActiveRun
+                result={activeResult}
+                busy={busy}
+                onCancel={(run) =>
+                  void mutate(`/api/evals/${encodeURIComponent(run.id)}/cancel`, {}, false)
+                }
+              />
+            ) : (
+              <Skeleton className="h-36 w-full" />
+            ))}
+          {selectedId &&
+            (resultError != null ? (
+              <ApiFailureState error={resultError} onRetry={refresh} />
+            ) : current ? (
+              <div key={current.manifest.id}>
+                {current.manifest.status === "cancel-incomplete" &&
+                  current.manifest.id !== activeId && (
+                    <Alert className="mb-4" variant="destructive">
+                      <AlertTitle>Cancellation incomplete</AlertTitle>
+                      <AlertDescription>
+                        Surviving process IDs:{" "}
+                        {current.manifest.survivors.join(", ") || "unavailable"}.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                <EvalResultsView
+                  results={current}
+                  busy={busy || !!activeId}
+                  onResume={(run, retryFailed) =>
+                    void mutate(
+                      `/api/evals/${encodeURIComponent(run.id)}/resume`,
+                      { retryFailed },
+                      true,
+                    )
+                  }
+                />
+              </div>
+            ) : (
+              <Skeleton className="h-48 w-full" />
+            ))}
+          <EvalForm
+            catalog={catalog}
+            input={input}
+            onChange={setInput}
+            busy={busy}
+            onStart={() => void mutate("/api/evals", input, true)}
+          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Past runs</CardTitle>
+              <CardDescription>Select a run to inspect its results and manifest.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {runs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No evaluations yet. Try the Smoke preset to check your setup.
+                </p>
+              ) : (
+                <div
+                  className="overflow-x-auto rounded-md border"
+                  role="region"
+                  aria-label="Past evaluation runs"
+                  tabIndex={0}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Setups</TableHead>
+                        <TableHead>Cells</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {runs.map((run) => (
+                        <TableRow
+                          key={run.id}
+                          data-state={selectedId === run.id ? "selected" : undefined}
+                        >
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="h-auto whitespace-normal p-0 text-left"
+                              onClick={() => selectRun(run.id)}
+                            >
+                              {run.input.name}
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{run.status}</Badge>
+                          </TableCell>
+                          <TableCell>{new Date(run.createdAt).toLocaleString()}</TableCell>
+                          <TableCell>
+                            {run.input.setups
+                              .map((setup) => `${setup.harness} / ${setup.model}`)
+                              .join(", ")}
+                          </TableCell>
+                          <TableCell>
+                            {run.input.setups.length * run.input.taskIds.length * run.input.trials}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}

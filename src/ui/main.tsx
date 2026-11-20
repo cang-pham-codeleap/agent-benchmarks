@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Gauge, Monitor, Moon, Search, Settings, Sun } from "lucide-react";
+import type { EvalProgressEvent } from "../eval/types.ts";
 import { ApiError, getJson, getSyncStatus } from "./api.ts";
 import { ApiFailureState } from "./api-failure.tsx";
 import { paletteShortcutLabel, shouldOpenCommandPalette } from "./command-palette.ts";
@@ -101,6 +102,7 @@ import type {
 } from "./types.ts";
 import { AnalyticsView } from "./views/analytics.tsx";
 import { CompareView } from "./views/compare.tsx";
+import { EvaluatingView } from "./views/evaluating.tsx";
 import { FilesView } from "./views/files.tsx";
 import { InsightsView } from "./views/insights.tsx";
 import { ProjectsView } from "./views/projects.tsx";
@@ -143,6 +145,7 @@ function App() {
   const [syncError, setSyncError] = useState<unknown>(null);
   const [syncComplete, setSyncComplete] = useState(false);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
+  const [evalProgress, setEvalProgress] = useState<EvalProgressEvent | null>(null);
   const [archiveSynced, setArchiveSynced] = useState(true);
   const [syncNoticeShown, setSyncNoticeShown] = useState(false);
   const [archiveUpdateAvailable, setArchiveUpdateAvailable] = useState(false);
@@ -517,6 +520,10 @@ function App() {
         }
       } catch {}
     };
+    const handleEvalProgress = (event: MessageEvent<string>) => {
+      markConnected();
+      try { setEvalProgress(JSON.parse(event.data) as EvalProgressEvent); } catch {}
+    };
     const handleSync = (event: MessageEvent<string>) => {
       markConnected();
       let payload: ServerEventPayload = {};
@@ -608,6 +615,7 @@ function App() {
     events.addEventListener("hello", handleHeartbeat);
     events.addEventListener("ping", handleHeartbeat);
     events.addEventListener("sync_progress", handleProgress as EventListener);
+    events.addEventListener("eval_progress", handleEvalProgress as EventListener);
     events.addEventListener("sync", handleSync);
     events.addEventListener("archive_updated", handleArchiveUpdated as EventListener);
     events.addEventListener("error", handleError);
@@ -616,6 +624,7 @@ function App() {
       events.removeEventListener("hello", handleHeartbeat);
       events.removeEventListener("ping", handleHeartbeat);
       events.removeEventListener("sync_progress", handleProgress as EventListener);
+      events.removeEventListener("eval_progress", handleEvalProgress as EventListener);
       events.removeEventListener("sync", handleSync);
       events.removeEventListener("archive_updated", handleArchiveUpdated as EventListener);
       events.removeEventListener("error", handleError);
@@ -825,6 +834,7 @@ function App() {
             {activeView === "sessions" && sessionFailure === "replace" ? <ApiFailureState error={sessionPageState.error} onRetry={requestRefresh} onSync={runSync} /> : renderView(activeView, path, data, {
               dashboardQuery,
               dateRange: dateRangeSelection,
+              evalProgress,
               onDateRangeChange: handleDateRangeChange,
               onSessionTextFilterChange: setSessionTextFilterActive,
               onSourceChange: setSourceSelection,
@@ -854,6 +864,7 @@ function renderView(
   actions: {
     dashboardQuery: string;
     dateRange: DateRangeSelection;
+    evalProgress: EvalProgressEvent | null;
     onDateRangeChange: (range: DateRangeSelection) => void;
     onSessionTextFilterChange: (active: boolean) => void;
     onSourceChange: (source: DashboardSource) => void;
@@ -909,6 +920,8 @@ function renderView(
       return <SearchView dateRange={actions.dateRange} path={path} />;
     case "compare":
       return <CompareView data={data} dateRange={actions.dateRange} onDateRangeChange={actions.onDateRangeChange} reloadKey={actions.reloadKey} />;
+    case "evaluating":
+      return <EvaluatingView path={path} progress={actions.evalProgress} />;
     case "analytics":
       return (
         <AnalyticsView
