@@ -43,7 +43,11 @@ const IGNORED_TYPES = new Set([
   "session.compaction_start",
   "session.task_complete",
   "session.completion_receipt",
+  "session.tool_outcomes_recorded",
+  "session.fusion_handoff",
   "session.fusion_route_failed",
+  "session.fusion_commit_started",
+  "session.fusion_change_checkpoint",
   "session.fusion_resolved",
   "session.fusion_completed",
   "session.permission_recovery",
@@ -58,6 +62,8 @@ const IGNORED_TYPES = new Set([
   "tool.user_requested",
   "tool_search.activated",
   "skill.invoked",
+  "skill.invoked_ref",
+  "skill.context_delivered_ref",
   "subagent.started",
   "subagent.configured",
   "subagent.completed",
@@ -67,6 +73,15 @@ const IGNORED_TYPES = new Set([
   "hook.start",
   "hook.end",
   "instruction.update",
+  "instruction.update_delivery",
+  "model.turn_started",
+  "model.turn_ended",
+  "model.model_call_started",
+  "model.model_call_success",
+  "model.captured_assignment_context",
+  "model.message",
+  "model.response",
+  "model.messages_snapshot",
   "system.notification",
   "permission.requested",
   "permission.completed",
@@ -99,6 +114,8 @@ export interface CopilotModelUsageRow {
   usage: TokenUsage;
 }
 
+const COPILOT_FUSION_MODEL = "copilot-fusion";
+
 export function parseCopilotSession(fallbackId: string, content: string): ParsedSession {
   const issues: ParsedSession["issues"] = [];
   const unknownTypes: UnknownTypes = new Map();
@@ -120,6 +137,8 @@ export function parseCopilotSession(fallbackId: string, content: string): Parsed
   let cwd: string | null = null;
   let gitBranch: string | null = null;
   let currentModel: string | null = null;
+  let selectedModel: string | null = null;
+  let fusionRouted = false;
   let cliVersion: string | null = null;
   let startedAt: string | null = null;
   let endedAt: string | null = null;
@@ -177,6 +196,9 @@ export function parseCopilotSession(fallbackId: string, content: string): Parsed
       startedAt ??= timestamp;
       endedAt = timestamp;
     }
+    if (typ.startsWith("session.fusion_") || typ.startsWith("assistant.fusion_")) {
+      fusionRouted = true;
+    }
 
     switch (typ) {
       case "session.start":
@@ -194,6 +216,7 @@ export function parseCopilotSession(fallbackId: string, content: string): Parsed
         cwd = asString(get(context, "cwd")) ?? cwd;
         gitBranch = asString(get(context, "branch")) ?? gitBranch;
         currentModel = asString(data.selectedModel) ?? currentModel;
+        selectedModel = currentModel;
         collectEffort(efforts, data.reasoningEffort);
         break;
       }
@@ -202,6 +225,7 @@ export function parseCopilotSession(fallbackId: string, content: string): Parsed
           break;
         }
         currentModel = asString(data.newModel) ?? currentModel;
+        selectedModel = currentModel;
         collectEffort(efforts, data.reasoningEffort);
         break;
       }
@@ -424,7 +448,11 @@ export function parseCopilotSession(fallbackId: string, content: string): Parsed
     title: firstUserText == null ? null : preview(firstUserText.trim(), 120),
     cwd,
     gitBranch,
-    model: sessionModel(modelUsage, messageModels) ?? currentModel,
+    // Copilot's "auto" selection is Copilot Fusion; usage rows keep the models it routed to.
+    model:
+      fusionRouted && selectedModel === "auto"
+        ? COPILOT_FUSION_MODEL
+        : (sessionModel(modelUsage, messageModels) ?? currentModel),
     reasoningEffort: summarizeReasoningEfforts(efforts),
     reasoningEffortLevels: reasoningEffortLevels(efforts),
     cliVersion,

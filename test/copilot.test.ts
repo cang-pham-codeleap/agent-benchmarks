@@ -557,6 +557,33 @@ describe("parseCopilotSession", () => {
     });
     expect(session.model).toBe("gpt-5.4");
   });
+
+  test("labels a Copilot Fusion session while usage keeps the routed models", () => {
+    const fusion = (selection: string): string =>
+      [
+        event("session.start", { sessionId: "s", selectedModel: "claude-sonnet-5.5" }, "e1"),
+        event("session.model_change", { newModel: selection }, "e2"),
+        event(
+          "session.fusion_resolved",
+          { syntheticModel: "hydrafusion", primaryModel: "gpt-6-luna" },
+          "e3",
+        ),
+        usageRecord("e4", "call-1", "gpt-6-luna", { inputTokens: 100, outputTokens: 10 }),
+        usageRecord("e5", "call-2", "gpt-6.1-terra", { inputTokens: 100, outputTokens: 50 }),
+        event("session.fusion_completed", { syntheticModel: "hydrafusion" }, "e6"),
+        event("session.shutdown", { currentModel: "gpt-6-luna", modelMetrics: {} }, "e7"),
+      ].join("\n");
+
+    const { session, issues } = parseCopilotSession("fallback", fusion("auto"));
+    expect(issues).toEqual([]);
+    expect(session.model).toBe("copilot-fusion");
+    expect(session.rawMeta).toMatchObject({
+      modelUsage: [{ model: "gpt-6-luna" }, { model: "gpt-6.1-terra" }],
+    });
+    expect(parseCopilotSession("fallback", fusion("claude-sonnet-5.5")).session.model).toBe(
+      "gpt-6.1-terra",
+    );
+  });
 });
 
 describe("recordsUnlessShortOfSnapshots", () => {

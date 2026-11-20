@@ -134,6 +134,10 @@ underlying model's API rates. That estimate is not a count of Copilot premium
 requests.
 
 Decant does not read the rotated `events.<n>.jsonl` archives Copilot writes
+A session that ends on Copilot Fusion (the `auto` model) is labeled
+`copilot-fusion`. Its per-model usage, and therefore its cost, stays with the
+models Fusion routed each request to.
+
 only when `COPILOT_SESSION_EVENT_LOG_ROTATION_BYTES` is set. The current
 `events.jsonl` replays the earlier history at its start.
 
