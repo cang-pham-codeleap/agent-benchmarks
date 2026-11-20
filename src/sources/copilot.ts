@@ -1,6 +1,7 @@
 import { linkageIssues } from "../diagnostics.ts";
 import { asInteger, asString, get, hasKey, isObject, type JsonObject } from "../json.ts";
 import {
+  DEFAULT_PROVIDERS,
   emptyUsage,
   type Json,
   type NormalizedBlock,
@@ -417,6 +418,7 @@ export function parseCopilotSession(fallbackId: string, content: string): Parsed
 
   const normalized: NormalizedSession = {
     tool: "copilot",
+    provider: DEFAULT_PROVIDERS.copilot,
     sourceSessionId: sourceSessionId ?? fallbackId,
     projectPath: cwd,
     title: firstUserText == null ? null : preview(firstUserText.trim(), 120),

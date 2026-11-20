@@ -22,6 +22,8 @@ For how sync discovers, re-reads, and stores each source, see
 | ATIF trajectories | `~/.decant/atif` | `DECANT_ATIF_DIR` | `--atif-dir` |
 | Hermes Agent | `~/.hermes` | `DECANT_HERMES_DIR` | `--hermes-dir` |
 | Pi | `~/.pi/agent/sessions` | `DECANT_PI_DIR` | `--pi-dir` |
+| Oh My Pi | `~/.omp/agent/sessions` | `DECANT_OMP_DIR` | `--omp-dir` |
+| Factory Droid | `~/.factory/sessions` | `DECANT_DROID_DIR` | `--droid-dir` |
 
 The flags work on `sync`, `watch`, and `serve`.
 
@@ -266,6 +268,22 @@ usage at its own rates and uses Pi's recorded cost only for a model it has no
 rate for, such as a local model.
 
 `--path` also accepts a Pi session file, or a directory holding them.
+
+## Oh My Pi
+
+Oh My Pi uses a Pi-derived session format. Side-call `model_usage` records count
+as billed model usage; named subagent and advisor files link to their parent.
+Tool output `.log` files are not ingested.
+
+## Factory Droid
+
+Droid stores a JSONL transcript and a sibling `.settings.json` file per session.
+Decant reads the settings' `tokenUsage` as session totals and attributes them to
+the settings model. Per-message model usage is not recorded, so model changes
+within a session cannot be attributed separately. Custom model IDs remain as
+recorded: their display aliases do not reliably identify the underlying model.
+Aliases are marked in session metadata; any matching list-price estimate may
+not reflect the actual model behind the alias.
 
 ## Input limits
 

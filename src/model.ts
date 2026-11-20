@@ -9,8 +9,30 @@ export const TOOLS = [
   "atif",
   "hermes",
   "pi",
+  "omp",
+  "droid",
 ] as const;
 export type Tool = (typeof TOOLS)[number];
+
+export const DEFAULT_PROVIDERS: Record<Tool, string | null> = {
+  claude_code: "anthropic",
+  codex: null,
+  gemini: "google",
+  opencode: null,
+  cursor: null,
+  copilot: "github-copilot",
+  vscode_copilot: "github-copilot",
+  atif: null,
+  hermes: null,
+  pi: null,
+  omp: null,
+  droid: null,
+};
+
+export function modelWithoutProvider(model: string | null, provider: string | null): string | null {
+  if (model == null || provider == null) return model;
+  return model.toLowerCase().startsWith(`${provider}/`) ? model.slice(provider.length + 1) : model;
+}
 
 export const ROLES = ["user", "assistant", "system", "tool", "other"] as const;
 export type Role = (typeof ROLES)[number];
@@ -128,6 +150,7 @@ export interface NormalizedMessage {
   parentSourceUuid: string | null;
   role: Role;
   model: string | null;
+  provider?: string | null;
   stopReason: string | null;
   timestamp: string | null;
   usage: TokenUsage | null;
@@ -143,6 +166,7 @@ export interface NormalizedSession {
   cwd: string | null;
   gitBranch: string | null;
   model: string | null;
+  provider?: string | null;
   reasoningEffort: string | null;
   reasoningEffortLevels: string[];
   cliVersion: string | null;

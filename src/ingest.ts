@@ -12,6 +12,7 @@ import {
   realpathSync,
   statSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, extname, join, basename as pathBasename, resolve, sep } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import {
@@ -33,10 +34,12 @@ import {
   MESSAGE_METADATA_SQL,
 } from "./message-storage.ts";
 import {
+  DEFAULT_PROVIDERS,
   type IngestIssueCode,
   type Issue,
   type Json,
   type NormalizedBlock,
+  modelWithoutProvider,
   type ParsedSession,
   reasoningEffortLevels,
   recordedReasoningEffort,
@@ -57,6 +60,7 @@ import { parseAtifDocument } from "./sources/atif.ts";
 import { parseClaudeSession } from "./sources/claude.ts";
 import { forkHistoryStart, parseCodexSession } from "./sources/codex.ts";
 import { parseCopilotSession } from "./sources/copilot.ts";
+import { parseDroidSession } from "./sources/droid.ts";
 import {
   type CursorSource,
   CursorSourceError,
@@ -81,6 +85,7 @@ import {
   OpenCodeStore,
   readOpenCodeModelsCache,
 } from "./sources/opencode-store.ts";
+import { parseOmpSession } from "./sources/omp.ts";
 import { parsePiSession, piSessionIdFromStem } from "./sources/pi.ts";
 import { parseVscodeCopilotSession } from "./sources/vscode-copilot.ts";
 import { queryRow, queryRows, runStatement } from "./sqlite-statements.ts";
@@ -116,10 +121,12 @@ export interface IngestConfig {
   atifDir?: string;
   hermesDir?: string;
   piDir?: string;
+  ompDir?: string;
+  droidDir?: string;
   sourcePaths?: string[];
 }
 
-export const INGEST_PIPELINE_REVISION = 22;
+export const INGEST_PIPELINE_REVISION = 23;
 
 export interface SyncReport {
   repriced?: number;
@@ -178,6 +185,8 @@ export function discover(
       config.copilotDir,
       [config.vscodeCopilotDir, config.vscodeCopilotInsidersDir],
       config.piDir,
+      config.ompDir,
+      config.droidDir,
     );
   }
 
@@ -204,6 +213,12 @@ export function discover(
   if (config.piDir != null) {
     collect(config.piDir, "pi", false, isSessionJsonl, out);
   }
+  if (config.ompDir != null) {
+    collect(config.ompDir, "omp", false, (name) => isSessionJsonl(name) && name !== "changes.jsonl", out);
+  }
+  if (config.droidDir != null) {
+    collect(config.droidDir, "droid", false, isSessionJsonl, out);
+  }
   return out.filter(
     (file) =>
       (file.tool !== "cursor" || isCursorConversationStore(file.path)) &&
@@ -217,6 +232,8 @@ export function discoverSourcePaths(
   copilotDir?: string,
   vscodeUserDirs: readonly (string | undefined)[] = [],
   piDir?: string,
+  ompDir?: string,
+  droidDir?: string,
 ): SourceFile[] {
   const out: SourceFile[] = [];
   const databases: string[] = [];
@@ -226,6 +243,8 @@ export function discoverSourcePaths(
       copilotDir,
       vscodeUserDirs,
       piDir,
+      ompDir,
+      droidDir,
     });
   }
   return [
@@ -514,6 +533,14 @@ export function sync(
   );
   const repriced = refreshSessionCosts(db);
   const files = discover(config);
+  let droidConfigHash = "";
+  if (files.some((file) => file.tool === "droid")) {
+    try {
+      droidConfigHash = createHash("sha256").update(readFileSync(join(homedir(), ".factory", "settings.json"))).digest("hex");
+    } catch {
+      droidConfigHash = "missing";
+    }
+  }
   const titles = codexTitles(config);
   const mcpServers = new OpenCodeMcpServerNames({
     globalDir: config.opencodeConfigDir,
@@ -597,17 +624,24 @@ export function sync(
         }
         let stats: Stats;
         let content: string;
+        let droidSettings: string | null = null;
+        let sidecarHash: string | null = null;
         try {
           stats = fstatSync(fd);
-          const prior = queryRow<{ size: number; mtime: number; ingest_revision: number }>(
+          if (file.tool === "droid") {
+            droidSettings = readDroidSettings(file.path);
+            sidecarHash = createHash("sha256").update(droidSettings ?? "\0").update(droidConfigHash).digest("hex");
+          }
+          const prior = queryRow<{ size: number; mtime: number; ingest_revision: number; hash: string | null }>(
             db,
-            "SELECT size, mtime, ingest_revision FROM ingest_source WHERE path = ?1",
+            "SELECT size, mtime, ingest_revision, hash FROM ingest_source WHERE path = ?1",
             [file.path],
           );
           if (
             prior != null &&
             prior.size === stats.size &&
             prior.mtime === mtimeSecs(stats) &&
+            (file.tool !== "droid" || prior.hash === sidecarHash) &&
             prior.ingest_revision === INGEST_PIPELINE_REVISION
           ) {
             report.skipped += 1;
@@ -659,6 +693,10 @@ export function sync(
           });
         } else if (file.tool === "pi") {
           parsed = parsePiSession(piSessionIdFromStem(stem), content);
+        } else if (file.tool === "omp") {
+          parsed = parseOmpSession(piSessionIdFromStem(stem), content, file.path);
+        } else if (file.tool === "droid") {
+          parsed = parseDroidSession(stem, content, droidSettings);
         } else if (file.tool === "gemini") {
           const layout = geminiSessionLayout(file.path);
           parsed = parseGeminiSession(stem, content, geminiProjectPath(layout), {
@@ -674,6 +712,7 @@ export function sync(
           lineCount: lineCount(content),
           mtime: mtimeSecs(stats),
           size: stats.size,
+          hash: sidecarHash,
         };
 
         const outcome = writeIngestedFile(db, prepared, parsed);
@@ -1554,11 +1593,12 @@ export function resolveSubagentParents(db: Database): void {
                ORDER BY m.seq
                LIMIT 1) AS first_fields
        FROM session s
-       WHERE s.tool IN ('claude_code', 'codex', 'gemini', 'opencode', 'cursor', 'atif', 'hermes')`,
+       WHERE s.tool IN ('claude_code', 'codex', 'gemini', 'opencode', 'cursor', 'atif', 'hermes', 'omp')`,
   );
 
   const sessionBySource = new Map<string, number>();
   const rootByClaudeSession = new Map<string, number>();
+  const ompByPath = new Map<string, number>();
   const rootByChild = new Map<number, number>();
   const inferred = new Map<number, InferredSubagent>();
   const atifFileRefs = atifFileRefParents(rows);
@@ -1566,6 +1606,7 @@ export function resolveSubagentParents(db: Database): void {
     const info = row.tool === "atif" ? inferAtifSubagent(row, atifFileRefs) : inferSubagent(row);
     inferred.set(row.id, info);
     sessionBySource.set(sourceKey(row.tool, row.source_session_id), row.id);
+    if (row.tool === "omp" && row.source_path != null) ompByPath.set(resolve(row.source_path), row.id);
     if (!info.isSubagent) {
       if (info.rootKey != null) {
         rootByClaudeSession.set(info.rootKey, row.id);
@@ -1579,7 +1620,9 @@ export function resolveSubagentParents(db: Database): void {
       continue;
     }
     const rootKey = info.rootKey;
+    const parentPath = row.tool === "omp" ? asString(get(parseObject(row.raw_meta), "parentSessionPath")) : null;
     const rootId =
+      (parentPath == null ? null : ompByPath.get(resolve(parentPath))) ??
       (rootKey == null || row.tool === "atif" ? null : rootByClaudeSession.get(rootKey)) ??
       (rootKey == null ? null : sessionBySource.get(sourceKey(row.tool, rootKey))) ??
       null;
@@ -2147,6 +2190,8 @@ function writeSession(
   hash: string | null = null,
 ): number | null {
   const s = parsed.session;
+  const provider = (s.provider ?? DEFAULT_PROVIDERS[s.tool])?.trim().toLowerCase() || null;
+  s.model = modelWithoutProvider(s.model, provider);
   if (
     inheritDeletedSessionTombstone(
       db,
@@ -2209,11 +2254,11 @@ function writeSession(
        est_reasoning_tokens, reasoning_source,
        id,
        total_cache_creation_1h_tokens,
-       reasoning_effort, reasoning_effort_levels, reasoning_effort_checked
+       reasoning_effort, reasoning_effort_levels, reasoning_effort_checked, provider
      )
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18,
              ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, datetime('now'), ?27, ?28, ?29, ?30, ?31,
-             ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42, ?43, ?44, ?45, ?46, ?47, ?48, 1)`,
+             ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42, ?43, ?44, ?45, ?46, ?47, ?48, 1, ?49)`,
     [
       s.tool,
       s.sourceSessionId,
@@ -2263,6 +2308,7 @@ function writeSession(
       s.totals.cacheCreation1h,
       s.reasoningEffort,
       canonicalJson(s.reasoningEffortLevels),
+      provider,
     ],
   );
 
@@ -2290,6 +2336,17 @@ function writeSession(
   try {
     for (const message of s.messages) {
       const storedRaw = encodeMessageRaw(canonicalJson(message.raw), message.raw);
+      const messageProvider = asString(get(get(message.raw, "message"), "provider"))
+        ?? asString(get(message.raw, "provider"))
+        ?? asString(get(message.raw, "providerID"))
+        ?? asString(get(get(message.raw, "model"), "providerID"));
+      const effectiveProvider = message.provider ?? messageProvider;
+      if (effectiveProvider != null && (storedRaw.rawMeta != null || messageProvider == null)) {
+        storedRaw.rawMeta = JSON.stringify({
+          ...JSON.parse(storedRaw.rawMeta ?? canonicalJson(message.raw)),
+          _provider: effectiveProvider,
+        });
+      }
       const messageId = Number(
         insertMessage.run(
           sessionId,
@@ -2556,10 +2613,12 @@ interface SourceRoots {
   copilotDir?: string | undefined;
   vscodeUserDirs?: readonly (string | undefined)[];
   piDir?: string | undefined;
+  ompDir?: string | undefined;
+  droidDir?: string | undefined;
 }
 
 function sourceFileForPath(path: string, roots: SourceRoots): SourceFile | null {
-  const { copilotDir, vscodeUserDirs = [], piDir } = roots;
+  const { copilotDir, vscodeUserDirs = [], piDir, ompDir, droidDir } = roots;
   const name = pathBasename(path);
   if (name === CURSOR_STORE_NAME) {
     return isCursorConversationStore(path) ? { tool: "cursor", path, archived: false } : null;
@@ -2576,6 +2635,13 @@ function sourceFileForPath(path: string, roots: SourceRoots): SourceFile | null 
   }
   if (isCopilotSessionLog(path, copilotDir)) {
     return { tool: "copilot", path, archived: false };
+  }
+  if ((ompDir != null && isInside(resolve(ompDir), resolve(path))) || /(?:^|[/\\])\.omp[/\\]agent[/\\]sessions[/\\]/.test(path)) {
+    if (name === "changes.jsonl") return null;
+    return { tool: "omp", path, archived: false };
+  }
+  if ((droidDir != null && isInside(resolve(droidDir), resolve(path))) || /(?:^|[/\\])\.factory[/\\]sessions[/\\]/.test(path)) {
+    return { tool: "droid", path, archived: false };
   }
   if (isPiSessionLog(path, piDir)) {
     return { tool: "pi", path, archived: false };
@@ -2605,6 +2671,23 @@ function dedupeSourceFiles(files: SourceFile[]): SourceFile[] {
     unique.push(file);
   }
   return unique;
+}
+
+function readDroidSettings(path: string): string | null {
+  let fd: number;
+  try {
+    fd = openSync(`${path.slice(0, -6)}.settings.json`, "r");
+  } catch (error) {
+    if ((error as { code?: string }).code === "ENOENT") return null;
+    throw error;
+  }
+  try {
+    const content = readSourceFile(fd);
+    if (content == null) throw new Error(FILE_LIMIT_MESSAGE);
+    return content;
+  } finally {
+    closeSync(fd);
+  }
 }
 
 /** Claude Code also writes non-session JSONL into the projects tree; the only

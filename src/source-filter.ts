@@ -16,6 +16,8 @@ export const SESSION_SOURCES = [
   "atif",
   "hermes",
   "pi",
+  "omp",
+  "droid",
 ] as const;
 
 export type SessionSource = (typeof SESSION_SOURCES)[number];
@@ -55,6 +57,10 @@ export function sessionSourceLabel(source: SessionSource): string {
       return "Hermes Agent";
     case "pi":
       return "Pi";
+    case "omp":
+      return "Oh My Pi";
+    case "droid":
+      return "Factory Droid";
   }
 }
 
@@ -112,6 +118,9 @@ export function sessionSourcePredicate(
       return { sql: `${alias}.tool = ?`, params: ["hermes"] };
     case "pi":
       return { sql: `${alias}.tool = ?`, params: ["pi"] };
+    case "omp":
+    case "droid":
+      return { sql: `${alias}.tool = ?`, params: [source] };
     default:
       return { sql: "", params: [] };
   }

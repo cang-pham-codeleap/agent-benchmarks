@@ -14,6 +14,8 @@ const BUG_FORM_LABEL_FOR_EVERY_TOOL: Record<Tool, string> = {
   atif: "ATIF trajectories",
   hermes: "Hermes Agent",
   pi: "Pi",
+  omp: "Oh My Pi",
+  droid: "Factory Droid",
 };
 
 interface FormField {

@@ -19,6 +19,8 @@ export interface Config {
   atifDir?: string;
   hermesDir?: string;
   piDir?: string;
+  ompDir?: string;
+  droidDir?: string;
 }
 
 export interface ConfigOverrides {
@@ -33,6 +35,8 @@ export interface ConfigOverrides {
   atifDir?: string | null;
   hermesDir?: string | null;
   piDir?: string | null;
+  ompDir?: string | null;
+  droidDir?: string | null;
   env?: Record<string, string | undefined>;
   homeDir?: string | null;
   platform?: NodeJS.Platform;
@@ -89,6 +93,8 @@ export function resolveConfig(overrides: ConfigOverrides = {}): Config {
         expandHome(nonEmpty(env.PI_CODING_AGENT_DIR), home) ?? join(home, ".pi", "agent"),
         "sessions",
       ),
+    ompDir: overrides.ompDir ?? nonEmpty(env.DECANT_OMP_DIR) ?? join(home, ".omp", "agent", "sessions"),
+    droidDir: overrides.droidDir ?? nonEmpty(env.DECANT_DROID_DIR) ?? join(home, ".factory", "sessions"),
   };
 }
 

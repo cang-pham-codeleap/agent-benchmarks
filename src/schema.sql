@@ -1,4 +1,4 @@
--- decant:schema_version=31
+-- decant:schema_version=32
 CREATE TABLE schema_migrations(
             version INTEGER PRIMARY KEY,
             applied_at TEXT NOT NULL
@@ -69,6 +69,7 @@ CREATE TABLE session (
   work_type TEXT,
   context_window_tokens INTEGER,
   peak_context_tokens INTEGER,
+  provider TEXT,
   UNIQUE(tool, source_session_id)
 );
 CREATE TABLE message (
@@ -183,8 +184,10 @@ CREATE TABLE session_model_usage (
   cache_creation_1h_tokens INTEGER NOT NULL,
   format_version INTEGER NOT NULL,
   reported_cost_usd REAL,
-  PRIMARY KEY (session_id, model, tier)
-) WITHOUT ROWID;
+  provider TEXT
+);
+CREATE UNIQUE INDEX idx_session_model_usage_provider ON session_model_usage
+  (session_id, COALESCE(provider, ''), model, tier);
 CREATE TABLE billed_request (
   request_id TEXT PRIMARY KEY,
   session_id INTEGER NOT NULL REFERENCES session(id) ON DELETE CASCADE,

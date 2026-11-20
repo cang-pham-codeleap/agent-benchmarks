@@ -214,7 +214,7 @@ export function parseOpenCodeSession(
         raw,
         {
           sourceUuid: message.id,
-          model: model.id,
+          model: bareModel(model.id, model.providerID),
           stopReason: data.error != null ? "error" : asString(data.finish),
           timestamp: generated,
           usage,
@@ -247,7 +247,7 @@ export function parseOpenCodeSession(
         raw,
         {
           sourceUuid: message.id,
-          model: model.id ?? answer?.modelId ?? null,
+          model: bareModel(model.id, model.providerID) ?? answer?.modelId ?? null,
           stopReason: status === "failed" ? "error" : null,
           timestamp,
           usage,
@@ -351,7 +351,8 @@ export function parseOpenCodeSession(
     title: row.title ?? (firstUserText == null ? null : preview(firstUserText.trim(), 120)),
     cwd: directory,
     gitBranch: null,
-    model: modelId,
+    model: bareModel(modelId, providerId),
+    provider: providerId?.trim().toLowerCase() || null,
     reasoningEffort: summarizeReasoningEfforts(efforts),
     reasoningEffortLevels: reasoningEffortLevels(efforts),
     cliVersion: row.version,
@@ -372,6 +373,13 @@ export function parseOpenCodeSession(
   };
   issues.push(...linkageIssues(normalized));
   return { session: normalized, issues };
+}
+
+function bareModel(model: string | null, provider: string | null): string | null {
+  const prefix = provider?.trim().toLowerCase();
+  return model != null && prefix && model.toLowerCase().startsWith(`${prefix}/`)
+    ? model.slice(prefix.length + 1)
+    : model;
 }
 
 function parseMessageData(message: OpenCodeMessageRow, issues: Issue[]): JsonObject | null {

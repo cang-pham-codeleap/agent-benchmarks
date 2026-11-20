@@ -17,8 +17,29 @@ import {
   type SchemaManifest,
 } from "./schema-manifest.ts";
 
-export const LATEST_SCHEMA_VERSION = 31;
+export const LATEST_SCHEMA_VERSION = 32;
 
+const PROVIDER_SCHEMA_MIGRATION = `
+  ALTER TABLE session_model_usage RENAME TO old_session_model_usage;
+  CREATE TABLE session_model_usage (
+    session_id INTEGER NOT NULL REFERENCES session(id) ON DELETE CASCADE,
+    model TEXT NOT NULL,
+    tier TEXT NOT NULL,
+    requests INTEGER NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    cache_read_tokens INTEGER NOT NULL,
+    cache_creation_tokens INTEGER NOT NULL,
+    cache_creation_1h_tokens INTEGER NOT NULL,
+    format_version INTEGER NOT NULL,
+    reported_cost_usd REAL,
+    provider TEXT
+  );
+  INSERT INTO session_model_usage SELECT *, NULL FROM old_session_model_usage;
+  DROP TABLE old_session_model_usage;
+  CREATE UNIQUE INDEX idx_session_model_usage_provider ON session_model_usage
+    (session_id, COALESCE(provider, ''), model, tier);
+`;
 const logger = getDecantLogger("db");
 let expectedSchemaManifest: SchemaManifest | null = null;
 const SQLITE_BUSY_RETRY_SIGNAL = new Int32Array(
@@ -881,6 +902,17 @@ function migrate(db: Database, current: number): void {
       );
       db.query(
         "INSERT INTO schema_migrations (version, applied_at) VALUES (31, datetime('now'))",
+      ).run();
+    }
+    if (current < 32) {
+      if (!hasColumn(db, "session", "provider")) {
+        db.exec("ALTER TABLE session ADD COLUMN provider TEXT");
+      }
+      if (!hasColumn(db, "session_model_usage", "provider")) {
+        db.exec(PROVIDER_SCHEMA_MIGRATION);
+      }
+      db.query(
+        "INSERT INTO schema_migrations (version, applied_at) VALUES (32, datetime('now'))",
       ).run();
     }
     assertSchemaMatchesBaseline(db);

@@ -116,6 +116,7 @@ describe("parseOpenCodeSession", () => {
       cwd: "/decant-fixture/example",
       title: "Summarize the example file",
       model: "glm-5.3-flash",
+      provider: "opencode-go",
       reasoningEffort: "max",
       reasoningEffortLevels: ["max"],
       cliVersion: "2.0.27",

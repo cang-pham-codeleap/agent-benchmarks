@@ -167,6 +167,7 @@ describe("read operations on a worker", () => {
     sessionIssues: { id: 1 },
     search: { query: "the", filter: { includeSubagents: true, limit: 10 } },
     statsSummary: {},
+    compare: {},
     statsByDimension: { dimension: "model", filter: {} },
     activity: {},
     modelSparklines: {},

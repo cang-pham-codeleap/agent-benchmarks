@@ -1,0 +1,14 @@
+{"type":"session","id":"root-id","timestamp":"2026-01-01T00:00:00.000Z","cwd":"/tmp/project"}
+{"type":"title","title":"Old title"}
+{"type":"title_change","title":"Latest title"}
+{"type":"message","id":"m1","timestamp":"2026-01-01T00:00:01.000Z","message":{"role":"assistant","provider":"OpenAI","model":"gpt-5.4","content":[{"type":"text","text":"Hello"}],"usage":{"input":10,"output":2,"cacheRead":3,"cacheWrite":4}}}
+{"type":"model_usage","id":"m2","timestamp":"2026-01-01T00:00:02.000Z","model":"helper-model","purpose":"title","usage":{"input":5,"output":1,"cacheRead":2,"cacheWrite":1}}
+{"type":"session_init"}
+{"type":"credential_pin"}
+{"type":"ttsr_injection"}
+{"type":"mode_change"}
+{"type":"service_tier_change"}
+{"type":"reset_boundary"}
+{"type":"message","id":"m3","message":{"role":"developer","content":"Instructions"}}
+
+{"type":"message","id":"m4","message":{"role":"fileMention","files":[]}}

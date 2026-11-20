@@ -171,6 +171,7 @@ export const ROUTE_SLICES: Record<string, DataSlice[]> = {
   sessions: [],
   projects: ["projects"],
   search: [],
+  compare: ["projects"],
   analytics: [
     "sessionSources",
     "byDay",

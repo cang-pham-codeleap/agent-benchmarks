@@ -71,10 +71,12 @@ export function SessionsView({
   const repo = sessionRepoFilter(path);
   const includeArchived = sessionIncludesArchived(path);
   const page = sessionPageFromPath(path);
+  const params = new URLSearchParams(path.split("?", 2)[1] ?? "");
+  const compareFilters = ["tool", "model", "work_type", "outcome"].filter((key) => params.has(key));
   const displayedPage = loadedPage ?? page;
   const pageLoading = loading || (loadedPage != null && page !== loadedPage);
   const dateQuery = dateRangeQuery(dateRange);
-  const sessionFilterKey = JSON.stringify([dateQuery, project, repo, includeArchived, page]);
+  const sessionFilterKey = JSON.stringify([dateQuery, project, repo, includeArchived, page, path]);
   const expandedSessions =
     expandedSessionState.key === sessionFilterKey ? expandedSessionState.ids : EMPTY_SESSION_IDS;
   const scopedSummaryRequest =
@@ -96,7 +98,7 @@ export function SessionsView({
     cardSummary.usage_sessions,
   );
   const visibleTotal =
-    project == null && repo == null
+    compareFilters.length ? null : project == null && repo == null
       ? (data.summary?.sessions ?? null)
       : (currentScopedSummary?.sessions ?? null);
   const listTotal = includeArchived ? null : visibleTotal;
@@ -197,11 +199,11 @@ export function SessionsView({
         <DateRangeControl bounds={data.dateBounds} range={dateRange} onChange={onDateRangeChange} />
       </header>
 
-      <div className="stat-grid sessions-stat-grid">
+      {compareFilters.length === 0 ? <div className="stat-grid sessions-stat-grid">
         <StatCard icon="sessions" label="Sessions" value={formatInt(cardSummary.sessions)} />
         <StatCard icon="messages" label="Messages" value={formatInt(cardSummary.messages)} />
         <StatCard icon="money" label="Est. cost" value={estCost.text} valueTitle={estCost.title} />
-      </div>
+      </div> : null}
 
       <section aria-busy={pageLoading || refreshing} className="panel sessions-panel">
         <div className="panel-heading">
@@ -228,6 +230,7 @@ export function SessionsView({
             />
           </div>
         </div>
+        {compareFilters.length ? <div className="active-filter-row">{compareFilters.map((key) => <span className="filter-pill" key={key}>{key}: {params.get(key) || "Unknown"}</span>)}</div> : null}
         {project != null ? (
           <div className="active-filter-row">
             <span className="filter-pill">

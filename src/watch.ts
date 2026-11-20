@@ -337,6 +337,12 @@ export function watchRoots(config: Config): WatchRoot[] {
     ...(config.piDir != null
       ? [{ dir: config.piDir, recursive: true, accepts: () => piEvents }]
       : []),
+    ...(config.ompDir != null
+      ? [{ dir: config.ompDir, recursive: true, accepts: () => piEvents }]
+      : []),
+    ...(config.droidDir != null
+      ? [{ dir: config.droidDir, recursive: true, accepts: () => anyEvent }]
+      : []),
     // A running Hermes keeps its connection open and appends to the `-wal`,
     // which is the same event gap OpenCode has, so each profile's directory
     // is polled with the same database filter.

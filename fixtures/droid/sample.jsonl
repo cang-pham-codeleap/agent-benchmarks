@@ -1,0 +1,4 @@
+{"type":"session_start","id":"droid-id","title":"Example task","cwd":"/tmp/project"}
+{"type":"message","id":"m1","timestamp":"2026-01-01T00:00:01.000Z","message":{"role":"user","content":[{"type":"text","text":"Hello"}]}}
+{"type":"message","id":"m2","parentId":"m1","timestamp":"2026-01-01T00:00:02.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Done"}]}}
+{"type":"todo_state"}

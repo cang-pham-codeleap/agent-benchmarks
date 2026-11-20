@@ -174,6 +174,8 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
         atifDir: config.atifDir ?? null,
         hermesDir: config.hermesDir ?? null,
         piDir: config.piDir ?? null,
+        ompDir: config.ompDir ?? null,
+        droidDir: config.droidDir ?? null,
         version: DECANT_VERSION,
       }),
   },
@@ -218,6 +220,8 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
         tool: url.searchParams.get("tool"),
         model: url.searchParams.get("model"),
         project: url.searchParams.get("project"),
+        workType: url.searchParams.get("work_type"),
+        outcome: url.searchParams.get("outcome"),
         repo: url.searchParams.get("repo"),
         includeSubagents: url.searchParams.get("include_subagents") === "true",
         includeNestedSubagents: url.searchParams.get("with_subagents") === "true",
@@ -291,6 +295,13 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
       }
       return read(ctx, "statsByDimension", { dimension, filter: statsFilter(ctx, source) });
     }),
+  },
+  "/api/analytics/compare": {
+    GET: sourceScoped((ctx, source) => read(ctx, "compare", {
+      ...statsFilter(ctx, source),
+      workType: ctx.url.searchParams.get("work_type"),
+      outcome: ctx.url.searchParams.get("outcome"),
+    })),
   },
   "/api/analytics/activity": {
     GET: sourceScoped((ctx, source) => read(ctx, "activity", { ...ctx.dateFilter, source })),

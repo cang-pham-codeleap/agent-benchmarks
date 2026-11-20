@@ -12,6 +12,8 @@ import {
   MODEL_USAGE_FORMAT_VERSION,
   materializeMissingModelUsage,
   materializeModelUsage,
+  sessionCostParts,
+  totalCost,
 } from "../src/model-usage.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 import { parseCodexSession } from "../src/sources/codex.ts";
@@ -137,6 +139,23 @@ const OPUS_5: Request = { model: "claude-opus-5", input: 2_000, output: 400, cac
 const OPUS_55_B: Request = { model: "claude-opus-5-5", input: 300, output: 100, cacheRead: 12_000 };
 
 describe("per-model usage", () => {
+  test("separates the same model across recorded providers", () => {
+    const db = freshDb();
+    const id = ingest(db, [OPUS_55_A, OPUS_55_B]);
+    const cost = storedCost(db, id);
+    db.query("UPDATE session SET tool = 'omp', provider = 'anthropic' WHERE id = ?1").run(id);
+    db.query(`UPDATE message SET raw = json_set(raw, '$.message.provider',
+      CASE WHEN seq = 1 THEN 'anthropic' ELSE 'github-copilot' END)
+      WHERE session_id = ?1 AND role = 'assistant'`).run(id);
+    const rows = materializeModelUsage(db, id);
+    expect(db.query("SELECT provider, model FROM session_model_usage WHERE session_id = ?1 ORDER BY provider").all(id)).toEqual([
+      { provider: "anthropic", model: "claude-opus-5-5" },
+      { provider: "github-copilot", model: "claude-opus-5-5" },
+    ]);
+    expect(totalCost(sessionCostParts(rows, { model: null, usage: usageOf(OPUS_55_A) }))).toBeCloseTo(cost, 10);
+    closeDb(db);
+  });
+
   test("prices each request at the model that served it", () => {
     const db = freshDb();
     const id = ingest(db, [OPUS_55_A, OPUS_5, OPUS_55_B]);

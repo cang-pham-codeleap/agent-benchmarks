@@ -1,6 +1,7 @@
 import { linkageIssues } from "../diagnostics.ts";
 import { asString, canonicalJson, get, hasKey, isObject, type JsonObject } from "../json.ts";
 import {
+  DEFAULT_PROVIDERS,
   emptyUsage,
   type Json,
   type NormalizedBlock,
@@ -153,6 +154,7 @@ export function parseGeminiSession(
 
   const normalized: NormalizedSession = {
     tool: "gemini",
+    provider: DEFAULT_PROVIDERS.gemini,
     sourceSessionId,
     projectPath,
     title: summary ?? (firstUserText == null ? null : preview(firstUserText.trim(), 120)),

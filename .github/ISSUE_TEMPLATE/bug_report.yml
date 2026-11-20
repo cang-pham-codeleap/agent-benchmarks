@@ -8,8 +8,9 @@ body:
         # Do not paste real session transcripts
 
         **This issue is public.** Your Claude Code, Codex, Gemini CLI, OpenCode,
-        Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi
-        sessions, and the ATIF trajectories you import, contain your own source code, file paths, prompts, and
+        Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, Pi,
+        Oh My Pi, and Factory Droid sessions, and the ATIF trajectories you import,
+        contain your own source code, file paths, prompts, and
         everything else you typed into those tools. decant keeps them on your
         machine. Pasting one here would not.
 
@@ -115,6 +116,8 @@ body:
         - ATIF trajectories
         - Hermes Agent
         - Pi
+        - Oh My Pi
+        - Factory Droid
         - Not applicable
     validations:
       required: true

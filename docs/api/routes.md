@@ -19,6 +19,7 @@ This page records the operational semantics around that contract.
 - `GET /sessions/:id`
 - `GET /search`
 - `GET /analytics`
+- `GET /compare`
 - `GET /insights`
 - `GET /tools`
 - `GET /files`
@@ -49,6 +50,18 @@ matches sessions whose project is that root or one of its worktrees, where
 `project` matches one exact path. `dim=repo` groups rows the same way, and
 `dim=outcome` groups every run under the outcome label of its top-level
 session: `completed`, `abandoned`, `failed`, or `(unclassified)`.
+
+`GET /api/analytics/compare` groups visible root tasks by their tool, provider,
+and primary model, with date, project, repo, source, tool, work type, and
+outcome filters applied to the root. Descendants are included regardless of
+their own date or project. Each cell has a nullable `provider`, and its
+`modelUsage` entries are grouped by nullable `provider` and `model`. Model
+names remain unprefixed. The response includes session counts, token totals,
+per-model usage, and priced-task cost and distribution metrics. A task is
+unpriced if any of its sessions lacks usage or has an unpriced model; that whole task is omitted
+from cost metrics and counted in `unpricedTasks`. Outcome is a transcript-ending
+heuristic, not a measure of task success. See [Compare](../compare.md).
+
 
 The API's `repo` takes one stored root and compares it as written. The CLI's
 `--repo` on `decant ls` and `decant search` first resolves a directory, a

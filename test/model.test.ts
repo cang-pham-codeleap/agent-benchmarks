@@ -27,6 +27,8 @@ describe("model wire strings", () => {
       "atif",
       "hermes",
       "pi",
+      "omp",
+      "droid",
     ]);
     expect(ROLES).toEqual(["user", "assistant", "system", "tool", "other"]);
     expect(BLOCK_TYPES).toEqual([

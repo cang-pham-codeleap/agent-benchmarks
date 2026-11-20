@@ -175,7 +175,10 @@ message columns Hermes rewrites stands in for it. Hermes's activity heartbeat
 and read state are not in the key. After a parser correction, the next
 sync re-ingests sources with an older pipeline revision once, refreshing tokens,
 cost estimates, and derived analytics while preserving session IDs and local
-archive state. This requires the source files to remain available. Sync also
+archive state. This requires the source files to remain available. Provider
+attribution is one such revision: after upgrading, the next ordinary
+`decant sync` re-derives provider columns for sessions whose source files
+remain. Sync also
 refreshes SQLite's planner statistics as it goes, so the first sync into a new
 archive stays linear in its size; see
 [Planner statistics](architecture.md#planner-statistics). Watch mode

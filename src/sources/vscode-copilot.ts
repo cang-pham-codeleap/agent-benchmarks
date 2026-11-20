@@ -1,6 +1,7 @@
 import { linkageIssues } from "../diagnostics.ts";
 import { asString, assertJsonDepth, get, isObject, type JsonObject } from "../json.ts";
 import {
+  DEFAULT_PROVIDERS,
   emptyUsage,
   type Issue,
   type Json,
@@ -352,6 +353,7 @@ export function parseVscodeCopilotSession(
 
   const normalized: NormalizedSession = {
     tool: "vscode_copilot",
+    provider: DEFAULT_PROVIDERS.vscode_copilot,
     sourceSessionId: asString(root.sessionId) ?? fallbackId,
     projectPath: location.projectPath,
     title:

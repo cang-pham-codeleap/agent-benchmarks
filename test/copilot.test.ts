@@ -808,6 +808,7 @@ describe("Copilot ingest", () => {
       sessionCostParts(
         [
           {
+            provider: "github-copilot",
             model: "",
             tier: "standard",
             requests: 1,

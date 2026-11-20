@@ -38,6 +38,8 @@ export function registerSyncCommands(ctx: CliContext): void {
     atifDir?: string;
     hermesDir?: string;
     piDir?: string;
+    ompDir?: string;
+    droidDir?: string;
     path?: string[];
   }): number => {
     const missingPath = commandOptions.path?.find((path) => !existsSync(path));
@@ -94,6 +96,8 @@ export function registerSyncCommands(ctx: CliContext): void {
           atifDir: commandOptions.atifDir,
           hermesDir: commandOptions.hermesDir,
           piDir: commandOptions.piDir,
+          ompDir: commandOptions.ompDir,
+          droidDir: commandOptions.droidDir,
         },
       },
     );
@@ -115,6 +119,8 @@ export function registerSyncCommands(ctx: CliContext): void {
     .option("--atif-dir <dir>", "override the directory read for ATIF trajectory files")
     .option("--hermes-dir <dir>", "override the Hermes Agent home directory")
     .option("--pi-dir <dir>", "override the Pi sessions directory")
+    .option("--omp-dir <dir>", "override the Oh My Pi sessions directory")
+    .option("--droid-dir <dir>", "override the Factory Droid sessions directory")
     .option(
       "--path <path>",
       "ingest only this source file or directory (repeatable)",
@@ -133,6 +139,8 @@ export function registerSyncCommands(ctx: CliContext): void {
         atifDir?: string;
         hermesDir?: string;
         piDir?: string;
+        ompDir?: string;
+        droidDir?: string;
         path?: string[];
       }) => ctx.run(() => runSync(commandOptions)),
     );
@@ -162,6 +170,8 @@ export function registerSyncCommands(ctx: CliContext): void {
     .option("--atif-dir <dir>", "override the directory read for ATIF trajectory files")
     .option("--hermes-dir <dir>", "override the Hermes Agent home directory")
     .option("--pi-dir <dir>", "override the Pi sessions directory")
+    .option("--omp-dir <dir>", "override the Oh My Pi sessions directory")
+    .option("--droid-dir <dir>", "override the Factory Droid sessions directory")
     .option("--interval-ms <ms>", "fallback sweep interval", parseInteger, DEFAULT_SYNC_INTERVAL_MS)
     .option(
       "--debounce-ms <ms>",
@@ -185,6 +195,8 @@ export function registerSyncCommands(ctx: CliContext): void {
         atifDir?: string;
         hermesDir?: string;
         piDir?: string;
+        ompDir?: string;
+        droidDir?: string;
         intervalMs?: number;
         debounceMs?: number;
         fsWatch?: boolean;
@@ -201,6 +213,8 @@ export function registerSyncCommands(ctx: CliContext): void {
             atifDir: commandOptions.atifDir,
             hermesDir: commandOptions.hermesDir,
             piDir: commandOptions.piDir,
+            ompDir: commandOptions.ompDir,
+            droidDir: commandOptions.droidDir,
           });
           const signal = waitForProcessSignal();
           try {
@@ -242,6 +256,8 @@ export function registerSyncCommands(ctx: CliContext): void {
     .option("--atif-dir <dir>", "override the directory read for ATIF trajectory files")
     .option("--hermes-dir <dir>", "override the Hermes Agent home directory")
     .option("--pi-dir <dir>", "override the Pi sessions directory")
+    .option("--omp-dir <dir>", "override the Oh My Pi sessions directory")
+    .option("--droid-dir <dir>", "override the Factory Droid sessions directory")
     .option("--interval-ms <ms>", "fallback sweep interval", parseInteger, DEFAULT_SYNC_INTERVAL_MS)
     .option(
       "--debounce-ms <ms>",
@@ -274,6 +290,8 @@ export function registerSyncCommands(ctx: CliContext): void {
         atifDir?: string;
         hermesDir?: string;
         piDir?: string;
+        ompDir?: string;
+        droidDir?: string;
         intervalMs?: number;
         debounceMs?: number;
         fsWatch?: boolean;
@@ -292,6 +310,8 @@ export function registerSyncCommands(ctx: CliContext): void {
             atifDir: commandOptions.atifDir,
             hermesDir: commandOptions.hermesDir,
             piDir: commandOptions.piDir,
+            ompDir: commandOptions.ompDir,
+            droidDir: commandOptions.droidDir,
           });
           const syncEnabled = ctx.shouldSync();
           const { parsePeerList, serve: serveApp } = await import("../../server.ts");

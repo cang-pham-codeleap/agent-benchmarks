@@ -41,6 +41,7 @@ export function parseCodexSession(
   let cliVersion: string | null = null;
   let gitBranch: string | null = null;
   let model: string | null = null;
+  let provider: string | null = null;
   const reasoningEfforts = new Set<string>();
   let startedAt: string | null = null;
   let endedAt: string | null = null;
@@ -94,6 +95,7 @@ export function parseCodexSession(
       gitBranch = asString(get(get(payload, "git"), "branch")) ?? gitBranch;
       cwd = asString(get(payload, "cwd")) ?? cwd;
       cliVersion = asString(get(payload, "cli_version")) ?? cliVersion;
+      provider = asString(get(payload, "model_provider"))?.trim().toLowerCase() || provider;
       const source = get(payload, "source");
       const subagentSource = get(source, "subagent");
       const threadSpawn = get(subagentSource, "thread_spawn");
@@ -165,6 +167,9 @@ export function parseCodexSession(
     rawMeta = { ...(isObject(rawMeta) ? rawMeta : {}), model_context_window: contextWindow };
   }
   const effortLevels = reasoningEffortLevels(reasoningEfforts);
+  if (model != null && provider != null && model.toLowerCase().startsWith(`${provider}/`)) {
+    model = model.slice(provider.length + 1);
+  }
 
   const normalized: NormalizedSession = {
     tool: "codex",
@@ -174,6 +179,7 @@ export function parseCodexSession(
     cwd,
     gitBranch,
     model,
+    provider,
     reasoningEffort: summarizeReasoningEfforts(effortLevels),
     reasoningEffortLevels: effortLevels,
     cliVersion,

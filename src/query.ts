@@ -72,6 +72,8 @@ export interface ListFilter {
   tool?: string | null;
   model?: string | null;
   project?: string | null;
+  workType?: string | null;
+  outcome?: string | null;
   repo?: string | readonly string[] | null;
   includeSubagents?: boolean;
   includeNestedSubagents?: boolean;
@@ -170,6 +172,14 @@ export function listSessions(db: Database, filter: ListFilter = {}): SessionSumm
   if (filter.model != null) {
     clauses.push("COALESCE(s.model, '') = ?");
     params.push(filter.model);
+  }
+  if (filter.workType != null) {
+    clauses.push("COALESCE(s.work_type, '') = ?");
+    params.push(filter.workType);
+  }
+  if (filter.outcome != null) {
+    clauses.push("COALESCE(s.outcome, '') = ?");
+    params.push(filter.outcome);
   }
   if (filter.project != null) {
     clauses.push("COALESCE(p.path, '') = ?");

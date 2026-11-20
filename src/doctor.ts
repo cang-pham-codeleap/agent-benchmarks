@@ -144,6 +144,10 @@ function sourceRoots(config: Config, tool: Tool): string[] {
       return config.hermesDir == null ? [] : [config.hermesDir];
     case "pi":
       return config.piDir == null ? [] : [config.piDir];
+    case "omp":
+      return config.ompDir == null ? [] : [config.ompDir];
+    case "droid":
+      return config.droidDir == null ? [] : [config.droidDir];
   }
 }
 

@@ -450,6 +450,8 @@ paths:
         - $ref: "#/components/parameters/Tool"
         - $ref: "#/components/parameters/Model"
         - $ref: "#/components/parameters/Project"
+        - $ref: "#/components/parameters/WorkType"
+        - $ref: "#/components/parameters/Outcome"
         - $ref: "#/components/parameters/Repo"
         - $ref: "#/components/parameters/IncludeSubagents"
         - $ref: "#/components/parameters/WithSubagents"
@@ -814,6 +816,42 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/DimensionRow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/SchemaConflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/analytics/compare:
+    get:
+      tags: [Analytics]
+      operationId: getCompare
+      summary: Compare root tasks grouped by harness, provider, and primary model
+      description: Root filters select tasks; all descendant subagents are included. Costs exclude tasks containing an unpriced session.
+      parameters:
+        - $ref: "#/components/parameters/FromDate"
+        - $ref: "#/components/parameters/ToDate"
+        - $ref: "#/components/parameters/Project"
+        - $ref: "#/components/parameters/Repo"
+        - $ref: "#/components/parameters/Tool"
+        - $ref: "#/components/parameters/Source"
+        - $ref: "#/components/parameters/WorkType"
+        - $ref: "#/components/parameters/Outcome"
+        - $ref: "#/components/parameters/IncludeArchived"
+      responses:
+        "200":
+          description: Comparison cells
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompareCell"
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1302,6 +1340,18 @@ components:
       description: Exact session model filter
       schema:
         type: string
+    WorkType:
+      name: work_type
+      in: query
+      description: Exact root session work classification; an empty value matches unclassified.
+      schema:
+        type: string
+    Outcome:
+      name: outcome
+      in: query
+      description: Exact root session transcript-ending heuristic; an empty value matches unclassified.
+      schema:
+        type: string
     Project:
       name: project
       in: query
@@ -1514,6 +1564,51 @@ components:
             $ref: "#/components/schemas/ApiError"
 
   schemas:
+    CompareCell:
+      type: object
+      required: [tool, provider, model, tasks, sessions, costUsd, unpricedTasks, costPerTaskMedian, costPerTaskP90, tokens, cacheReadShare, completedRate, failedRate, abandonedRate, outputTokensPerDollar, activeSecondsMedian, subagentCostShare, modelUsage]
+      properties:
+        tool: {type: string}
+        provider: {type: [string, "null"], description: Lowercase root session provider, or null when unknown.}
+        model: {type: string, description: Empty when the root has no recorded model.}
+        tasks: {type: integer}
+        sessions: {type: integer}
+        costUsd: {type: [number, "null"], description: Sum of complete priced tasks; null if none are priced.}
+        unpricedTasks: {type: integer}
+        costPerTaskMedian: {type: [number, "null"]}
+        costPerTaskP90: {type: [number, "null"]}
+        tokens:
+          type: object
+          required: [input, output, cacheRead, cacheWrite, reasoning]
+          properties:
+            input: {type: integer}
+            output: {type: integer}
+            cacheRead: {type: integer}
+            cacheWrite: {type: integer}
+            reasoning: {type: integer}
+          additionalProperties: false
+        cacheReadShare: {type: [number, "null"]}
+        completedRate: {type: number}
+        failedRate: {type: number}
+        abandonedRate: {type: number}
+        outputTokensPerDollar: {type: [number, "null"]}
+        activeSecondsMedian: {type: [number, "null"]}
+        subagentCostShare: {type: [number, "null"]}
+        modelUsage:
+          type: array
+          items:
+            type: object
+            required: [provider, model, requests, input, output, cacheRead, cacheWrite]
+            properties:
+              provider: {type: [string, "null"], description: Lowercase usage provider, or null when unknown.}
+              model: {type: string}
+              requests: {type: integer}
+              input: {type: integer}
+              output: {type: integer}
+              cacheRead: {type: integer}
+              cacheWrite: {type: integer}
+            additionalProperties: false
+      additionalProperties: false
     ErrorCode:
       type: string
       enum:

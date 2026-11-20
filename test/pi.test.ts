@@ -125,6 +125,22 @@ describe("parsePiSession", () => {
     ]);
   });
 
+  test("attributes the primary model to its recorded provider", () => {
+    const records = lines(
+      HEADER,
+      { type: "model_change", provider: "OpenAI", modelId: "openai/gpt-5.4" },
+      assistant("a", null, "2026-11-03T08:00:01.000Z", {
+        provider: "OpenAI", model: "openai/gpt-5.4", usage: usage(1, 10),
+      }),
+      assistant("b", "a", "2026-11-03T08:00:02.000Z", {
+        provider: "Other", model: "other/gpt-5.4", usage: usage(1, 1),
+      }),
+    );
+    const fallback = lines(HEADER, { type: "model_change", provider: "OpenAI", modelId: "cx/gpt-5.5" });
+    expect([parsePiSession("fallback", records).session, parsePiSession("fallback", fallback).session])
+      .toMatchObject([{ model: "gpt-5.4", provider: "openai" }, { model: "cx/gpt-5.5", provider: "openai" }]);
+  });
+
   test("keeps every branch in file order with its tree links", () => {
     const { session } = parsePiSession("fallback", fixture("sample"));
     const branchUser = session.messages.find((message) => message.sourceUuid === "a0000017");
@@ -607,9 +623,18 @@ describe("Pi ingest", () => {
       },
       {
         model: "gpt-5.4",
-        requests: 4,
-        input_tokens: 12900,
-        output_tokens: 605,
+        requests: 2,
+        input_tokens: 8000,
+        output_tokens: 300,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cache_creation_1h_tokens: 0,
+      },
+      {
+        model: "gpt-5.4",
+        requests: 2,
+        input_tokens: 4900,
+        output_tokens: 305,
         cache_read_tokens: 0,
         cache_creation_tokens: 0,
         cache_creation_1h_tokens: 0,

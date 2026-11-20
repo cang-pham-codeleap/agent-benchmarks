@@ -127,7 +127,7 @@ const BASELINE_TABLES = [
   "unbilled_request",
 ];
 const BASELINE_TRIGGERS = ["block_ad", "block_ai", "block_au"];
-const BASELINE_INDEX_COUNT = 30;
+const BASELINE_INDEX_COUNT = 31;
 
 function inventory(db: Database, type: string): string[] {
   return (

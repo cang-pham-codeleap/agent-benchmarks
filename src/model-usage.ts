@@ -12,13 +12,14 @@ import {
 import { withImmediateTransaction } from "./db.ts";
 import { asInteger, asString, isObject } from "./json.ts";
 import { MESSAGE_METADATA_SQL } from "./message-storage.ts";
-import { type CostSource, emptyUsage, type Json, type TokenUsage } from "./model.ts";
+import { type CostSource, emptyUsage, type Json, modelWithoutProvider, type TokenUsage } from "./model.ts";
 import { compareCodePoints } from "./order.ts";
 import { queryRow, queryRows, runStatement } from "./sqlite-statements.ts";
 
-export const MODEL_USAGE_FORMAT_VERSION = 3;
+export const MODEL_USAGE_FORMAT_VERSION = 4;
 
 export interface ModelUsageRow {
+  provider: string | null;
   model: string;
   tier: PriceTier;
   requests: number;
@@ -28,6 +29,7 @@ export interface ModelUsageRow {
 
 interface SessionTotalsRow {
   tool: string;
+  provider: string | null;
   model: string | null;
   raw_meta: string | null;
   total_input_tokens: number;
@@ -38,6 +40,7 @@ interface SessionTotalsRow {
 }
 
 interface BilledMessageRow {
+  provider: string | null;
   model: string | null;
   input_tokens: number | null;
   output_tokens: number | null;
@@ -50,7 +53,7 @@ interface BilledMessageRow {
 export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow[] | null {
   const session = queryRow<SessionTotalsRow>(
     db,
-    `SELECT tool, model, raw_meta, total_input_tokens, total_output_tokens, total_cache_read_tokens,
+    `SELECT tool, provider, model, raw_meta, total_input_tokens, total_output_tokens, total_cache_read_tokens,
             total_cache_creation_tokens, total_cache_creation_1h_tokens
        FROM session WHERE id = ?1`,
     [sessionId],
@@ -65,7 +68,7 @@ export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow
     // totals, and Hermes records all of its usage that way, so the parser
     // keeps them in raw_meta.modelUsage. Splitting them from per-response
     // output would charge every model's input to one.
-    const rows = copilotModelUsage(session.raw_meta);
+    const rows = copilotModelUsage(session.raw_meta, session.provider);
     if (rows != null) {
       return rows;
     }
@@ -73,15 +76,21 @@ export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow
   const messages = queryRows<BilledMessageRow>(
     db,
     `SELECT model, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+            CASE WHEN json_valid(${MESSAGE_METADATA_SQL}) THEN COALESCE(
+              json_extract(${MESSAGE_METADATA_SQL}, '$._provider'),
+              json_extract(${MESSAGE_METADATA_SQL}, '$.message.provider'),
+              json_extract(${MESSAGE_METADATA_SQL}, '$.provider'),
+              json_extract(${MESSAGE_METADATA_SQL}, '$.providerID'),
+              json_extract(${MESSAGE_METADATA_SQL}, '$.model.providerID')) END AS provider,
             CASE WHEN ?2 = 'claude_code' THEN json_extract(${MESSAGE_METADATA_SQL}, '$.message.usage')
-                 WHEN ?2 = 'pi' AND json_valid(${MESSAGE_METADATA_SQL}) THEN json_object(
+                 WHEN ?2 IN ('pi', 'omp') AND json_valid(${MESSAGE_METADATA_SQL}) THEN json_object(
                    'cache_creation', json_object('ephemeral_1h_input_tokens', COALESCE(
                      json_extract(${MESSAGE_METADATA_SQL}, '$.message.usage.cacheWrite1h'),
                      json_extract(${MESSAGE_METADATA_SQL}, '$.usage.cacheWrite1h'), 0)))
             END AS usage_json,
             CASE WHEN ?2 = 'opencode' AND json_valid(${MESSAGE_METADATA_SQL}) THEN json_extract(${MESSAGE_METADATA_SQL}, '$.cost')
                  WHEN ?2 = 'atif' AND json_valid(${MESSAGE_METADATA_SQL}) THEN json_extract(${MESSAGE_METADATA_SQL}, '$.metrics.cost_usd')
-                 WHEN ?2 = 'pi' AND json_valid(${MESSAGE_METADATA_SQL}) THEN COALESCE(
+                 WHEN ?2 IN ('pi', 'omp') AND json_valid(${MESSAGE_METADATA_SQL}) THEN COALESCE(
                    json_extract(${MESSAGE_METADATA_SQL}, '$.message.usage.cost.total'),
                    json_extract(${MESSAGE_METADATA_SQL}, '$.usage.cost.total'))
             END AS reported_cost
@@ -112,9 +121,11 @@ export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow
       cacheCreation1h: Math.min(Math.max(0, recorded.cacheCreation1h), Math.max(0, cacheCreation)),
       reasoning: 0,
     };
-    const model = isRecordedModel(message.model) ? message.model : sessionModel;
+    const provider = (typeof message.provider === "string" ? message.provider.trim().toLowerCase() : "") ||
+      (session.tool === "omp" || session.tool === "pi" || session.tool === "opencode" ? null : session.provider);
+    const model = modelWithoutProvider(isRecordedModel(message.model) ? message.model : sessionModel, provider) ?? "";
     const tier = requestPriceTier(model, usage, recorded.speed);
-    addUsage(groups, model, tier, usage, 1);
+    addUsage(groups, provider, model, tier, usage, 1);
     addTokens(billed, usage);
     const reported =
       typeof message.reported_cost === "number" && message.reported_cost > 0
@@ -124,16 +135,17 @@ export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow
     if (!isPriceableModel(model)) {
       unpricedReportedTotal += reported;
     }
-    reportedByGroup.set(key(model, tier), (reportedByGroup.get(key(model, tier)) ?? 0) + reported);
+    reportedByGroup.set(key(provider, model, tier), (reportedByGroup.get(key(provider, model, tier)) ?? 0) + reported);
   }
 
   const residual = subtractUsage(totals, billed);
   const single =
-    groups.size === 0 || (groups.size === 1 && groups.has(key(sessionModel, "standard")));
+    groups.size === 0 || (groups.size === 1 && groups.has(key(session.provider, sessionModel, "standard")));
   if (single || !isNonNegative(residual)) {
     const runCost = session.tool === "atif" && !sawReported ? atifRunCost(session.raw_meta) : 0;
     return [
       {
+        provider: session.provider,
         model: sessionModel,
         tier: "standard",
         requests: messages.length,
@@ -143,14 +155,14 @@ export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow
     ];
   }
   if (!isZero(residual)) {
-    addUsage(groups, sessionModel, "standard", residual, 0);
+    addUsage(groups, session.provider, sessionModel, "standard", residual, 0);
   }
   return [...groups.values()]
     .map((row) => ({
       ...row,
       reportedCostUsd: reportedFallback(
         row.model,
-        reportedByGroup.get(key(row.model, row.tier)) ?? 0,
+        reportedByGroup.get(key(row.provider, row.model, row.tier)) ?? 0,
       ),
     }))
     .sort(compareRows);
@@ -162,9 +174,9 @@ export function materializeModelUsage(db: Database, sessionId: number): ModelUsa
   const insert = db.prepare(
     `INSERT INTO session_model_usage(
        session_id, model, tier, requests, input_tokens, output_tokens, cache_read_tokens,
-       cache_creation_tokens, cache_creation_1h_tokens, format_version, reported_cost_usd
+       cache_creation_tokens, cache_creation_1h_tokens, format_version, reported_cost_usd, provider
      )
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`,
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
   );
   try {
     for (const row of rows) {
@@ -180,6 +192,7 @@ export function materializeModelUsage(db: Database, sessionId: number): ModelUsa
         row.usage.cacheCreation1h,
         MODEL_USAGE_FORMAT_VERSION,
         row.reportedCostUsd,
+        row.provider,
       );
     }
   } finally {
@@ -227,6 +240,7 @@ export function modelUsageForScope(
 ): Map<number, ModelUsageRow[]> {
   const rows = queryRows<{
     session_id: number;
+    provider: string | null;
     model: string;
     tier: string;
     requests: number;
@@ -239,7 +253,7 @@ export function modelUsageForScope(
   }>(
     db,
     `${scopeCte}
-       SELECT u.session_id, u.model, u.tier, u.requests, u.input_tokens, u.output_tokens,
+       SELECT u.session_id, u.provider, u.model, u.tier, u.requests, u.input_tokens, u.output_tokens,
               u.cache_read_tokens, u.cache_creation_tokens, u.cache_creation_1h_tokens,
               u.reported_cost_usd
          FROM scoped_session fs
@@ -250,6 +264,7 @@ export function modelUsageForScope(
   for (const row of rows) {
     const list = bySession.get(row.session_id) ?? [];
     list.push({
+      provider: row.provider,
       model: row.model,
       tier: isPriceTier(row.tier) ? row.tier : "standard",
       requests: row.requests,
@@ -325,7 +340,7 @@ export function totalCost(parts: SessionCostParts): number {
   return parts.input + parts.output + parts.cacheRead + parts.cacheCreation + parts.reported;
 }
 
-function copilotModelUsage(rawMeta: string | null): ModelUsageRow[] | null {
+function copilotModelUsage(rawMeta: string | null, provider: string | null): ModelUsageRow[] | null {
   if (rawMeta == null) {
     return null;
   }
@@ -345,7 +360,8 @@ function copilotModelUsage(rawMeta: string | null): ModelUsageRow[] | null {
       return null;
     }
     rows.push({
-      model: asString(entry.model) ?? "",
+      provider,
+      model: modelWithoutProvider(asString(entry.model) ?? "", provider) ?? "",
       tier: "standard",
       requests: asInteger(entry.requests) ?? 0,
       usage: {
@@ -440,19 +456,21 @@ function parseUsageJson(value: string | null): { cacheCreation1h: number; speed:
   };
 }
 
-function key(model: string, tier: PriceTier): string {
-  return `${model}\0${tier}`;
+function key(provider: string | null, model: string, tier: PriceTier): string {
+  return JSON.stringify([provider, model, tier]);
 }
 
 function addUsage(
   groups: Map<string, ModelUsageRow>,
+  provider: string | null,
   model: string,
   tier: PriceTier,
   usage: TokenUsage,
   requests: number,
 ): void {
-  const id = key(model, tier);
+  const id = key(provider, model, tier);
   const row = groups.get(id) ?? {
+    provider,
     model,
     tier,
     requests: 0,
@@ -504,5 +522,5 @@ function isZero(usage: TokenUsage): boolean {
 }
 
 function compareRows(left: ModelUsageRow, right: ModelUsageRow): number {
-  return compareCodePoints(left.model, right.model) || compareCodePoints(left.tier, right.tier);
+  return compareCodePoints(left.provider ?? "", right.provider ?? "") || compareCodePoints(left.model, right.model) || compareCodePoints(left.tier, right.tier);
 }

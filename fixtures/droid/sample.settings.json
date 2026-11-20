@@ -1,0 +1,1 @@
+{"model":"custom:gpt-5.5-0","reasoningEffort":"high","tokenUsage":{"inputTokens":100,"outputTokens":20,"cacheReadTokens":30,"cacheCreationTokens":40,"thinkingTokens":5},"inclusiveTokenUsage":{"inputTokens":200,"outputTokens":40}}

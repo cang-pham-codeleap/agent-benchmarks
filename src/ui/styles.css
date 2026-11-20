@@ -2374,6 +2374,114 @@ th {
   padding-left: 10px;
 }
 
+.compare-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-table th,
+.compare-table td {
+  overflow: visible;
+  text-overflow: clip;
+  padding: 12px 16px;
+}
+
+.compare-table thead th:first-child,
+.compare-table tbody th[scope="row"] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 22rem;
+  max-width: 27rem;
+  box-shadow: 1px 0 var(--line);
+}
+
+.compare-table thead th:first-child {
+  z-index: 2;
+}
+
+.compare-table tbody th[scope="row"] {
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.compare-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 27rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.compare-identity .badge.is-mono {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.compare-table .compare-low-sample td {
+  color: var(--muted);
+}
+
+.compare-table td small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.compare-table .compare-details {
+  white-space: normal;
+}
+
+.compare-columns summary {
+  cursor: pointer;
+  color: var(--fg);
+  padding: 6px 8px;
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-columns[open] {
+  flex-basis: 100%;
+}
+
+.compare-columns fieldset {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 8px 16px;
+  margin: 8px 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.compare-columns label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compare-columns input {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
 .files-table th,
 .files-table td {
   padding-right: 8px;

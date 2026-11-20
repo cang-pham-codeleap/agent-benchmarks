@@ -24,6 +24,10 @@ import {
 
 /** Entry types Pi writes that carry nothing Decant stores (session-format.md). */
 const IGNORED_TYPES = new Set(["context_edit", "custom", "label"]);
+const OMP_IGNORED_TYPES = new Set([
+  "session_init", "credential_pin", "ttsr_injection", "mode_change",
+  "service_tier_change", "reset_boundary",
+]);
 
 /** The largest magnitude a JavaScript Date can hold (ECMA-262 21.4.1.1). */
 const MAX_DATE_MILLIS = 8.64e15;
@@ -35,13 +39,18 @@ export function piSessionIdFromStem(stem: string): string {
   return separator < 0 || separator === stem.length - 1 ? stem : stem.slice(separator + 1);
 }
 
-export function parsePiSession(fallbackId: string, content: string): ParsedSession {
+export function parsePiSession(
+  fallbackId: string,
+  content: string,
+  options: { omp?: boolean; isSubagent?: boolean } = {},
+): ParsedSession {
   const issues: ParsedSession["issues"] = [];
   const unknownTypes: UnknownTypes = new Map();
   const messages: NormalizedMessage[] = [];
   const toolUses = new Map<string, NormalizedBlock>();
   const efforts: string[] = [];
   const outputByModel = new Map<string, number>();
+  const outputByProvider = new Map<string, Map<string | null, number>>();
   const totals = emptyUsage();
 
   let headerRecord: JsonObject | null = null;
@@ -50,6 +59,7 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
   let name: string | null = null;
   let firstUserText: string | null = null;
   let currentModel: string | null = null;
+  let currentProvider: string | null = null;
   let startedAt: string | null = null;
   let endedAt: string | null = null;
   let reasoningReported = false;
@@ -62,7 +72,12 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
     role: Role,
     entry: JsonObject,
     blocks: NormalizedBlock[],
-    fields: { model?: string | null; usage?: TokenUsage | null; stopReason?: string | null } = {},
+    fields: {
+      model?: string | null;
+      provider?: string | null;
+      usage?: TokenUsage | null;
+      stopReason?: string | null;
+    } = {},
   ): void => {
     messages.push({
       seq,
@@ -70,6 +85,7 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
       parentSourceUuid: asString(entry.parentId),
       role,
       model: fields.model ?? null,
+      ...(fields.provider === undefined ? {} : { provider: fields.provider }),
       stopReason: fields.stopReason ?? null,
       timestamp: entryTimestamp(entry),
       usage: fields.usage ?? null,
@@ -133,7 +149,7 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
         if (headerTime != null) {
           startedAt = earlier(startedAt, headerTime);
         }
-        const forked = asString(entry.parentSession) == null ? Number.NaN : timeOf(headerTime);
+        const forked = options.isSubagent || asString(entry.parentSession) == null ? Number.NaN : timeOf(headerTime);
         forkedAt = Number.isFinite(forked) ? forked : null;
         break;
       }
@@ -155,11 +171,20 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
             break;
           }
           case "assistant": {
-            const model = asString(message.model) ?? currentModel;
+            const recordedModel = asString(message.model);
+            const provider =
+              asString(message.provider)?.trim().toLowerCase() ||
+              (recordedModel == null || bareModel(recordedModel, currentProvider) === currentModel
+                ? currentProvider
+                : null);
+            const model = bareModel(recordedModel ?? currentModel, provider);
             const blocks = assistantBlocks(message.content, toolUses);
             const usage = billed(message.usage);
             if (model != null && usage != null) {
               outputByModel.set(model, (outputByModel.get(model) ?? 0) + usage.output);
+              const providers = outputByProvider.get(model) ?? new Map<string | null, number>();
+              providers.set(provider, (providers.get(provider) ?? 0) + usage.output);
+              outputByProvider.set(model, providers);
             }
             const error = asString(message.errorMessage);
             if (error != null && error !== "") {
@@ -168,6 +193,7 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
             collectEffort(efforts, message.thinkingLevel);
             push("assistant", entry, blocks, {
               model,
+              provider,
               usage,
               stopReason: asString(message.stopReason),
             });
@@ -191,6 +217,7 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
             push("tool", entry, [result], { usage: billed(message.usage) });
             break;
           }
+          case "developer":
           case "system": {
             const text = textOf(message.content);
             push("system", entry, text === "" ? [] : [block(0, "text", { text })]);
@@ -204,6 +231,11 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
           case "custom":
           case "hookMessage": {
             push("other", entry, contentBlocks(message.content));
+            break;
+          }
+          case "fileMention": {
+            if (!options.omp) countUnknown(unknownTypes, `message:${role}`, lineNo);
+            push("other", entry, []);
             break;
           }
           case "branchSummary":
@@ -224,23 +256,48 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
         break;
       }
       case "model_change": {
-        currentModel = asString(entry.modelId) ?? currentModel;
+        const modelId = asString(entry.modelId);
+        const model = modelId ?? asString(entry.model);
+        const separator = model?.indexOf("/") ?? -1;
+        const recordedProvider = asString(entry.provider)?.trim().toLowerCase() || null;
+        currentProvider = model == null ? null : recordedProvider;
+        if (
+          options.omp && modelId == null && recordedProvider == null && model != null &&
+          separator > 0 && separator < model.length - 1
+        ) {
+          currentProvider = model.slice(0, separator).toLowerCase();
+        }
+        currentModel = bareModel(model, currentProvider) ?? currentModel;
         break;
       }
       case "thinking_level_change": {
         collectEffort(efforts, entry.thinkingLevel);
         break;
       }
+      case "model_usage":
       case "usage": {
-        const model = asString(entry.model) ?? currentModel;
+        if (typ === "model_usage" && !options.omp) {
+          countUnknown(unknownTypes, typ, lineNo);
+          break;
+        }
+        const recordedModel = asString(entry.model);
+        const provider =
+          asString(entry.provider)?.trim().toLowerCase() ||
+          (recordedModel == null || bareModel(recordedModel, currentProvider) === currentModel
+            ? currentProvider
+            : null);
+        const model = bareModel(recordedModel ?? currentModel, provider);
         const usage = billed(entry.usage);
         if (usage == null) {
           break;
         }
         if (model != null) {
           outputByModel.set(model, (outputByModel.get(model) ?? 0) + usage.output);
+          const providers = outputByProvider.get(model) ?? new Map<string | null, number>();
+          providers.set(provider, (providers.get(provider) ?? 0) + usage.output);
+          outputByProvider.set(model, providers);
         }
-        push("other", entry, [], { model, usage });
+        push("other", entry, [], { model, provider, usage });
         break;
       }
       case "compaction":
@@ -258,13 +315,23 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
         push("other", entry, contentBlocks(entry.content));
         break;
       }
+      case "title":
+      case "title_change": {
+        if (!options.omp) {
+          countUnknown(unknownTypes, typ, lineNo);
+          break;
+        }
+        const value = asString(entry.title)?.trim();
+        if (value) name = value;
+        break;
+      }
       case "session_info": {
         const value = asString(entry.name);
         name = value == null || value.trim() === "" ? null : value.trim();
         break;
       }
       default: {
-        if (!IGNORED_TYPES.has(typ)) {
+        if (!IGNORED_TYPES.has(typ) && !(options.omp && OMP_IGNORED_TYPES.has(typ))) {
           countUnknown(unknownTypes, typ, lineNo);
         }
       }
@@ -273,6 +340,18 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
 
   issues.push(...unknownTypeIssues(unknownTypes, "ignored"));
 
+  const primaryModel = heaviestModel(outputByModel) ?? currentModel;
+  const providers = primaryModel == null ? undefined : outputByProvider.get(primaryModel);
+  let primaryProvider: string | null =
+    providers == null && primaryModel === currentModel ? currentProvider : null;
+  let mostOutput = -1;
+  for (const [provider, output] of providers ?? []) {
+    if (output > mostOutput) {
+      primaryProvider = provider;
+      mostOutput = output;
+    }
+  }
+
   const normalized: NormalizedSession = {
     tool: "pi",
     sourceSessionId: sourceSessionId ?? fallbackId,
@@ -280,7 +359,8 @@ export function parsePiSession(fallbackId: string, content: string): ParsedSessi
     title: name ?? (firstUserText == null ? null : preview(firstUserText.trim(), 120)),
     cwd,
     gitBranch: null,
-    model: heaviestModel(outputByModel) ?? currentModel,
+    model: primaryModel,
+    provider: primaryProvider,
     reasoningEffort: summarizeReasoningEfforts(efforts),
     reasoningEffortLevels: reasoningEffortLevels(efforts),
     cliVersion: null,
@@ -483,6 +563,12 @@ function earlier(current: string | null, candidate: string): string {
 
 function later(current: string | null, candidate: string): string {
   return current == null || candidate > current ? candidate : current;
+}
+
+function bareModel(model: string | null, provider: string | null): string | null {
+  return model != null && provider != null && model.toLowerCase().startsWith(`${provider}/`)
+    ? model.slice(provider.length + 1)
+    : model;
 }
 
 function heaviestModel(outputByModel: Map<string, number>): string | null {

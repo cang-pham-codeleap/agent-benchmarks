@@ -54,6 +54,7 @@ export function sessionPageFailure(
 export function useSessionPage({
   dateQuery,
   enabled,
+  filters = "",
   includeArchived,
   page,
   project,
@@ -62,6 +63,7 @@ export function useSessionPage({
 }: {
   dateQuery: string;
   enabled: boolean;
+  filters?: string;
   includeArchived: boolean;
   page: number;
   project: string | null;
@@ -73,7 +75,7 @@ export function useSessionPage({
     failed: { error: unknown; requestKey: string } | null;
     loaded: LoadedSessionPage | null;
   }>({ failed: null, loaded: null });
-  const scopeKey = JSON.stringify([dateQuery, project, repo, includeArchived]);
+  const scopeKey = JSON.stringify([dateQuery, project, repo, includeArchived, filters]);
   const requestKey = `${scopeKey}:${page}:${reloadKey}`;
   const cached = cacheRef.current.get(requestKey) ?? null;
   const currentError = settled.failed?.requestKey === requestKey ? settled.failed.error : null;
@@ -99,7 +101,7 @@ export function useSessionPage({
     void getJson<SessionSummary[]>(
       withDateQuery(
         `/api/sessions?limit=${plan.limit}&offset=${plan.offset}` +
-          `&with_subagents=true${projectParam}${archivedParam}`,
+          `&with_subagents=true${projectParam}${archivedParam}${filters}`,
         dateQuery,
       ),
       { signal: controller.signal },
@@ -125,7 +127,7 @@ export function useSessionPage({
         setSettled((current) => ({ ...current, failed: { error, requestKey } }));
       });
     return () => controller.abort();
-  }, [dateQuery, enabled, includeArchived, page, project, repo, requestKey, scopeKey]);
+  }, [dateQuery, enabled, filters, includeArchived, page, project, repo, requestKey, scopeKey]);
 
   return {
     error: currentError,

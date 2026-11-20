@@ -19,7 +19,8 @@
   "scripts": {
     "predev": "bun install --frozen-lockfile",
     "dev": "bun run src/cli.ts serve",
-    "test": "bun test"
+    "test": "bun test",
+    "lens": "DECANT_DB=$HOME/.agent-lens/lens.db bun run src/cli.ts serve --port 4711"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",

@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { compareCells, type CompareFilter } from "../compare.ts";
 import { contextWindowForSession } from "../context-window.ts";
 import type { DateFilter } from "../date-filter.ts";
 import type { Operation } from "../enrich.ts";
@@ -71,6 +72,7 @@ export const READ_OPS = {
     searchPage(db, args.query, args.filter),
   ),
   statsSummary: json((db, args: StatsFilter) => totals(db, args)),
+  compare: json((db, args: CompareFilter) => compareCells(db, args)),
   statsByDimension: json((db, args: { dimension: Dimension; filter: StatsFilter }) =>
     byDimension(db, args.dimension, args.filter),
   ),

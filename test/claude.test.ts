@@ -7,6 +7,11 @@ async function fixture(): Promise<string> {
 }
 
 describe("parseClaudeSession", () => {
+  test("uses the recorded provider when one is present", () => {
+    const content = JSON.stringify({ type: "assistant", message: { role: "assistant", model: "claude-opus-5", provider: "Proxy", content: [] } });
+    expect(parseClaudeSession("s", content).session.provider).toBe("proxy");
+  });
+
   test("journal content blocks without request ids bill one message and share reasoning", async () => {
     const content = await Bun.file(
       join(import.meta.dir, "fixtures", "claude-split-message.jsonl"),

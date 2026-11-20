@@ -103,6 +103,13 @@ const SILENT_ASSISTANT_PARTS = new Set([
 const ASSISTANT_PARTS = new Set([...SILENT_ASSISTANT_PARTS, "text", "reasoning", "tool"]);
 const USER_PARTS = new Set(["text", "file", "agent", "subtask", "compaction"]);
 
+function bareModel(model: string | null, provider: string | null): string | null {
+  const prefix = provider?.trim().toLowerCase();
+  return model != null && prefix && model.toLowerCase().startsWith(`${prefix}/`)
+    ? model.slice(prefix.length + 1)
+    : model;
+}
+
 export function parseOpenCodeLegacySession(
   row: OpenCodeLegacySessionRow,
   messageRows: readonly OpenCodeLegacyMessageRow[],
@@ -239,7 +246,10 @@ export function parseOpenCodeLegacySession(
       raw,
       {
         sourceUuid: anchor.row.id,
-        model: summary == null ? null : asString(summary.info.modelID),
+        model:
+          summary == null
+            ? null
+            : bareModel(asString(summary.info.modelID), asString(summary.info.providerID)),
         stopReason: summary?.info.error != null ? "error" : null,
         timestamp: anchor.timestamp,
         usage,
@@ -317,7 +327,7 @@ export function parseOpenCodeLegacySession(
         raw,
         {
           sourceUuid: entry.row.id,
-          model: modelId,
+          model: bareModel(modelId, asString(entry.info.providerID)),
           stopReason: entry.info.error != null ? "error" : asString(entry.info.finish),
           timestamp: generated,
           usage,
@@ -393,7 +403,8 @@ export function parseOpenCodeLegacySession(
     title: row.title ?? (firstUserText == null ? null : preview(firstUserText.trim(), 120)),
     cwd: directory,
     gitBranch: null,
-    model: modelId,
+    model: bareModel(modelId, providerId),
+    provider: providerId?.trim().toLowerCase() || null,
     reasoningEffort: summarizeReasoningEfforts(efforts),
     reasoningEffortLevels: reasoningEffortLevels(efforts),
     cliVersion: row.version,

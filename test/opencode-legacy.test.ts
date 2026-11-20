@@ -235,6 +235,7 @@ describe("parseOpenCodeLegacySession", () => {
       cwd: "/decant-fixture/example",
       title: "Read the example notes",
       model: "glm-5.3-flash",
+      provider: "opencode-go",
       reasoningEffort: "max",
       cliVersion: "1.18.35",
       startedAt: new Date(1791790000000).toISOString(),

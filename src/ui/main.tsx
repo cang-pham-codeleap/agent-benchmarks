@@ -80,6 +80,7 @@ import type {
 } from "./types.ts";
 import { UpdateNudge } from "./update-nudge.tsx";
 import { AnalyticsView } from "./views/analytics.tsx";
+import { CompareView } from "./views/compare.tsx";
 import { FilesView } from "./views/files.tsx";
 import { InsightsView } from "./views/insights.tsx";
 import { ProjectsView } from "./views/projects.tsx";
@@ -110,7 +111,12 @@ function App() {
   const [recommendationsLoading, setRecommendationsLoading] = useState(
     () => resolveActiveRoute(locationPath(), navItems) === "Insights",
   );
-  const [dateRangeSelection, setDateRangeSelection] = useState<DateRangeSelection>(ALL_DATE_RANGE);
+  const [dateRangeSelection, setDateRangeSelection] = useState<DateRangeSelection>(() => {
+    const params = new URLSearchParams(locationPath().split("?", 2)[1] ?? "");
+    const from = params.get("from");
+    const to = params.get("to");
+    return from != null || to != null ? { preset: "custom", from, to } : ALL_DATE_RANGE;
+  });
   const [sourceSelection, setSourceSelection] = useState<DashboardSource>("");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -151,9 +157,15 @@ function App() {
   const dashboardQuery =
     activeView === "analytics" ? sourceScopeQuery(dateQuery, sourceSelection) : dateQuery;
   const showsSessions = activeView === "sessions";
+  const sessionParams = new URLSearchParams(path.split("?", 2)[1] ?? "");
+  const sessionFilters = new URLSearchParams();
+  for (const key of ["tool", "model", "work_type", "outcome"]) {
+    if (sessionParams.has(key)) sessionFilters.set(key, sessionParams.get(key) ?? "");
+  }
   const sessionPageState = useSessionPage({
     dateQuery,
     enabled: showsSessions,
+    filters: sessionFilters.size ? `&${sessionFilters}` : "",
     includeArchived: includeArchivedSessions,
     page: sessionPage,
     project: sessionProject,
@@ -1057,6 +1069,8 @@ function renderView(
       );
     case "search":
       return <SearchView dateRange={actions.dateRange} path={path} />;
+    case "compare":
+      return <CompareView data={data} dateRange={actions.dateRange} onDateRangeChange={actions.onDateRangeChange} reloadKey={actions.reloadKey} />;
     case "analytics":
       return (
         <AnalyticsView
