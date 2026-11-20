@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
 import { EmptyState } from "../common.tsx";
@@ -75,11 +78,11 @@ export function FilesView({
   }, [dateRange, filesRetryKey, group, op, reloadKey]);
 
   return (
-    <div className="view-stack">
-      <header className="page-heading inline-heading">
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1>File hotspots</h1>
-          <p>
+          <h1 className="text-2xl font-semibold tracking-tight">File hotspots</h1>
+          <p className="text-sm text-muted-foreground">
             What agents touch most. Heavy re-reads with few edits are AGENTS.md / skill candidates;
             heavy edits are churn.
           </p>
@@ -87,40 +90,30 @@ export function FilesView({
         <DateRangeControl bounds={dateBounds} range={dateRange} onChange={onDateRangeChange} />
       </header>
 
-      <div className="segment-row">
-        <fieldset className="segmented-control">
-          <legend>Group by</legend>
-          <button aria-pressed={group === "path"} onClick={() => setGroup("path")} type="button">
-            Files
-          </button>
-          <button aria-pressed={group === "ext"} onClick={() => setGroup("ext")} type="button">
-            Languages
-          </button>
+      <div className="flex flex-wrap gap-4">
+        <fieldset className="flex flex-wrap items-center gap-2">
+          <legend className="text-sm text-muted-foreground">Group by</legend>
+          <Button variant={group === "path" ? "secondary" : "outline"} aria-pressed={group === "path"} onClick={() => setGroup("path")} type="button">Files</Button>
+          <Button variant={group === "ext" ? "secondary" : "outline"} aria-pressed={group === "ext"} onClick={() => setGroup("ext")} type="button">Languages</Button>
         </fieldset>
-        <fieldset className="segmented-control">
-          <legend>Operation</legend>
-          <button aria-pressed={op == null} onClick={() => setOp(null)} type="button">
-            All ops
-          </button>
+        <fieldset className="flex flex-wrap items-center gap-2">
+          <legend className="text-sm text-muted-foreground">Operation</legend>
+          <Button variant={op == null ? "secondary" : "outline"} aria-pressed={op == null} onClick={() => setOp(null)} type="button">All ops</Button>
           {(["read", "edit", "write", "delete"] as const).map((name) => (
-            <button aria-pressed={op === name} key={name} onClick={() => setOp(name)} type="button">
-              {capitalize(name)}
-            </button>
+            <Button variant={op === name ? "secondary" : "outline"} aria-pressed={op === name} key={name} onClick={() => setOp(name)} type="button">{capitalize(name)}</Button>
           ))}
         </fieldset>
       </div>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>{group === "ext" ? "Languages" : "Hotspots"}</h2>
-            <p>Per-operation counts from tool-call evidence, ordered by activity</p>
-          </div>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{group === "ext" ? "Languages" : "Hotspots"}</CardTitle>
+          <p className="text-sm text-muted-foreground">Per-operation counts from tool-call evidence, ordered by activity</p>
+        </CardHeader>
         {fileError != null ? (
           <ApiFailureState error={fileError} onRetry={() => setFilesRetryKey((key) => key + 1)} />
         ) : filesLoading && fileRows.length === 0 ? (
-          <div className="panel-body muted">Loading file activity…</div>
+          <div className="px-6 text-sm text-muted-foreground">Loading file activity…</div>
         ) : fileRows.length === 0 ? (
           <EmptyState
             icon="file"
@@ -128,21 +121,10 @@ export function FilesView({
             title="No file activity"
           />
         ) : (
-          <div className="table-scroll">
-            <table className="data-table files-table">
-              <colgroup>
-                <col className="col-file" />
-                {group === "path" ? <col className="col-project" /> : null}
-                <col className="col-count" />
-                <col className="col-count" />
-                <col className="col-count" />
-                <col className="col-count" />
-                <col className="col-sessions" />
-                <col className="col-total" />
-                <col className="col-date" />
-              </colgroup>
-              <thead>
-                <tr>
+          <CardContent><div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
                   <SortableHeader
                     label={group === "ext" ? "Extension" : "File"}
                     onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
@@ -206,41 +188,41 @@ export function FilesView({
                     sort={fileSort}
                     sortKey="last_touched_at"
                   />
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {sortedFileRows.map((row) => (
-                  <tr key={`${group}-${row.project ?? ""}-${row.key}`}>
-                    <td className="mono truncate-cell">
+                  <TableRow key={`${group}-${row.project ?? ""}-${row.key}`}>
+                    <TableCell className="max-w-xs truncate font-mono">
                       <Link href={`/search?q=${encodeURIComponent(`"${row.key}"`)}`}>
                         {row.key}
                       </Link>
-                    </td>
+                    </TableCell>
                     {group === "path" ? (
-                      <td className="muted" title={row.project ?? ""}>
+                      <TableCell className="text-muted-foreground" title={row.project ?? ""}>
                         {row.project == null ? (
-                          <span className="faint">-</span>
+                          <span className="text-muted-foreground">-</span>
                         ) : (
                           <Link href={projectSessionsHref(row.project)}>
                             {basename(row.project)}
                           </Link>
                         )}
-                      </td>
+                      </TableCell>
                     ) : null}
-                    <td className="numeric muted">{formatInt(row.reads)}</td>
-                    <td className="numeric muted">{formatInt(row.edits)}</td>
-                    <td className="numeric muted">{formatInt(row.writes)}</td>
-                    <td className="numeric muted">{formatInt(row.deletes)}</td>
-                    <td className="numeric muted">{formatInt(row.sessions)}</td>
-                    <td className="numeric">{formatInt(fileTotal(row))}</td>
-                    <td className="numeric muted">{relativeTime(row.last_touched_at)}</td>
-                  </tr>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.reads)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.edits)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.writes)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.deletes)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.sessions)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatInt(fileTotal(row))}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{relativeTime(row.last_touched_at)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </div></CardContent>
         )}
-      </section>
+      </Card>
     </div>
   );
 }

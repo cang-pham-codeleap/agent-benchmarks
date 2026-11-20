@@ -801,7 +801,7 @@ function App() {
           <a className="px-2 py-1 text-[11px] hover:text-sidebar-foreground" href="https://github.com/dosu-ai/decant/releases" rel="noopener" target="_blank" title={`Current build: ${versionLabel(data.config?.version)}`}>Agent Benchmarks {versionLabel(data.config?.version)}</a>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="topbar sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
           {VIEWS_WITHOUT_HEADING.has(activeView) ? <h1 className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</h1> : <p className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</p>}
@@ -817,8 +817,8 @@ function App() {
           </DropdownMenu>
           {syncInProgress || syncComplete ? <SyncProgressLine complete={syncCompleteShown} progress={syncProgress} /> : null}
         </header>
-        <div className="content">
-          <div className="content-wrap">
+        <div className="content min-w-0 flex-1 px-8 pb-12 pt-6">
+          <div className="content-wrap mx-auto w-full min-w-0 max-w-[96rem]">
             {syncNoticeShown && (syncInProgress || syncComplete) ? <SyncProgressNotice complete={syncCompleteShown} firstSync={firstSync} progress={syncProgress} /> : null}
             {liveDisconnected ? <div className="live-disconnected" role="status"><span>Live updates disconnected · the browser will reconnect automatically.</span><button className="secondary-button" onClick={reconnectLiveUpdates} type="button">Reconnect</button></div> : null}
             {syncError != null ? <div className="inline-recovery"><ApiFailureState error={syncError} onRetry={runSync} /></div> : null}

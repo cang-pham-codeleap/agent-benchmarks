@@ -1,4 +1,7 @@
 import { useEffect, useId, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type ApiRetryPolicy, getJson } from "../api.ts";
 import dosuDecantUrl from "../assets/dosu-decant.png";
 import {
@@ -8,7 +11,6 @@ import {
 } from "../background-service.ts";
 import { dosuLink } from "../dosu-links.ts";
 import { errorMessage, versionLabel } from "../format.ts";
-import { Icon } from "../icons.tsx";
 import type {
   BackgroundStatus,
   ConfigView,
@@ -60,17 +62,17 @@ export function SettingsView({
   };
 
   return (
-    <div className="settings-page">
-      <header className="page-heading">
-        <h1>Settings</h1>
-        <p>
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground">
           How Decant opens things on your machine. We start from what we detect and remember your
           choices.
         </p>
       </header>
 
-      <section className="panel">
-        <div className="settings-form">
+      <Card>
+        <CardContent className="divide-y">
           <SettingSelect
             help="The agent the Run button opens first across Insights."
             label="Preferred agent"
@@ -92,12 +94,12 @@ export function SettingsView({
             value={settings?.ide ?? "vscode"}
             onChange={(ide) => save({ ide })}
           />
-        </div>
-        {saveError != null ? <div className="notice danger inline-notice">{saveError}</div> : null}
-      </section>
+        </CardContent>
+        {saveError != null ? <Alert variant="destructive"><AlertDescription>{saveError}</AlertDescription></Alert> : null}
+      </Card>
 
-      <section className="panel">
-        <div className="settings-form">
+      <Card>
+        <CardContent className="divide-y">
           <SettingSwitch
             checked={
               update?.envOverride === true ? update.enabled : (settings?.updateCheck ?? false)
@@ -109,26 +111,26 @@ export function SettingsView({
             status={updateNote(update, settings?.updateCheck ?? false)}
           />
           <BackgroundSetting />
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="panel about-decant">
-        <div className="panel-heading">
-          <div>
-            <h2>About Agent Benchmarks</h2>
-            <p>
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div className="space-y-2">
+            <CardTitle>About Agent Benchmarks</CardTitle>
+            <p className="text-sm text-muted-foreground">
               See where your coding agents spend tokens, money, and time: a local-first, searchable
               archive of Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI,
               Copilot Chat in VS Code, Hermes Agent, and Pi sessions, with ATIF import and export.
             </p>
-            <p className="about-attribution">
+            <p className="text-sm text-muted-foreground">
               Based on Decant by Dosu (Apache-2.0)
             </p>
           </div>
-          <img alt="" src={dosuDecantUrl} />
-        </div>
-        <div className="panel-body">
-          <div className="about-links">
+          <img alt="" className="max-h-24 max-w-24 object-contain" src={dosuDecantUrl} />
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-4 text-foreground underline-offset-4 [&_a:hover]:underline">
             <a href="https://github.com/dosu-ai/decant" rel="noopener" target="_blank">
               View source ↗
             </a>
@@ -140,14 +142,14 @@ export function SettingsView({
               Apache-2.0 license ↗
             </a>
           </div>
-          <p className="about-version">Version {versionLabel(config?.version)}</p>
-          <p className="about-privacy">
+          <p>Version {versionLabel(config?.version)}</p>
+          <p>
             {update?.enabled === true && update.channel !== "source"
               ? "Agent Benchmarks contacts the npm registry once a day to check for a newer version. Your session logs stay on this machine."
               : "Agent Benchmarks makes no outbound network calls. Your session logs stay on this machine."}
           </p>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -220,7 +222,7 @@ function BackgroundSetting() {
         onChange={toggle}
         status={backgroundNote(status, phase)}
       />
-      {error != null ? <div className="notice danger inline-notice">{error}</div> : null}
+      {error != null ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
     </>
   );
 }
@@ -270,23 +272,18 @@ export function SettingSelect({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const id = useId();
   return (
-    <label className="setting-select">
-      <span>
-        <strong>{label}</strong>
-        <small>{help}</small>
-      </span>
-      <span className="select-shell">
-        <select value={value} onChange={(event) => onChange(event.target.value)}>
-          {options.map(([key, name]) => (
-            <option key={key} value={key}>
-              {name}
-            </option>
-          ))}
-        </select>
-        <Icon name="chevronDown" />
-      </span>
-    </label>
+    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-1">
+        <strong id={`${id}-label`} className="text-sm font-medium">{label}</strong>
+        <p id={`${id}-help`} className="text-sm text-muted-foreground">{help}</p>
+      </div>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger aria-labelledby={`${id}-label`} aria-describedby={`${id}-help`} className="w-full sm:w-56"><SelectValue /></SelectTrigger>
+        <SelectContent>{options.map(([key, name]) => <SelectItem key={key} value={key}>{name}</SelectItem>)}</SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -307,29 +304,29 @@ export function SettingSwitch({
 }) {
   const id = useId();
   return (
-    <label className="setting-select setting-switch" htmlFor={id}>
-      <span>
-        <strong id={`${id}-label`}>{label}</strong>
-        <small id={`${id}-help`}>{help}</small>
+    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-1">
+        <strong id={`${id}-label`} className="text-sm font-medium">{label}</strong>
+        <p id={`${id}-help`} className="text-sm text-muted-foreground">{help}</p>
         {status != null ? (
-          <small aria-live="polite" className="setting-switch-status">
+          <p aria-live="polite" className="text-sm text-muted-foreground">
             {status}
-          </small>
+          </p>
         ) : null}
-      </span>
+      </div>
       <button
         aria-checked={checked}
         aria-describedby={`${id}-help`}
         aria-labelledby={`${id}-label`}
-        className="switch"
+        className="inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent bg-input transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-checked:bg-primary"
         disabled={disabled}
         id={id}
         onClick={() => onChange(!checked)}
         role="switch"
         type="button"
       >
-        <span className="switch-handle" />
+        <span className={`block size-5 rounded-full bg-background shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`} />
       </button>
-    </label>
+    </div>
   );
 }

@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge, ToolBadge, toolLabel } from "../badges.tsx";
 import { CostValue, EmptyState, StatCard } from "../common.tsx";
 import { relativeTime } from "../date-time.ts";
@@ -37,13 +41,13 @@ export function ProjectsView({
   const activitySources = new Set(projects.flatMap((project) => project.session_tools));
 
   return (
-    <div className="view-stack">
-      <header className="page-heading">
-        <h1>Projects</h1>
-        <p>Project roots, worktrees, source tools, and local session activity.</p>
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+        <p className="text-sm text-muted-foreground">Project roots, worktrees, source tools, and local session activity.</p>
       </header>
 
-      <div className="stat-grid projects-stat-grid">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon="folder"
           label="Projects"
@@ -53,12 +57,12 @@ export function ProjectsView({
         <StatCard icon="tools" label="Activity sources" value={formatInt(activitySources.size)} />
       </div>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Projects and worktrees</h2>
-            <p>
-              Worktree source comes from Git pointers, known layouts, or root name matching.{" "}
+      <Card>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle>Projects and worktrees</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Worktree source comes from Git pointers, known layouts, or root name matching. {" "}
               <span role="status">
                 {filtering
                   ? `Showing ${formatInt(shown.length)} of ${formatInt(sorted.length)}.`
@@ -67,17 +71,16 @@ export function ProjectsView({
             </p>
           </div>
           {sorted.length > 0 ? (
-            <div className="session-list-controls">
-              <input
+            <div className="w-full sm:w-72">
+              <Input
                 aria-label="Filter projects"
-                className="session-filter"
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Filter by name, path, or tool..."
                 value={query}
               />
             </div>
           ) : null}
-        </div>
+        </CardHeader>
         {sorted.length === 0 ? (
           <EmptyState
             action={
@@ -96,84 +99,73 @@ export function ProjectsView({
         ) : shown.length === 0 ? (
           <EmptyState
             action={
-              <button className="secondary-button" onClick={() => setQuery("")} type="button">
+              <Button variant="outline" onClick={() => setQuery("")} type="button">
                 Clear filter
-              </button>
+              </Button>
             }
             icon="folder"
             message={`No project or worktree matches "${query.trim()}".`}
             title="No matching projects"
           />
         ) : (
-          <div className="table-scroll">
-            <table className="data-table projects-table">
-              <colgroup>
-                <col className="col-project-path" />
-                <col className="col-project-kind" />
-                <col className="col-project-source" />
-                <col className="col-project-root" />
-                <col className="col-number" />
-                <col className="col-number" />
-                <col className="col-project-date" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Project</th>
-                  <th>Type</th>
-                  <th>Source</th>
-                  <th>Root</th>
-                  <th className="numeric">Sessions</th>
-                  <th className="numeric">Cost</th>
-                  <th className="numeric">Last seen</th>
-                </tr>
-              </thead>
-              <tbody>
+          <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Root</TableHead>
+                  <TableHead className="text-right">Sessions</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
+                  <TableHead className="text-right">Last seen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {shown.map((project) => (
-                  <tr key={project.id}>
-                    <td className="truncate-cell" title={project.path}>
-                      <Link className="path-stack" href={projectSessionsHref(project.path)}>
+                  <TableRow key={project.id}>
+                    <TableCell className="max-w-xs truncate" title={project.path}>
+                      <Link className="flex flex-col gap-1 hover:underline" href={projectSessionsHref(project.path)}>
                         <strong>{projectName(project)}</strong>
-                        <small>{project.path}</small>
+                        <small className="truncate text-xs text-muted-foreground">{project.path}</small>
                       </Link>
-                    </td>
-                    <td>
-                      <ProjectKind project={project} />
-                    </td>
-                    <td>
-                      <ProjectSource project={project} />
-                    </td>
-                    <td className="truncate-cell" title={project.root_path ?? project.path}>
+                    </TableCell>
+                    <TableCell><ProjectKind project={project} /></TableCell>
+                    <TableCell><ProjectSource project={project} /></TableCell>
+                    <TableCell className="max-w-xs truncate" title={project.root_path ?? project.path}>
                       {project.is_worktree ? (
-                        <span className="path-stack is-compact">
+                        <span className="flex flex-col gap-1">
                           <strong>{basename(project.root_path)}</strong>
-                          <small>{project.root_path ?? "-"}</small>
+                          <small className="truncate text-xs text-muted-foreground">{project.root_path ?? "-"}</small>
                         </span>
                       ) : project.worktree_count > 0 ? (
-                        <span className="worktree-count">
+                        <span className="text-sm text-muted-foreground">
                           {formatInt(project.worktree_count)}{" "}
                           {project.worktree_count === 1 ? "worktree" : "worktrees"}
                         </span>
                       ) : (
-                        <span className="faint">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
-                    </td>
-                    <td className="numeric muted">{formatInt(project.sessions)}</td>
-                    <td className="numeric">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(project.sessions)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
                       <CostValue
                         cost={project.estimated_cost_usd}
                         dense
                         sessions={project.sessions}
                         usageSessions={project.usage_sessions}
                       />
-                    </td>
-                    <td className="numeric muted">{relativeTime(project.last_seen_at)}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">{relativeTime(project.last_seen_at)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
+          </CardContent>
         )}
-      </section>
+      </Card>
     </div>
   );
 }
@@ -210,17 +202,17 @@ export function ProjectKind({ project }: { project: ProjectSummary }) {
 export function ProjectSource({ project }: { project: ProjectSummary }) {
   if (project.is_worktree) {
     return (
-      <span className="source-stack">
+      <span className="flex flex-col items-start gap-1">
         <Badge tone="accent">{worktreeToolLabel(project.worktree_tool)}</Badge>
-        <small>{rootSourceLabel(project.root_source)}</small>
+        <small className="text-xs text-muted-foreground">{rootSourceLabel(project.root_source)}</small>
       </span>
     );
   }
   if (project.session_tools.length === 0) {
-    return <span className="faint">-</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
   return (
-    <span className="source-badges">
+    <span className="flex flex-wrap gap-1">
       {project.session_tools.map((tool) => (
         <ToolBadge key={tool} tool={tool} />
       ))}

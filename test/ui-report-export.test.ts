@@ -16,24 +16,16 @@ describe("report export privacy review", () => {
   });
 
   test("uses one accessible review shell with trapped and restored focus", () => {
-    const focusTrap = sourceBetween(
-      readUiFile("focus.ts"),
-      "function useDialogFocusTrap(",
-      "function useDisabledFocusRescue(",
-    );
     const reviewSheet = sourceBetween(
       main,
       "function ExportReviewSheet(",
       "function ReportExportButton(",
     );
 
-    expect(focusTrap).toContain('event.key === "Escape"');
-    expect(focusTrap).toContain('event.key !== "Tab"');
-    expect(focusTrap).toContain("returnFocus.focus()");
-    expect(focusTrap).toContain("dialogFocusTargets");
-    expect(reviewSheet).toContain('aria-modal="true"');
-    expect(reviewSheet).toContain('role="dialog"');
-    expect(reviewSheet).toContain("tabIndex={-1}");
+    expect(reviewSheet).toContain("<Dialog open={open}");
+    expect(reviewSheet).toContain("<DialogContent");
+    expect(reviewSheet).toContain("onCloseAutoFocus");
+    expect(reviewSheet).toContain("returnFocus.current.focus()");
     expect(reviewSheet).toContain("<PrivacyReviewLists");
   });
 
@@ -67,10 +59,10 @@ describe("report export privacy review", () => {
       "async function renderShareCardPng(",
     );
 
-    expect(share).toContain("useDialogFocusTrap(open, dialogRef, closeShareReview)");
+    expect(share).toContain("<Dialog open={open}");
     expect(share).toContain("<PrivacyReviewLists");
     expect(share).toContain("SHARE_INCLUDED_FIELDS");
     expect(share).toContain("SHARE_EXCLUDED_FIELDS");
-    expect(share).toContain("share-preview");
+    expect(share).toContain("alt={altText}");
   });
 });

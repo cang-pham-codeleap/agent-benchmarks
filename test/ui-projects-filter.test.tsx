@@ -74,7 +74,7 @@ describe("Projects filter control", () => {
       <ProjectsView onSync={() => {}} projects={all} syncing={false} />,
     );
     expect(html).toContain('aria-label="Filter projects"');
-    expect(html.match(/<tr>/g)).toHaveLength(all.length + 1);
+    expect(html.match(/<tr(?:\s|>)/g)).toHaveLength(all.length + 1);
     expect(html).toContain('<span role="status"></span>');
   });
 

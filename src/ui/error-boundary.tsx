@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 interface ErrorBoundaryState {
   failed: boolean;
@@ -20,26 +22,17 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
       return this.props.children;
     }
     return (
-      <div style={{ margin: "64px auto", maxWidth: 560, padding: "0 16px" }}>
-        <div className="error-state" role="alert">
-          <span aria-hidden="true">!</span>
-          <div>
-            <h3>Something went wrong</h3>
-            <p>
-              Decant hit an unexpected error while drawing this page. Your archive is untouched;
-              reloading usually clears it.
-            </p>
-            <div className="state-actions">
-              <button
-                className="primary-button"
-                onClick={() => window.location.reload()}
-                type="button"
-              >
-                Reload Decant
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="mx-auto mt-16 max-w-xl px-4">
+        <Alert variant="destructive">
+          <AlertTitle>Something went wrong</AlertTitle>
+          <AlertDescription>
+            Decant hit an unexpected error while drawing this page. Your archive is untouched;
+            reloading usually clears it.
+          </AlertDescription>
+          <Button className="mt-4" onClick={() => window.location.reload()} type="button">
+            Reload Decant
+          </Button>
+        </Alert>
       </div>
     );
   }

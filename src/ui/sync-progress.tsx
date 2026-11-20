@@ -8,7 +8,7 @@ function percentText(fraction: number): string {
 function SyncFill({ fraction }: { fraction: number | null }) {
   return (
     <span
-      className="sync-fill"
+      className={`block h-full bg-primary transition-[width] ${fraction == null ? "w-1/3 animate-pulse motion-reduce:animate-none" : ""}`}
       data-indeterminate={fraction == null ? "true" : undefined}
       style={fraction == null ? undefined : { width: `${fraction * 100}%` }}
     />
@@ -30,7 +30,7 @@ export function SyncProgressLine({
       aria-valuemin={0}
       aria-valuenow={fraction == null ? undefined : Math.floor(fraction * 100)}
       aria-valuetext={complete ? syncCompleteLabel(progress) : syncProgressLabel(progress)}
-      className="sync-line"
+      className="h-1 w-full overflow-hidden bg-muted"
       data-complete={complete ? "true" : undefined}
       role="progressbar"
     >
@@ -50,21 +50,21 @@ export function SyncProgressNotice({
 }) {
   const fraction = complete ? 1 : syncFraction(progress);
   return (
-    <div className="sync-notice" data-complete={complete ? "true" : undefined}>
-      <div className="sync-notice-row">
-        <strong className="sync-notice-label">
+    <div className="space-y-2 rounded-md border bg-card p-4 text-sm" data-complete={complete ? "true" : undefined}>
+      <div className="flex flex-wrap items-center gap-2">
+        <strong className="font-medium">
           {complete ? syncCompleteLabel(progress) : syncProgressLabel(progress)}
         </strong>
         {firstSync && !complete ? (
-          <span className="sync-notice-hint">
+          <span className="text-muted-foreground">
             First sync. Totals and insights appear when it finishes.
           </span>
         ) : null}
         {fraction != null && !complete ? (
-          <span className="sync-notice-percent">{percentText(fraction)}</span>
+          <span className="ml-auto tabular-nums text-muted-foreground">{percentText(fraction)}</span>
         ) : null}
       </div>
-      <div aria-hidden="true" className="sync-notice-bar">
+      <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-muted">
         <SyncFill fraction={fraction} />
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { copyTextToClipboard } from "./clipboard.ts";
 import { versionLabel } from "./format.ts";
 import { Icon } from "./icons.tsx";
@@ -23,18 +24,18 @@ export function UpdateNudge({ status }: { status: UpdateStatus | null }) {
   }
 
   return (
-    <div className="update-nudge">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card p-3 text-sm">
       <a
-        className="update-nudge-title"
+        className="font-medium underline-offset-4 hover:underline"
         href={`https://github.com/dosu-ai/decant/releases/tag/${versionLabel(status.latest)}`}
         rel="noopener"
         target="_blank"
       >
         Agent Benchmarks {versionLabel(status.latest)} is available
       </a>
-      <button
+      <Button
         aria-label={`Copy the update command: ${status.command}`}
-        className="update-nudge-command"
+        variant="outline"
         onClick={() => {
           copyTextToClipboard(status.command).then(
             () => setCopyState("copied"),
@@ -46,10 +47,10 @@ export function UpdateNudge({ status }: { status: UpdateStatus | null }) {
       >
         <code>{status.command}</code>
         <Icon name={copied ? "check" : "copy"} />
-      </button>
+      </Button>
       <span
         aria-live="polite"
-        className={copyState === "failed" ? "update-nudge-error" : "sr-only"}
+        className={copyState === "failed" ? "text-destructive" : "sr-only"}
       >
         {copyState === "copied" ? "Copied" : ""}
         {copyState === "failed"

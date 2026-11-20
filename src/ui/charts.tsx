@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { isolatedPoints } from "../day-series.ts";
 import type * as ChartRuntime from "./chart-runtime.ts";
 import type { AnalyticsChartOption, ECharts as EChartsInstance } from "./chart-runtime.ts";
@@ -29,20 +30,12 @@ export async function loadChartRuntime(
 
 export function ChartUnavailable() {
   return (
-    <div className="error-state" role="status">
+    <div className="flex items-start gap-3 rounded-md border p-4" role="status">
       <span aria-hidden="true">!</span>
-      <div>
-        <h3>This chart could not load</h3>
-        <p>Decant may have been updated or stopped since this page opened.</p>
-        <div className="state-actions">
-          <button
-            className="secondary-button"
-            onClick={() => window.location.reload()}
-            type="button"
-          >
-            Reload Decant
-          </button>
-        </div>
+      <div className="space-y-2">
+        <h3 className="font-semibold">This chart could not load</h3>
+        <p className="text-sm text-muted-foreground">Decant may have been updated or stopped since this page opened.</p>
+        <Button variant="outline" onClick={() => window.location.reload()} type="button">Reload Decant</Button>
       </div>
     </div>
   );
@@ -140,7 +133,7 @@ export const AnalyticsChart = memo(function AnalyticsChart({
   if (unavailable) {
     return <ChartUnavailable />;
   }
-  return <div aria-label={description} className="analytics-chart" ref={chartRef} role="img" />;
+  return <div aria-label={description} className="block h-64 w-full" ref={chartRef} role="img" />;
 });
 
 export type ChartColors = ReturnType<typeof chartColors>;
@@ -280,16 +273,16 @@ export function chartColors() {
   const styles = getComputedStyle(document.documentElement);
   const value = (name: string) => styles.getPropertyValue(name).trim();
   return {
-    fg: value("--fg"),
+    fg: value("--card-foreground"),
     hover: styles.colorScheme === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(20, 20, 20, 0.05)",
-    muted: value("--muted"),
-    faint: value("--faint"),
-    line: value("--line"),
-    surface: value("--surface"),
-    accent: value("--accent"),
-    info: value("--info"),
-    success: value("--success"),
-    warning: value("--warning"),
+    muted: value("--muted-foreground"),
+    faint: value("--muted-foreground"),
+    line: value("--border"),
+    surface: value("--card"),
+    accent: value("--chart-1"),
+    info: value("--chart-2"),
+    success: value("--chart-3"),
+    warning: value("--chart-4"),
   };
 }
 

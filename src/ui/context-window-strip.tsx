@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Card } from "@/components/ui/card";
 import {
   contextCurveAreaPath,
   contextCurveLinePath,
@@ -47,13 +48,13 @@ export function ContextWindowPanel({
 export function ContextWindowUnavailable({ timeline }: { timeline: ContextWindowTimelineData }) {
   const hasUsage = timeline.points.length > 0;
   return (
-    <section className="panel context-window-panel">
-      <div className="panel-heading">
+    <Card className="gap-4 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2>Context window</h2>
-          <p>How full the model's context window was at each API call across the session.</p>
+          <h2 className="text-lg font-semibold">Context window</h2>
+          <p className="text-sm text-muted-foreground">How full the model's context window was at each API call across the session.</p>
         </div>
-        <div className="activity-summary">
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground [&_strong]:mr-1 [&_strong]:text-foreground">
           {timeline.window_tokens != null ? (
             <span>
               <strong>{compact(timeline.window_tokens)}</strong>
@@ -68,7 +69,7 @@ export function ContextWindowUnavailable({ timeline }: { timeline: ContextWindow
           ) : null}
         </div>
       </div>
-      <div className="ctx-unavailable">
+      <div className="flex gap-3 rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&_strong]:text-foreground">
         <Icon name="info" />
         <div>
           <strong>
@@ -83,7 +84,7 @@ export function ContextWindowUnavailable({ timeline }: { timeline: ContextWindow
           </p>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -223,21 +224,21 @@ export function ContextWindowStrip({
     return (
       <>
         <rect
-          className="ctx-strip-band"
+          className="fill-chart-1/10"
           height={yAt(windowTokens * STRIP_AUTO_COMPACT_ZONE) - yAt(windowTokens)}
           width={plotRight - plotLeft}
           x={plotLeft}
           y={yAt(windowTokens)}
         />
         <text
-          className="ctx-strip-band-label"
+          className="fill-muted-foreground text-[10px]"
           x={plotLeft + 4}
           y={yAt(windowTokens * STRIP_AUTO_COMPACT_ZONE) - 4}
         >
           auto-compact zone
         </text>
         {[0.25, 0.5, 0.75].map((fraction) => (
-          <g className="ctx-strip-grid" key={`grid-${fraction}`}>
+          <g className="[&_line]:stroke-border [&_text]:fill-muted-foreground [&_text]:text-[10px]" key={`grid-${fraction}`}>
             <line
               x1={plotLeft}
               x2={plotRight}
@@ -250,23 +251,23 @@ export function ContextWindowStrip({
           </g>
         ))}
         <line
-          className="ctx-strip-window"
+          className="stroke-border"
           x1={plotLeft}
           x2={plotRight}
           y1={yAt(windowTokens)}
           y2={yAt(windowTokens)}
         />
-        <text className="ctx-strip-label" x={plotLeft + 4} y={STRIP_WINDOW_LABEL_Y}>
+        <text className="fill-muted-foreground text-[10px]" x={plotLeft + 4} y={STRIP_WINDOW_LABEL_Y}>
           window · {compact(windowTokens)}
           {timeline.window_inferred ? " (inferred)" : ""}
         </text>
         {segments.map((coords) => (
           <g key={`seg-${coords[0]?.[0] ?? 0}`}>
-            <path className="ctx-strip-area" d={contextCurveAreaPath(coords, baseY)} />
-            <path className="ctx-strip-line" d={contextCurveLinePath(coords)} />
+            <path className="fill-chart-1/15" d={contextCurveAreaPath(coords, baseY)} />
+            <path className="fill-none stroke-chart-1 stroke-2" d={contextCurveLinePath(coords)} />
           </g>
         ))}
-        <g className="ctx-strip-rug">
+        <g className="[&_line]:stroke-border [&_text]:fill-muted-foreground [&_text]:text-[10px]">
           {turnMarks.slice(1).map((mark) => (
             <line
               key={`tick-${mark.turn}`}
@@ -294,7 +295,7 @@ export function ContextWindowStrip({
           })}
         </g>
         {compactionMarks.map(({ compaction, x }) => (
-          <g className="ctx-strip-compaction" key={`compaction-mark-${compaction.seq}`}>
+          <g className="[&_line]:stroke-chart-2 [&_line]:[stroke-dasharray:3_3]" key={`compaction-mark-${compaction.seq}`}>
             <line x1={x} x2={x} y1={STRIP_PLOT_TOP} y2={baseY} />
             <rect
               fill="transparent"
@@ -347,7 +348,7 @@ export function ContextWindowStrip({
               }}
               onMouseMove={(event) => event.stopPropagation()}
             >
-              <g className="ctx-strip-compaction-marker">
+              <g className="[&_rect]:fill-background [&_rect]:stroke-chart-2 [&_text]:fill-foreground [&_text]:text-[10px]">
                 <rect
                   height={18}
                   rx={9}
@@ -363,7 +364,7 @@ export function ContextWindowStrip({
           );
         })}
         {peakPoint != null && peakIndex !== lastIndex ? (
-          <g className="ctx-strip-peak">
+          <g className="fill-chart-1 [&_text]:text-[10px]">
             <circle cx={peakX} cy={peakY} r={2.5}>
               <title>
                 Peak {peakLabel} · {compact(peakPoint.context_tokens)} tokens
@@ -378,8 +379,8 @@ export function ContextWindowStrip({
             </text>
           </g>
         ) : null}
-        <g className="ctx-strip-end">
-          <circle className="ctx-strip-end-halo" cx={endX} cy={endY} r={6.5} />
+        <g className="fill-chart-1 [&_text]:text-[10px]">
+          <circle className="fill-chart-1/20" cx={endX} cy={endY} r={6.5} />
           <circle cx={endX} cy={endY} r={3}>
             <title>End · {compact(lastPoint?.context_tokens ?? 0)} tokens</title>
           </circle>
@@ -469,13 +470,13 @@ export function ContextWindowStrip({
   };
 
   return (
-    <section className="panel context-window-panel">
-      <div className="panel-heading">
+    <Card className="gap-4 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2>Context window</h2>
-          <p>How full the model's context window was at each API call across the session.</p>
+          <h2 className="text-lg font-semibold">Context window</h2>
+          <p className="text-sm text-muted-foreground">How full the model's context window was at each API call across the session.</p>
         </div>
-        <div className="activity-summary">
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground [&_strong]:mr-1 [&_strong]:text-foreground">
           <span>
             <strong>{peakLabel}</strong>
             peak
@@ -494,13 +495,13 @@ export function ContextWindowStrip({
           </span>
         </div>
       </div>
-      <div className="ctx-strip-wrap">
-        <div className="ctx-strip-frame" ref={frameRef}>
+      <div className="min-w-0">
+        <div className="relative overflow-hidden" ref={frameRef}>
           {lastPoint != null ? (
             <>
               <svg
                 aria-label={`Context window usage across ${points.length} API calls and ${timeline.turn_count} turns; peak ${peakLabel} of ${compact(windowTokens)}`}
-                className="ctx-strip"
+                className="block max-w-full cursor-crosshair"
                 height={STRIP_HEIGHT}
                 onClick={(event) => {
                   setSelectedCompactionGroup(null);
@@ -517,7 +518,7 @@ export function ContextWindowStrip({
               >
                 {plot}
                 {hovered != null && hoverIndex != null ? (
-                  <g className="ctx-strip-hover">
+                  <g className="[&_circle]:fill-chart-1 [&_line]:stroke-chart-1 [&_line]:[stroke-dasharray:3_3]">
                     <line
                       x1={xOf(hoverIndex)}
                       x2={xOf(hoverIndex)}
@@ -532,7 +533,7 @@ export function ContextWindowStrip({
                     aria-label={`Jump to call ${scrubIndex + 1} of ${points.length}, turn ${
                       scrubPoint.turn
                     }, ${Math.round((scrubPoint.context_tokens / windowTokens) * 100)}% of context`}
-                    className="ctx-strip-scrub"
+                    className="fill-transparent focus:fill-chart-1/30 focus:outline-none"
                     href={`#message-${scrubPoint.seq}`}
                     onBlur={() => setHoverIndex(null)}
                     onClick={(event) => {
@@ -553,16 +554,14 @@ export function ContextWindowStrip({
               </svg>
               {hoveredCompactions != null ? (
                 <div
-                  className={`ctx-tooltip ctx-compaction-tooltip${
-                    selectedCompactionGroup != null ? " is-interactive" : ""
-                  }`}
+                  className={`absolute z-10 rounded-md border bg-popover p-3 text-xs text-popover-foreground shadow-md ${selectedCompactionGroup != null ? "pointer-events-auto" : "pointer-events-none"}`}
                   style={{
                     left: tooltipLayout?.left ?? 2,
                     top: tooltipLayout?.top ?? 2,
                   }}
                   ref={tooltipRef}
                 >
-                  <div className="ctx-tooltip-when">Context boundary</div>
+                  <div className="text-muted-foreground">Context boundary</div>
                   <strong>
                     {hoveredCompactions.indexes.length === 1
                       ? `Compaction ${(hoveredCompactions.indexes[0] ?? 0) + 1}`
@@ -570,7 +569,7 @@ export function ContextWindowStrip({
                           (hoveredCompactions.indexes.at(-1) ?? 0) + 1
                         }`}
                   </strong>
-                  <div className="ctx-tooltip-rows">
+                  <div className="mt-2 grid gap-1 [&_a]:flex [&_a]:justify-between [&_a]:gap-4 [&_a]:hover:underline">
                     {hoveredCompactions.indexes.map((compactionIndex) => {
                       const compaction = compactions[compactionIndex];
                       return compaction == null ? null : selectedCompactionGroup != null ? (
@@ -589,7 +588,7 @@ export function ContextWindowStrip({
                         </a>
                       ) : (
                         <span
-                          className="ctx-tooltip-compaction-row"
+                          className="flex justify-between gap-4"
                           key={`compaction-row-${compaction.seq}`}
                         >
                           <span>Compaction {compactionIndex + 1}</span>
@@ -598,7 +597,7 @@ export function ContextWindowStrip({
                       );
                     })}
                   </div>
-                  <div className="ctx-tooltip-hint">
+                  <div className="mt-2 text-muted-foreground">
                     {selectedCompactionGroup != null
                       ? "Choose a compaction to jump to the thread."
                       : hoveredCompactions.indexes.length > 1
@@ -608,21 +607,21 @@ export function ContextWindowStrip({
                 </div>
               ) : hovered != null && hoverIndex != null ? (
                 <div
-                  className="ctx-tooltip"
+                  className="pointer-events-none absolute z-10 rounded-md border bg-popover p-3 text-xs text-popover-foreground shadow-md"
                   style={{
                     left: tooltipLayout?.left ?? 2,
                     top: tooltipLayout?.top ?? 2,
                   }}
                   ref={tooltipRef}
                 >
-                  <div className="ctx-tooltip-when">
+                  <div className="text-muted-foreground">
                     turn {hovered.turn} · call {hoverIndex + 1} of {points.length}
                   </div>
                   <strong>
                     {Math.round((hovered.context_tokens / windowTokens) * 100)}% ·{" "}
                     {formatInt(hovered.context_tokens)} tokens in context
                   </strong>
-                  <div className="ctx-tooltip-rows">
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
                     <span>cache read</span>
                     <span>{compact(hovered.cache_read_tokens)}</span>
                     <span>cache write</span>
@@ -630,12 +629,12 @@ export function ContextWindowStrip({
                     <span>uncached input</span>
                     <span>{compact(hovered.input_tokens)}</span>
                   </div>
-                  <div className="ctx-tooltip-output">
+                  <div className="mt-2 flex justify-between gap-4 border-t pt-2">
                     <span>output · this call</span>
                     <span>{compact(hovered.output_tokens)} tokens</span>
                   </div>
                   {hoveredIsFullCacheMiss ? (
-                    <div className="ctx-tooltip-warning">
+                    <div className="mt-2 text-destructive">
                       full cache miss — entire prompt re-sent
                     </div>
                   ) : null}
@@ -645,7 +644,7 @@ export function ContextWindowStrip({
           ) : null}
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 

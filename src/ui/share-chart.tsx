@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import dosuDecantUrl from "./assets/dosu-decant.png";
 import dosuOfficialUrl from "./assets/dosu-official.svg";
 import {
@@ -9,7 +10,6 @@ import {
 } from "./chart-state.ts";
 import { buildChartOption, type ChartColors } from "./charts.tsx";
 import { PrivacyReviewLists } from "./common.tsx";
-import { useBackdropDismiss, useDialogFocusTrap } from "./focus.ts";
 import { errorMessage } from "./format.ts";
 import { Icon } from "./icons.tsx";
 import {
@@ -47,9 +47,6 @@ export function ShareChartButton({
   const [status, setStatus] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
   const renderVersionRef = useRef(0);
-  const backdropRef = useRef<HTMLDivElement | null>(null);
-  const dialogRef = useRef<HTMLElement | null>(null);
-  const closeShareReview = useCallback(() => setOpen(false), []);
   const title = shareCardTitle(input.kind);
   const caption = shareCardCaption(input);
   const altText = shareCardAltText(input);
@@ -98,8 +95,6 @@ export function ShareChartButton({
     [],
   );
 
-  useDialogFocusTrap(open, dialogRef, closeShareReview);
-  useBackdropDismiss(open, backdropRef, closeShareReview);
 
   const copyText = async (value: string, success: string) => {
     try {
@@ -157,126 +152,35 @@ export function ShareChartButton({
   };
 
   return (
-    <>
-      <button
-        aria-label={shareCardButtonLabel(input.kind)}
-        className="chart-share-button"
-        disabled={disabled}
-        onClick={() => {
-          setOpen(true);
-          void renderPreview();
-        }}
-        type="button"
-      >
-        <Icon name="share" />
-        Share
-      </button>
-      {open
-        ? createPortal(
-            <div className="share-review-backdrop" ref={backdropRef}>
-              <section
-                aria-labelledby={`share-title-${input.kind}`}
-                aria-modal="true"
-                className="share-review-sheet"
-                ref={dialogRef}
-                role="dialog"
-                tabIndex={-1}
-              >
-                <header>
-                  <div>
-                    <span>Local, aggregate-only export</span>
-                    <h2 id={`share-title-${input.kind}`}>Review {title}</h2>
-                  </div>
-                  <button
-                    aria-label="Close share review"
-                    className="icon-button"
-                    onClick={closeShareReview}
-                    type="button"
-                  >
-                    <Icon name="x" />
-                  </button>
-                </header>
-                <div className="share-review-body">
-                  <div className="share-preview">
-                    {busy ? (
-                      <div className="share-preview-loading">Rendering locally…</div>
-                    ) : previewUrl == null ? (
-                      <div className="share-preview-loading">Preview unavailable</div>
-                    ) : (
-                      <img alt={altText} src={previewUrl} />
-                    )}
-                    <p className="share-export-size">2× high-density PNG · 2400 × 1260</p>
-                  </div>
-                  <PrivacyReviewLists
-                    className="share-privacy-review"
-                    excluded={SHARE_EXCLUDED_FIELDS}
-                    excludedLabel="Always excluded"
-                    included={SHARE_INCLUDED_FIELDS}
-                    includedLabel="Included"
-                  />
-                  <div className="share-copy-review">
-                    <div>
-                      <strong>Caption</strong>
-                      <p>{caption}</p>
-                    </div>
-                    <div>
-                      <strong>Alt text</strong>
-                      <p>{altText}</p>
-                    </div>
-                  </div>
-                </div>
-                <footer>
-                  <div className="share-actions">
-                    <button
-                      className="secondary-button"
-                      disabled={png == null || busy}
-                      onClick={() => void copyImage()}
-                      type="button"
-                    >
-                      <Icon name="copy" />
-                      Copy image
-                    </button>
-                    <button
-                      className="secondary-button"
-                      disabled={png == null || busy}
-                      onClick={download}
-                      type="button"
-                    >
-                      <Icon name="download" />
-                      Download PNG
-                    </button>
-                    <button
-                      className="secondary-button"
-                      disabled={png == null || busy}
-                      onClick={() => void nativeShare()}
-                      type="button"
-                    >
-                      <Icon name="share" />
-                      Share…
-                    </button>
-                    <button
-                      className="secondary-button"
-                      onClick={() => void copyText(caption, "Caption copied.")}
-                      type="button"
-                    >
-                      Copy caption
-                    </button>
-                    <button
-                      className="secondary-button"
-                      onClick={() => void copyText(altText, "Alt text copied.")}
-                      type="button"
-                    >
-                      Copy alt text
-                    </button>
-                  </div>
-                  <p aria-live="polite">{status ?? "Nothing leaves this machine until you act."}</p>
-                </footer>
-              </section>
-            </div>,
-            document.body,
-          )
-        : null}
-    </>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+      <Button variant="outline" size="sm" aria-label={shareCardButtonLabel(input.kind)} disabled={disabled} onClick={() => { setOpen(true); void renderPreview(); }} type="button">
+        <Icon name="share" /> Share
+      </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Review {title}</DialogTitle>
+          <DialogDescription>Local, aggregate-only export</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            {busy ? <div className="rounded-md bg-muted p-8 text-center text-sm">Rendering locally…</div> : previewUrl == null ? <div className="rounded-md bg-muted p-8 text-center text-sm">Preview unavailable</div> : <img alt={altText} src={previewUrl} className="w-full rounded-md" />}
+            <p className="mt-2 text-sm text-muted-foreground">2× high-density PNG · 2400 × 1260</p>
+          </div>
+          <PrivacyReviewLists className="grid gap-4 sm:grid-cols-2" excluded={SHARE_EXCLUDED_FIELDS} excludedLabel="Always excluded" included={SHARE_INCLUDED_FIELDS} includedLabel="Included" />
+          <div className="grid gap-4 text-sm sm:grid-cols-2"><div><strong>Caption</strong><p>{caption}</p></div><div><strong>Alt text</strong><p>{altText}</p></div></div>
+        </div>
+        <DialogFooter className="flex-wrap">
+          <Button variant="outline" disabled={png == null || busy} onClick={() => void copyImage()} type="button"><Icon name="copy" /> Copy image</Button>
+          <Button variant="outline" disabled={png == null || busy} onClick={download} type="button"><Icon name="download" /> Download PNG</Button>
+          <Button variant="outline" disabled={png == null || busy} onClick={() => void nativeShare()} type="button"><Icon name="share" /> Share…</Button>
+          <Button variant="outline" onClick={() => void copyText(caption, "Caption copied.")} type="button">Copy caption</Button>
+          <Button variant="outline" onClick={() => void copyText(altText, "Alt text copied.")} type="button">Copy alt text</Button>
+        </DialogFooter>
+        <p aria-live="polite" className="text-sm text-muted-foreground">{status ?? "Nothing leaves this machine until you act."}</p>
+      </DialogContent>
+    </Dialog>
   );
 }
 

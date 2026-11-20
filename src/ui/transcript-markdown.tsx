@@ -42,7 +42,7 @@ export const TranscriptMarkdown = memo(function TranscriptMarkdown({
           return <span>{linkChildren}</span>;
         }
         return (
-          <a href={behavior.href} rel={behavior.rel} target={behavior.target}>
+          <a className="text-primary underline underline-offset-4" href={behavior.href} rel={behavior.rel} target={behavior.target}>
             {linkChildren}
           </a>
         );
@@ -54,7 +54,7 @@ export const TranscriptMarkdown = memo(function TranscriptMarkdown({
         const block = fenceLanguage != null || value.endsWith("\n");
         if (!block) {
           return (
-            <code className={codeClassName} {...props}>
+            <code className={`rounded bg-muted px-1 py-0.5 font-mono text-[0.9em] ${codeClassName ?? ""}`} {...props}>
               {codeChildren}
             </code>
           );
@@ -72,7 +72,7 @@ export const TranscriptMarkdown = memo(function TranscriptMarkdown({
   );
 
   return (
-    <div className={className == null ? "transcript-markdown" : className}>
+    <div className={`min-w-0 space-y-3 break-words text-sm leading-relaxed [&_blockquote]:border-l-2 [&_blockquote]:pl-4 [&_h1]:text-xl [&_h2]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_p]:my-2 [&_table]:block [&_table]:overflow-x-auto [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2 [&_ul]:list-disc ${className ?? ""}`}>
       <Markdown
         components={components}
         remarkPlugins={REMARK_PLUGINS}
@@ -127,13 +127,13 @@ export function TranscriptCodeBlock({
   return (
     <section
       aria-label={normalizedLanguage == null ? "Code" : `${normalizedLanguage} code`}
-      className="transcript-code"
+      className="min-w-0 overflow-x-auto rounded-md border bg-muted/40"
       data-language={normalizedLanguage ?? undefined}
       data-theme={theme}
       ref={containerRef}
     >
-      <pre className="transcript-code-pre" style={{ color: highlight?.foreground }}>
-        <code className="transcript-code-content">
+      <pre className="overflow-x-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed" style={{ color: highlight?.foreground }}>
+        <code>
           {highlight == null
             ? code
             : highlight.tokens.flatMap((line, lineIndex) => [

@@ -9,7 +9,6 @@ const insightsView = sourceBetween(main, "function InsightsView(", "function Dos
 
 describe("Insights information hierarchy", () => {
   test("explains how archive evidence becomes future-agent improvements", () => {
-    expect(main).toContain("Session logs → action");
     expect(main).toContain("Decant finds recurring patterns in your local sessions");
     expect(main).toContain("Detected in your session logs");
     expect(main).toContain("Patterns worth acting on");
@@ -22,7 +21,6 @@ describe("Insights information hierarchy", () => {
   test("keeps the Dosu suggestion explicitly optional", () => {
     expect(main).toContain("Optional · Dosu");
     expect(main).toContain("function DosuInsightsRow()");
-    expect(main).toContain('className="signal-row dosu-insights-row"');
     expect(main).toContain('dosuLink("insights_card")');
     expect(main).not.toContain("function DosuInsightsCard()");
     expect(styles).not.toContain(".dosu-insights-card");
@@ -31,14 +29,12 @@ describe("Insights information hierarchy", () => {
   test("always renders the Dosu suggestion without a settings gate", () => {
     expect(insightsView).not.toContain("showDosuSuggestion");
     expect(insightsView).not.toContain("dosuSuggestions");
-    expect(insightsView).toMatch(
-      /<div className="signal-list insights-dosu-list">\s*<DosuInsightsRow \/>\s*<\/div>/,
-    );
+    expect(insightsView).toContain("<DosuInsightsRow />");
   });
 
   test("uses expandable comparison rows instead of featured catalog cards", () => {
-    expect(main).toContain("signal-row-summary");
-    expect(main).toContain("signal-row-impact");
+    expect(main).toContain('aria-expanded={expanded}');
+    expect(main).toContain("row.impact_label");
     expect(main).not.toContain("function RecommendationCard(");
     expect(main).not.toContain("is-featured");
   });

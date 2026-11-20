@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ApiError } from "./api.ts";
 import { copyTextToClipboard } from "./clipboard.ts";
 import { ErrorState } from "./common.tsx";
@@ -146,7 +147,7 @@ export function ApiFailureState({
   const action =
     recovery.actionHref != null && recovery.actionLabel != null ? (
       <Link
-        className="primary-button"
+        className={buttonVariants()}
         href={recovery.actionHref}
         rel={recovery.actionHref.startsWith("http") ? "noopener" : undefined}
         target={recovery.actionHref.startsWith("http") ? "_blank" : undefined}
@@ -154,26 +155,18 @@ export function ApiFailureState({
         {recovery.actionLabel}
       </Link>
     ) : recovery.useSync && onSync != null ? (
-      <button className="primary-button" onClick={onSync} type="button">
-        Sync now
-      </button>
+      <Button onClick={onSync} type="button">Sync now</Button>
     ) : retryIsPrimary ? (
-      <button className="primary-button" onClick={onRetry} type="button">
-        Retry
-      </button>
+      <Button onClick={onRetry} type="button">Retry</Button>
     ) : null;
   const secondaryAction =
     recovery.useSync && onSync != null && action != null ? (
-      <button className="secondary-button" onClick={onSync} type="button">
-        Sync now
-      </button>
+      <Button variant="outline" onClick={onSync} type="button">Sync now</Button>
     ) : recovery.retry && onRetry != null && action != null && !retryIsPrimary ? (
-      <button className="secondary-button" onClick={onRetry} type="button">
-        Retry
-      </button>
+      <Button variant="outline" onClick={onRetry} type="button">Retry</Button>
     ) : null;
   return (
-    <div className="api-failure">
+    <div className="space-y-4">
       <ErrorState
         action={action}
         detail={recovery.detail}
@@ -182,10 +175,10 @@ export function ApiFailureState({
         title={recovery.title}
       />
       {recovery.command != null ? (
-        <div className="recovery-command">
+        <div className="flex flex-wrap items-center gap-2 rounded-md border p-4">
           <code>{recovery.command}</code>
-          <button
-            className="secondary-button"
+          <Button
+            variant="outline"
             onClick={() => {
               void copyTextToClipboard(recovery.command ?? "")
                 .then(() => setCommandCopied(true))
@@ -195,7 +188,7 @@ export function ApiFailureState({
           >
             <Icon name={commandCopied ? "check" : "copy"} />
             {commandCopied ? "Copied" : "Copy"}
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>

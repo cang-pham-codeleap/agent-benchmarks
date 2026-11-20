@@ -33,12 +33,12 @@ describe("DailyPanel states", () => {
     const html = render([], "ready");
     expect(html).toContain("No data in range");
     expect(html).toContain("All time");
-    expect(html).not.toContain("analytics-chart");
+    expect(html).not.toContain('role="img"');
   });
 
   test("first load and failure never draw padded zeros", () => {
     expect(render([], "loading")).toContain("Loading");
-    expect(render([], "loading")).not.toContain("analytics-chart");
+    expect(render([], "loading")).not.toContain('role="img"');
     expect(render([], "failed")).toContain("Not loaded");
   });
 
@@ -46,17 +46,17 @@ describe("DailyPanel states", () => {
     const elsewhere = [day("2026-08-01"), day("2026-08-02")];
     const failed = render(elsewhere, "failed");
     expect(failed).toContain("Not loaded");
-    expect(failed).not.toContain("analytics-chart");
+    expect(failed).not.toContain('role="img"');
     expect(render(elsewhere, "loading")).toContain("Loading");
   });
 
   test("rows from the previous filter render dimmed while the new ones load", () => {
     const stale = render([day("2026-10-08")], "loading");
-    expect(stale).toContain("analytics-chart");
+    expect(stale).toContain('role="img"');
     expect(stale).toContain('data-updating="true"');
     expect(stale).toContain('aria-busy="true"');
     const current = render([day("2026-10-08")], "ready");
-    expect(current).toContain("analytics-chart");
+    expect(current).toContain('role="img"');
     expect(current).not.toContain("data-updating");
     expect(current).toContain("Sessions per day from 2026-10-07 to 2026-11-05 (UTC)");
   });

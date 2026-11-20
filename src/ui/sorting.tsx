@@ -174,10 +174,10 @@ export function SortableHeader<Key extends string>({
   return (
     <th
       aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
-      className={align === "right" ? "numeric" : undefined}
+      className={align === "right" ? "text-right" : undefined}
     >
       <button
-        className={`sort-header${align === "right" ? " is-right" : ""}${active ? " is-active" : ""}`}
+        className={`inline-flex items-center gap-1 text-sm font-medium hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring ${align === "right" ? "justify-end" : ""} ${active ? "text-foreground" : "text-muted-foreground"}`}
         onClick={() => onSort(sortKey)}
         type="button"
       >

@@ -8,6 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { previewOmittedCount } from "../../tools.ts";
 import { getJson } from "../api.ts";
 import { Badge } from "../badges.tsx";
@@ -124,7 +129,7 @@ export function ToolValueElision({ value }: { value: string | null }) {
     return null;
   }
   return (
-    <p className="tool-detail-elision">
+    <p className="flex items-center gap-2 text-sm text-muted-foreground">
       <Icon name="minus" />
       <span>
         Middle elided, {formatInt(omitted)} characters omitted. Open the transcript for the whole
@@ -137,7 +142,7 @@ export function ToolValueElision({ value }: { value: string | null }) {
 export function ToolCallStatus({ call }: { call: ToolCallRow }) {
   const status = toolCallStatus(call.is_error, call.has_result);
   const badge = (
-    <Badge className="tool-call-status" tone={status.tone}>
+    <Badge className="gap-1" tone={status.tone}>
       <Icon name={status.icon} />
       {status.label}
     </Badge>
@@ -172,9 +177,9 @@ export function DrilldownTableRow({
   };
   return (
     // biome-ignore lint/a11y/useSemanticElements: An anchor cannot legally wrap a table row.
-    <tr
+    <TableRow
       aria-label={label}
-      className="clickable-row drilldown-row"
+      className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
       onClick={activate}
       onKeyDown={(event: ReactKeyboardEvent<HTMLTableRowElement>) => {
         if (!isDrilldownActivationKey(event.key)) {
@@ -187,7 +192,7 @@ export function DrilldownTableRow({
       tabIndex={0}
     >
       {children}
-    </tr>
+    </TableRow>
   );
 }
 
@@ -215,35 +220,35 @@ export function ToolCallDetail({
     <>
       <button
         aria-label="Close tool call details"
-        className="tool-detail-backdrop"
+        className="fixed inset-0 z-40 bg-black/50"
         onClick={onClose}
         type="button"
       />
       <section
         aria-labelledby={titleId}
         aria-modal="true"
-        className="tool-detail-panel"
+        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto border-l bg-background p-6 shadow-lg"
         ref={dialogRef}
         role="dialog"
         tabIndex={-1}
       >
-        <header>
-          <div className="tool-detail-heading">
-            <span className="section-eyebrow" title={call.mcp_server ?? undefined}>
+        <header className="flex items-start justify-between gap-4">
+          <div className="min-w-0 space-y-1">
+            <span className="text-sm text-muted-foreground" title={call.mcp_server ?? undefined}>
               {serverLabel || call.tool_kind || "Tool call"}
             </span>
-            <h2 id={titleId}>{call.tool_name ?? "Unknown tool"}</h2>
+            <h2 className="break-all text-xl font-semibold" id={titleId}>{call.tool_name ?? "Unknown tool"}</h2>
           </div>
-          <button
+          <Button
             aria-label="Close details"
-            className="icon-button"
+            variant="ghost" size="icon"
             onClick={onClose}
             type="button"
           >
             <Icon name="x" />
-          </button>
+          </Button>
         </header>
-        <dl className="tool-detail-meta">
+        <dl className="my-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4 [&_dt]:text-muted-foreground [&_dd]:font-medium">
           <div>
             <dt>Status</dt>
             <dd>
@@ -263,22 +268,23 @@ export function ToolCallDetail({
             <dd>{formatBytes(call.output_bytes)}</dd>
           </div>
         </dl>
-        <div className="segment-row">
-          <fieldset className="segmented-control">
+        <div className="mb-4">
+          <fieldset className="flex gap-2">
             <legend className="sr-only">Detail format</legend>
             {(["preview", "raw"] as const).map((choice) => (
-              <button
+              <Button
+                variant={tab === choice ? "secondary" : "outline"}
                 aria-pressed={tab === choice}
                 key={choice}
                 onClick={() => onTabChange(choice)}
                 type="button"
               >
                 {capitalize(choice)}
-              </button>
+              </Button>
             ))}
           </fieldset>
         </div>
-        <div className="tool-detail-content">
+        <div className="flex-1 space-y-6 [&_h3]:mb-2 [&_h3]:font-semibold [&_pre]:overflow-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:text-xs">
           <section>
             <h3>Input</h3>
             <ToolValueElision value={call.input_preview} />
@@ -294,14 +300,14 @@ export function ToolCallDetail({
             </pre>
           </section>
         </div>
-        <footer>
-          <div className="tool-detail-session">
+        <footer className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
+          <div className="flex flex-col text-sm">
             <span>Session</span>
             <strong title={call.session_title ?? undefined}>
               {call.session_title ?? `Session ${call.session_id}`}
             </strong>
           </div>
-          <Link className="secondary-button tool-detail-transcript-link" href={transcriptHref}>
+          <Link className={buttonVariants({ variant: "outline" })} href={transcriptHref}>
             <Icon name="messages" />
             View in transcript
             <Icon name="chevronRight" />
@@ -518,11 +524,11 @@ export function ToolsView({
   const topToolLoading = toolsStatus === "loading" || !usageDateMatches;
 
   return (
-    <div className="view-stack">
-      <header className="page-heading inline-heading">
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1>Tools &amp; MCP</h1>
-          <p>Tool and MCP-server call volume, scoped to your session logs.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Tools &amp; MCP</h1>
+          <p className="text-sm text-muted-foreground">Tool and MCP-server call volume, scoped to your session logs.</p>
         </div>
         <DateRangeControl
           bounds={data.dateBounds}
@@ -539,7 +545,7 @@ export function ToolsView({
       <section
         aria-busy={summaryLoading || topToolLoading}
         aria-label="Tool call summary"
-        className="stat-grid tool-stat-grid"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         <StatCard
           icon="tools"
@@ -581,19 +587,17 @@ export function ToolsView({
         />
       </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>MCP servers</h2>
-            <p>Model Context Protocol servers and their call volume</p>
-          </div>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>MCP servers</CardTitle>
+          <p className="text-sm text-muted-foreground">Model Context Protocol servers and their call volume</p>
+        </CardHeader>
         {mcpStatus === "loading" ? (
-          <div className="panel-body muted" role="status">
+          <div className="px-6 text-sm text-muted-foreground" role="status">
             Loading MCP servers…
           </div>
         ) : mcpStatus === "failed" ? (
-          <div className="panel-body muted">MCP servers could not be loaded.</div>
+          <div className="px-6 text-sm text-muted-foreground">MCP servers could not be loaded.</div>
         ) : mcpRows.length === 0 ? (
           <EmptyState
             icon="cpu"
@@ -601,19 +605,19 @@ export function ToolsView({
             title="No MCP servers"
           />
         ) : (
-          <div className="table-scroll">
-            <table className="data-table mcp-table">
+          <div className="mx-6 overflow-hidden rounded-md border">
+            <Table>
               <colgroup>
                 {mcpColumns.map((column) => (
                   <col
-                    className={column.className}
+                    className={undefined}
                     key={column.className}
                     style={{ width: `${column.width}%` }}
                   />
                 ))}
               </colgroup>
-              <thead>
-                <tr>
+              <TableHeader>
+                <TableRow>
                   <SortableHeader
                     label="Server"
                     onSort={(key) => setMcpSort((sort) => nextSort(sort, key))}
@@ -657,9 +661,9 @@ export function ToolsView({
                     sort={mcpSort}
                     sortKey="last_used"
                   />
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {mcpRows.map((row) => {
                   const href = toolFiltersHref({
                     ...clearedCallFilters,
@@ -671,56 +675,54 @@ export function ToolsView({
                       key={row.mcp_server}
                       label={`Show calls from MCP server ${mcpServerLabel(serverLabels, row.mcp_server)}`}
                     >
-                      <td className="mono">
-                        <span className="icon-cell drilldown-label">
+                      <TableCell className="font-mono">
+                        <span className="inline-flex items-center gap-2">
                           <Icon name="cpu" />
                           <span title={row.mcp_server ?? undefined}>
                             {mcpServerLabel(serverLabels, row.mcp_server)}
                           </span>
                         </span>
-                      </td>
-                      <td className="numeric muted">{formatInt(row.tools)}</td>
-                      <td className="numeric">{formatInt(row.calls)}</td>
-                      <td className="numeric">
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatInt(row.tools)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatInt(row.calls)}</TableCell>
+                      <TableCell className="text-right">
                         {row.errors > 0 ? (
                           <Badge tone="danger">{formatInt(row.errors)}</Badge>
                         ) : (
-                          <span className="faint">0</span>
+                          <span className="text-muted-foreground">0</span>
                         )}
-                      </td>
+                      </TableCell>
                       {durationAvailable ? (
-                        <td className="numeric muted">{durationPrecise(row.p50_ms)}</td>
+                        <TableCell className="text-right text-muted-foreground">{durationPrecise(row.p50_ms)}</TableCell>
                       ) : null}
-                      <td className="numeric muted">{relativeTime(row.last_used_at)}</td>
+                      <TableCell className="text-right text-muted-foreground">{relativeTime(row.last_used_at)}</TableCell>
                     </DrilldownTableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Tools</h2>
-            <p>Built-in vs MCP, most-called first</p>
-          </div>
-        </div>
-        <div className="table-scroll">
-          <table aria-busy={toolsStatus === "loading"} className="data-table tools-table">
+      <Card>
+        <CardHeader>
+          <CardTitle>Tools</CardTitle>
+          <p className="text-sm text-muted-foreground">Built-in vs MCP, most-called first</p>
+        </CardHeader>
+        <div className="mx-6 overflow-hidden rounded-md border">
+          <Table aria-busy={toolsStatus === "loading"}>
             <colgroup>
               {toolColumns.map((column) => (
                 <col
-                  className={column.className}
+                  className={undefined}
                   key={column.className}
                   style={{ width: `${column.width}%` }}
                 />
               ))}
             </colgroup>
-            <thead>
-              <tr>
+            <TableHeader>
+              <TableRow>
                 <SortableHeader
                   label="Tool"
                   onSort={(key) => setToolSort((sort) => nextSort(sort, key))}
@@ -769,19 +771,19 @@ export function ToolsView({
                   sort={toolSort}
                   sortKey="last_used"
                 />
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {toolRows.length === 0 ? (
-                <tr>
-                  <td colSpan={durationAvailable ? 7 : 6}>
+                <TableRow>
+                  <TableCell colSpan={durationAvailable ? 7 : 6}>
                     {toolsStatus === "loading"
                       ? "Loading tools…"
                       : toolsStatus === "failed"
                         ? "Tool usage could not be loaded."
                         : "No tool calls."}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : null}
               {toolRows.map((row) => {
                 const href = toolFiltersHref({
@@ -794,125 +796,107 @@ export function ToolsView({
                     key={`${row.tool_name}-${row.tool_kind}-${row.mcp_server ?? ""}`}
                     label={`Show calls to tool ${row.tool_name}`}
                   >
-                    <td className="mono drilldown-label">{row.tool_name}</td>
-                    <td>
+                    <TableCell className="font-mono">{row.tool_name}</TableCell>
+                    <TableCell>
                       <Badge tone={row.tool_kind === "mcp" ? "accent" : "neutral"}>
                         {row.tool_kind === "mcp" ? "MCP" : "built-in"}
                       </Badge>
-                    </td>
-                    <td className="mono muted">
+                    </TableCell>
+                    <TableCell className="font-mono text-muted-foreground">
                       {row.mcp_server != null && row.mcp_server !== "" ? (
-                        <span className="icon-cell">
+                        <span className="inline-flex items-center gap-2">
                           <Icon name="cpu" />
                           <span title={row.mcp_server}>
                             {mcpServerLabel(serverLabels, row.mcp_server)}
                           </span>
                         </span>
                       ) : (
-                        <span className="faint">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
-                    </td>
-                    <td className="numeric">{formatInt(row.calls)}</td>
-                    <td className="numeric">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatInt(row.calls)}</TableCell>
+                    <TableCell className="text-right">
                       {row.errors > 0 ? (
                         <Badge tone="danger">{formatInt(row.errors)}</Badge>
                       ) : (
-                        <span className="faint">0</span>
+                        <span className="text-muted-foreground">0</span>
                       )}
-                    </td>
+                    </TableCell>
                     {durationAvailable ? (
-                      <td className="numeric muted">{durationPrecise(row.p50_ms)}</td>
+                      <TableCell className="text-right text-muted-foreground">{durationPrecise(row.p50_ms)}</TableCell>
                     ) : null}
-                    <td className="numeric muted">{relativeTime(row.last_used_at)}</td>
+                    <TableCell className="text-right text-muted-foreground">{relativeTime(row.last_used_at)}</TableCell>
                   </DrilldownTableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </section>
+      </Card>
 
-      <section className="panel">
-        <div className="panel-heading tool-calls-heading">
-          <div>
-            <h2>Calls</h2>
-            <p>Inspect individual tool activity, inputs, results, and elapsed time</p>
+      <Card>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle>Calls</CardTitle>
+            <p className="text-sm text-muted-foreground">Inspect individual tool activity, inputs, results, and elapsed time</p>
           </div>
-          <span className="muted">
+          <span className="text-sm text-muted-foreground">
             {callsCurrent
               ? `${formatInt(callPage.total)} matching`
               : currentCallError == null
                 ? "Loading…"
                 : "—"}
           </span>
-        </div>
-        <div className="tool-filter-bar">
-          <label>
+        </CardHeader>
+        <div className="flex flex-wrap items-end gap-3 px-6">
+          <div className="space-y-1 text-sm">
             <span>Tool</span>
-            <select
-              onChange={(event) => updateFilters({ tool: event.target.value })}
-              value={locationFilters.tool}
-            >
-              <option value="">All tools</option>
-              {locationFilters.tool !== "" &&
-              !toolFilterRows.some((row) => row.tool_name === locationFilters.tool) ? (
-                <option title={locationFilters.tool} value={locationFilters.tool}>
-                  {locationFilters.tool}
-                </option>
-              ) : null}
-              {toolFilterRows.map((row) => (
-                <option key={`${row.tool_name}-${row.mcp_server ?? ""}`} value={row.tool_name}>
-                  {row.tool_name} ({formatInt(row.calls)})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
+            <Select value={`tool:${locationFilters.tool}`} onValueChange={(value) => updateFilters({ tool: value.slice(5) })}>
+              <SelectTrigger aria-label="Tool" className="w-48"><SelectValue>{locationFilters.tool || "All tools"}</SelectValue></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tool:">All tools</SelectItem>
+                {locationFilters.tool !== "" && !toolFilterRows.some((row) => row.tool_name === locationFilters.tool) ? (
+                  <SelectItem value={`tool:${locationFilters.tool}`}>{locationFilters.tool}</SelectItem>
+                ) : null}
+                {toolFilterRows.map((row) => <SelectItem key={`${row.tool_name}-${row.mcp_server ?? ""}`} value={`tool:${row.tool_name}`}>{row.tool_name} ({formatInt(row.calls)})</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1 text-sm">
             <span>Server</span>
-            <select
-              onChange={(event) => updateFilters({ server: event.target.value })}
-              value={locationFilters.server}
-            >
-              <option value="">All servers</option>
-              {locationFilters.server !== "" &&
-              !serverFilterRows.some((row) => row.mcp_server === locationFilters.server) ? (
-                <option title={locationFilters.server} value={locationFilters.server}>
-                  {mcpServerLabel(serverLabels, locationFilters.server)}
-                </option>
-              ) : null}
-              {serverFilterRows.map((row) => (
-                <option key={row.mcp_server} title={row.mcp_server} value={row.mcp_server}>
-                  {mcpServerLabel(serverLabels, row.mcp_server)} ({formatInt(row.calls)})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
+            <Select value={`server:${locationFilters.server}`} onValueChange={(value) => updateFilters({ server: value.slice(7) })}>
+              <SelectTrigger aria-label="Server" className="w-48"><SelectValue>{locationFilters.server ? mcpServerLabel(serverLabels, locationFilters.server) : "All servers"}</SelectValue></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="server:">All servers</SelectItem>
+                {locationFilters.server !== "" && !serverFilterRows.some((row) => row.mcp_server === locationFilters.server) ? (
+                  <SelectItem value={`server:${locationFilters.server}`}>{mcpServerLabel(serverLabels, locationFilters.server)}</SelectItem>
+                ) : null}
+                {serverFilterRows.map((row) => <SelectItem key={row.mcp_server} value={`server:${row.mcp_server}`}>{mcpServerLabel(serverLabels, row.mcp_server)} ({formatInt(row.calls)})</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1 text-sm">
             <span>Minimum elapsed</span>
-            <select
-              onChange={(event) => updateFilters({ minMs: Number(event.target.value) })}
-              value={locationFilters.minMs}
-            >
-              <option value={0}>Any elapsed time</option>
-              <option value={100}>100 ms+</option>
-              <option value={1000}>1 s+</option>
-              <option value={5000}>5 s+</option>
-              <option value={30000}>30 s+</option>
-            </select>
-          </label>
-          <label className="tool-error-toggle">
-            <input
-              checked={locationFilters.errorsOnly}
-              onChange={(event) => updateFilters({ errorsOnly: event.target.checked })}
-              type="checkbox"
-            />
+            <Select value={String(locationFilters.minMs)} onValueChange={(value) => updateFilters({ minMs: Number(value) })}>
+              <SelectTrigger aria-label="Minimum elapsed" className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Any elapsed time</SelectItem>
+                <SelectItem value="100">100 ms+</SelectItem>
+                <SelectItem value="1000">1 s+</SelectItem>
+                <SelectItem value="5000">5 s+</SelectItem>
+                <SelectItem value="30000">30 s+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={locationFilters.errorsOnly} onCheckedChange={(checked) => updateFilters({ errorsOnly: checked === true })} />
             Errors only
           </label>
           {locationFilters.tool !== "" ||
           locationFilters.server !== "" ||
           locationFilters.errorsOnly ||
           locationFilters.minMs > 0 ? (
-            <Link className="secondary-button" href={clearedFiltersHref}>
+            <Link className={buttonVariants({ variant: "outline" })} href={clearedFiltersHref}>
               Clear filters
             </Link>
           ) : null}
@@ -920,15 +904,15 @@ export function ToolsView({
         {currentCallError != null ? (
           <ErrorState
             action={
-              <button className="secondary-button" onClick={() => updateFilters({})} type="button">
+              <Button variant="outline" onClick={() => updateFilters({})} type="button">
                 Retry
-              </button>
+              </Button>
             }
             detail={currentCallError}
             title="Tool calls could not be loaded"
           />
         ) : !callsCurrent ? (
-          <div className="panel-body muted">Loading calls…</div>
+          <div className="px-6 text-sm text-muted-foreground">Loading calls…</div>
         ) : callPage.calls.length === 0 ? (
           <EmptyState
             icon="tools"
@@ -937,45 +921,45 @@ export function ToolsView({
           />
         ) : (
           <>
-            <div className="table-scroll">
-              <table className="data-table tool-calls-table">
+            <div className="mx-6 overflow-hidden rounded-md border">
+              <Table>
                 <colgroup>
                   {callColumns.map((column) => (
                     <col
-                      className={column.className}
+                      className={undefined}
                       key={column.className}
                       style={{ width: `${column.width}%` }}
                     />
                   ))}
                 </colgroup>
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Tool</th>
-                    <th>Input preview</th>
-                    {durationAvailable ? <th className="numeric">Elapsed</th> : null}
-                    <th className="numeric">Output</th>
-                    <th className="numeric">When</th>
-                    <th>Session</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Tool</TableHead>
+                    <TableHead>Input preview</TableHead>
+                    {durationAvailable ? <TableHead className="text-right">Elapsed</TableHead> : null}
+                    <TableHead className="text-right">Output</TableHead>
+                    <TableHead className="text-right">When</TableHead>
+                    <TableHead>Session</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {callPage.calls.map((call) => (
-                    <tr
-                      className="clickable-row"
+                    <TableRow
+                      className="cursor-pointer"
                       key={call.id}
                       onClick={() => {
                         setSelectedCall(call);
                         setDetailTab("preview");
                       }}
                     >
-                      <td>
+                      <TableCell>
                         <ToolCallStatus call={call} />
-                      </td>
-                      <td className="mono">
+                      </TableCell>
+                      <TableCell className="font-mono">
                         <button
                           aria-label={`Inspect ${call.tool_name ?? "unknown tool"} call`}
-                          className="tool-call-detail-button"
+                          className="max-w-full truncate text-left underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-ring"
                           onClick={(event) => {
                             event.stopPropagation();
                             setSelectedCall(call);
@@ -985,31 +969,31 @@ export function ToolsView({
                         >
                           {call.tool_name ?? "Unknown"}
                         </button>
-                      </td>
-                      <td className="truncate-cell muted">
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-muted-foreground">
                         {toolCallInputLabel(call.input_preview)}
-                      </td>
+                      </TableCell>
                       {durationAvailable ? (
-                        <td className="numeric muted">{durationPrecise(call.duration_ms)}</td>
+                        <TableCell className="text-right text-muted-foreground">{durationPrecise(call.duration_ms)}</TableCell>
                       ) : null}
-                      <td className="numeric muted">{formatBytes(call.output_bytes)}</td>
-                      <td className="numeric muted">{relativeTime(call.timestamp)}</td>
-                      <td>
+                      <TableCell className="text-right text-muted-foreground">{formatBytes(call.output_bytes)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{relativeTime(call.timestamp)}</TableCell>
+                      <TableCell>
                         <Link
                           href={`/sessions/${call.session_id}`}
                           onClick={(event) => event.stopPropagation()}
                         >
                           {call.session_title ?? `Session ${call.session_id}`} →
                         </Link>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
-            <div className="tool-call-pagination">
-              <button
-                className="secondary-button"
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 text-sm">
+              <Button
+                variant="outline"
                 disabled={callPage.offset === 0}
                 onClick={() =>
                   updateFilters({ offset: Math.max(0, callPage.offset - callPage.limit) })
@@ -1018,25 +1002,25 @@ export function ToolsView({
               >
                 <Icon name="chevronLeft" />
                 Previous
-              </button>
-              <span className="muted">
+              </Button>
+              <span className="text-muted-foreground">
                 {formatInt(callPage.offset + 1)}–
                 {formatInt(Math.min(callPage.offset + callPage.calls.length, callPage.total))} of{" "}
                 {formatInt(callPage.total)}
               </span>
-              <button
-                className="secondary-button"
+              <Button
+                variant="outline"
                 disabled={callPage.offset + callPage.calls.length >= callPage.total}
                 onClick={() => updateFilters({ offset: callPage.offset + callPage.limit })}
                 type="button"
               >
                 Next
                 <Icon name="chevronRight" />
-              </button>
+              </Button>
             </div>
           </>
         )}
-      </section>
+      </Card>
 
       {selectedCall != null ? (
         <ToolCallDetail

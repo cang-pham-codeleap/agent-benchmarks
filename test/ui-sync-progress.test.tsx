@@ -62,7 +62,7 @@ describe("sync progress in the shell", () => {
     expect(html).not.toContain('role="status"');
     expect(html).not.toContain('role="alert"');
     expect(html.match(/role="progressbar"/g)).toHaveLength(1);
-    expect(html).toContain('aria-hidden="true" class="sync-notice-bar"');
+    expect(html).toContain('aria-hidden="true"');
   });
 });
 

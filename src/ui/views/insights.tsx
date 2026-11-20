@@ -1,10 +1,13 @@
 import { useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
 import dosuOfficialUrl from "../assets/dosu-official.svg";
-import { toneName } from "../badges.tsx";
 import { copyTextToClipboard } from "../clipboard.ts";
-import { EmptyState, OverflowMenu } from "../common.tsx";
+import { EmptyState } from "../common.tsx";
 import { dosuLink } from "../dosu-links.ts";
 import { field, formatInt, isPresent, shortDate } from "../format.ts";
 import { Icon } from "../icons.tsx";
@@ -29,17 +32,17 @@ export function RecommendationHero({
 }: RecommendationHandlers & { row: Recommendation }) {
   const facts = recommendationFacts(row);
   return (
-    <article className={`signal-hero tone-${toneName(row.tone)}`}>
-      <span className={`signal-icon tone-${toneName(row.tone)}`}>
+    <article className="flex gap-4 rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+      <span className="rounded-md bg-muted p-2">
         <Icon name={recommendationIcon(row)} />
       </span>
-      <div>
-        <span className="signal-kicker">Top signal</span>
-        <div className="signal-hero-title">
+      <div className="min-w-0 [overflow-wrap:anywhere]">
+        <span className="text-sm text-muted-foreground">Top signal</span>
+        <div className="flex flex-wrap items-center gap-2 font-semibold">
           <h3>{row.title}</h3>
           {isPresent(row.impact_label) ? <strong>{row.impact_label}</strong> : null}
         </div>
-        {facts.summary != null ? <p className="signal-hero-detail">{facts.summary}</p> : null}
+        {facts.summary != null ? <p className="text-sm text-muted-foreground">{facts.summary}</p> : null}
         <RecommendationDetail facts={facts} row={row} {...handlers} />
       </div>
     </article>
@@ -54,33 +57,33 @@ export function RecommendationRow({
   const detailId = useId();
   const facts = recommendationFacts(row);
   return (
-    <article className={`signal-row${expanded ? " is-expanded" : ""}`}>
+    <article className="rounded-xl border bg-card text-card-foreground shadow-sm">
       <button
         aria-controls={expanded ? detailId : undefined}
         aria-expanded={expanded}
-        className="signal-row-summary"
+        className="flex w-full items-start gap-4 p-4 text-left hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
         onClick={() => setExpanded((value) => !value)}
         type="button"
       >
-        <span className={`signal-icon tone-${toneName(row.tone)}`}>
+        <span className="rounded-md bg-muted p-2">
           <Icon name={recommendationIcon(row)} />
         </span>
-        <span className="signal-row-text">
-          <span className="signal-row-title">{row.title}</span>
+        <span className="grid min-w-0 flex-1 gap-1 [overflow-wrap:anywhere]">
+          <span className="font-semibold">{row.title}</span>
           {facts.summary != null ? (
-            <span className="signal-row-rationale">{facts.summary}</span>
+            <span className="text-sm text-muted-foreground">{facts.summary}</span>
           ) : null}
         </span>
         {isPresent(row.impact_label) ? (
-          <strong className="signal-row-impact">{row.impact_label}</strong>
+          <strong className="text-sm">{row.impact_label}</strong>
         ) : null}
-        <span aria-hidden="true" className="signal-row-expand">
+        <span aria-hidden="true" className="flex items-center gap-1 text-sm text-muted-foreground">
           <span>{expanded ? "Close" : "View"}</span>
           <Icon name={expanded ? "chevronUp" : "chevronDown"} />
         </span>
       </button>
       {expanded ? (
-        <div className="signal-row-detail" id={detailId}>
+        <div className="border-t p-4" id={detailId}>
           <RecommendationDetail facts={facts} row={row} {...handlers} />
         </div>
       ) : null}
@@ -94,17 +97,17 @@ export function RecommendationDetail({
   ...handlers
 }: RecommendationHandlers & { facts: RecommendationFacts; row: Recommendation }) {
   return (
-    <div className="signal-detail">
+    <div className="mt-4 space-y-4">
       {facts.suggestion != null ? (
-        <div className="signal-fact">
-          <span className="signal-label">Suggested</span>
-          <p className="signal-fact-text">{facts.suggestion}</p>
+        <div>
+          <span className="text-sm font-medium">Suggested</span>
+          <p className="text-sm text-muted-foreground">{facts.suggestion}</p>
         </div>
       ) : null}
       {facts.evidence != null ? (
-        <div className="signal-fact">
-          <span className="signal-label">Evidence</span>
-          <p className="signal-fact-text">{facts.evidence}</p>
+        <div>
+          <span className="text-sm font-medium">Evidence</span>
+          <p className="text-sm text-muted-foreground">{facts.evidence}</p>
         </div>
       ) : null}
       <PromotionPanel row={row} />
@@ -175,10 +178,9 @@ export function RecommendationActions({
   const copyLabel =
     busy === "copy" ? ACTION_COPY.copy.pendingLabel : copied ? "Copied" : ACTION_COPY.copy.label;
   return (
-    <div className="recommendation-actions">
+    <div className="flex flex-wrap gap-2">
       {action === "launch" ? (
-        <button
-          className="primary-button"
+        <Button
           disabled={busy != null}
           onClick={() => onComplete(row)}
           type="button"
@@ -189,37 +191,33 @@ export function RecommendationActions({
             : agentLabel != null
               ? `Run in ${agentLabel}`
               : ACTION_COPY.launch.label}
-        </button>
+        </Button>
       ) : null}
       {action === "launch" || action === "copy" ? (
-        <button
-          className="secondary-button"
+        <Button variant="outline"
           disabled={busy === "copy"}
           onClick={() => (action === "copy" ? onComplete(row) : onCopy(row))}
           type="button"
         >
           <Icon name={copied && busy == null ? "check" : ACTION_COPY.copy.icon} />
           {copyLabel}
-        </button>
+        </Button>
       ) : null}
       {action === "mark" ? (
-        <button
-          className="secondary-button"
+        <Button variant="outline"
           disabled={busy != null}
           onClick={() => onComplete(row)}
           type="button"
         >
           <Icon name={ACTION_COPY.mark.icon} />
           {busy === "mark" ? ACTION_COPY.mark.pendingLabel : ACTION_COPY.mark.label}
-        </button>
+        </Button>
       ) : null}
       {row.url != null ? (
-        <OverflowMenu label={`More actions for ${row.title}`}>
-          <a href={row.url} rel="noreferrer" target="_blank">
-            <span>{row.link_label ?? "Docs"}</span>
-            <span aria-hidden="true">↗</span>
-          </a>
-        </OverflowMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`More actions for ${row.title}`}><Icon name="ellipsis" /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end"><DropdownMenuItem asChild><a href={row.url} rel="noreferrer" target="_blank"><span>{row.link_label ?? "Docs"}</span><span aria-hidden="true">↗</span></a></DropdownMenuItem></DropdownMenuContent>
+        </DropdownMenu>
       ) : null}
     </div>
   );
@@ -247,35 +245,35 @@ export function PromotionPanel({
     return null;
   }
   return (
-    <div className={`promotion-panel${compact ? " is-compact" : ""}`}>
-      <span className="signal-label">Plan</span>
+    <div className="space-y-2 rounded-md border bg-muted/30 p-4">
+      <span className="text-sm font-medium">Plan</span>
       {compact ? null : (
-        <p className="signal-note">
+        <p className="text-sm text-muted-foreground">
           Where to record this so future agent sessions use it, and how to tell that it worked.
           {isPresent(row.prompt) ? " The prompt below includes this plan." : ""}
         </p>
       )}
       <dl>
         {isPresent(row.promotion_target) ? (
-          <div className="promotion-row">
+          <div className="grid gap-1 py-1 text-sm sm:grid-cols-3">
             <dt>Record it in</dt>
             <dd>{row.promotion_target}</dd>
           </div>
         ) : null}
         {isPresent(row.memory_layer) ? (
-          <div className="promotion-row">
+          <div className="grid gap-1 py-1 text-sm sm:grid-cols-3">
             <dt>How agents get it</dt>
             <dd>{memoryLayerCopy(row.memory_layer)}</dd>
           </div>
         ) : null}
         {!compact && isPresent(row.trigger) ? (
-          <div className="promotion-row">
+          <div className="grid gap-1 py-1 text-sm sm:grid-cols-3">
             <dt>When it applies</dt>
             <dd>{row.trigger}</dd>
           </div>
         ) : null}
         {!compact && isPresent(row.success_metric) ? (
-          <div className="promotion-row">
+          <div className="grid gap-1 py-1 text-sm sm:grid-cols-3">
             <dt>It worked when</dt>
             <dd>{row.success_metric}</dd>
           </div>
@@ -307,32 +305,34 @@ export function PromptPreview({
   const prompt = handoffPrompt(row);
   const lines = prompt.split("\n").length;
   return (
-    <div className="signal-prompt-block">
-      <span className="signal-label">Prompt</span>
-      <p className="signal-note">
+    <div className="space-y-2">
+      <span className="text-sm font-medium">Prompt</span>
+      <p className="text-sm text-muted-foreground">
         {canLaunch
           ? `Run opens ${agentLabel ?? "your coding agent"} in a terminal and sends it this prompt. Read it before you run it.`
           : "Copy setup prompt puts this text on your clipboard. Paste it into your coding agent."}
       </p>
-      <details className="signal-prompt" open={!isLongPrompt(prompt)}>
-        <summary className="signal-prompt-toggle">
-          <span className="signal-prompt-chevron">
+      <Collapsible defaultOpen={!isLongPrompt(prompt)} className="rounded-md border p-3">
+        <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium">
+          <span>
             <Icon name="chevronRight" />
           </span>
           <span>Full prompt</span>
-          <span className="signal-prompt-count">
+          <span className="text-muted-foreground">
             {formatInt(lines)} {lines === 1 ? "line" : "lines"}
           </span>
-        </summary>
-        <pre className="signal-prompt-text">{prompt}</pre>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+        <pre className="mt-2 overflow-auto whitespace-pre-wrap text-sm">{prompt}</pre>
         {canLaunch ? (
-          <p className="signal-note">
+          <p className="text-sm text-muted-foreground">
             Run adds one last line that asks the agent to mark this insight done when it has
             verified the work:
-            <code className="signal-prompt-command">decant recommendations mark {row.key}</code>
+            <code className="block">decant recommendations mark {row.key}</code>
           </p>
         ) : null}
-      </details>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
@@ -518,11 +518,10 @@ export function InsightsView({
   };
 
   return (
-    <div className="view-stack insights-stack">
-      <header className="page-heading insights-heading">
-        <span className="page-eyebrow">Session logs → action</span>
-        <h1>Insights</h1>
-        <p>
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
+        <p className="text-sm text-muted-foreground">
           Decant finds recurring patterns in your local sessions, ranks the ones worth acting on,
           and suggests durable improvements for future agent runs.
         </p>
@@ -536,22 +535,22 @@ export function InsightsView({
       ) : null}
       {copyFeedback != null ? (
         <div
-          className={`notice${copyFeedback.kind === "error" ? " danger" : ""}`}
+          className={copyFeedback.kind === "error" ? "rounded-md border border-destructive p-4 text-sm text-destructive" : "rounded-md border p-4 text-sm"}
           role={copyFeedback.kind === "error" ? "alert" : "status"}
         >
           {copyFeedback.message}
         </div>
       ) : null}
 
-      <section className="view-stack insights-section">
-        <div className="section-title-row insights-section-heading">
+      <section className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4 [&_h2]:text-lg [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
           <div>
-            <span className="section-eyebrow">Detected in your session logs</span>
+            <span className="text-sm text-muted-foreground">Detected in your session logs</span>
             <h2>Patterns worth acting on</h2>
             <p>Evidence-backed signals from your own sessions, ranked by expected impact.</p>
           </div>
           {signals.length > 0 ? (
-            <span className="section-count">{formatInt(signals.length)} active</span>
+            <span className="text-sm text-muted-foreground">{formatInt(signals.length)} active</span>
           ) : null}
         </div>
 
@@ -572,7 +571,7 @@ export function InsightsView({
         {hero != null ? <RecommendationHero row={hero} {...handlers} /> : null}
 
         {rest.length > 0 ? (
-          <div className="signal-list">
+          <div className="grid gap-3">
             {rest.map((row) => (
               <RecommendationRow key={row.key} row={row} {...handlers} />
             ))}
@@ -580,10 +579,10 @@ export function InsightsView({
         ) : null}
       </section>
 
-      <section className="view-stack insights-section insights-catalog">
-        <div className="section-title-row insights-section-heading">
+      <section className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4 [&_h2]:text-lg [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
           <div>
-            <span className="section-eyebrow">Not from your session logs</span>
+            <span className="text-sm text-muted-foreground">Not from your session logs</span>
             <h2>Setup ideas</h2>
             <p>
               General suggestions that apply to any project. Decant did not derive them from your
@@ -592,36 +591,36 @@ export function InsightsView({
           </div>
         </div>
         {catalogGroups.map(([category, items]) => (
-          <div className="catalog-group" key={category}>
-            <div className="catalog-group-heading">
+          <div className="grid gap-3" key={category}>
+            <div className="flex items-center justify-between text-sm font-medium">
               <h3>{category}</h3>
               <span>
                 {formatInt(items.length)} {items.length === 1 ? "idea" : "ideas"}
               </span>
             </div>
-            <div className="signal-list">
+            <div className="grid gap-3">
               {items.map((row) => (
                 <RecommendationRow key={row.key} row={row} {...handlers} />
               ))}
             </div>
           </div>
         ))}
-        <div className="signal-list insights-dosu-list">
+        <div className="grid gap-3">
           <DosuInsightsRow />
         </div>
       </section>
 
       {implementedRows.length > 0 ? (
-        <section className="view-stack insights-history-heading insights-section">
-          <div className="section-title-row insights-section-heading">
+        <section className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4 [&_h2]:text-lg [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
             <div>
-              <span className="section-eyebrow">History</span>
+              <span className="text-sm text-muted-foreground">History</span>
               <h2>Already implemented</h2>
               <p>Improvements you have already marked complete.</p>
             </div>
-            <span className="section-count">{formatInt(implementedRows.length)} saved</span>
+            <span className="text-sm text-muted-foreground">{formatInt(implementedRows.length)} saved</span>
           </div>
-          <div className="implemented-list">
+          <div className="grid gap-3">
             {implementedRows.map((row) => (
               <ImplementedRecommendationCard key={row.key} row={row} />
             ))}
@@ -634,12 +633,12 @@ export function InsightsView({
 
 export function InsightsSignalsSkeleton() {
   return (
-    <div aria-label="Loading insights" className="insights-signals-skeleton" role="status">
+    <div aria-label="Loading insights" className="grid gap-3" role="status">
       {["primary", "secondary", "tertiary"].map((key) => (
-        <div className="insights-skeleton-card" key={key}>
-          <span className="skeleton-line insights-skeleton-kicker" />
-          <span className="skeleton-line insights-skeleton-title" />
-          <span className="skeleton-line insights-skeleton-detail" />
+        <div className="space-y-3 rounded-xl border p-6" key={key}>
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-3/4" />
         </div>
       ))}
     </div>
@@ -648,24 +647,24 @@ export function InsightsSignalsSkeleton() {
 
 export function DosuInsightsRow() {
   return (
-    <article className="signal-row dosu-insights-row">
-      <div className="signal-row-summary">
-        <span className="signal-icon dosu-row-mark">
+    <article className="rounded-xl border bg-card text-card-foreground shadow-sm">
+      <div className="flex items-start gap-4 p-4">
+        <span className="w-10 rounded-md bg-muted p-2">
           <img alt="" src={dosuOfficialUrl} />
         </span>
-        <div className="signal-row-text">
-          <span className="dosu-card-kicker">Optional · Dosu</span>
-          <strong className="signal-row-title">
+        <div className="grid flex-1 gap-1">
+          <span className="text-sm text-muted-foreground">Optional · Dosu</span>
+          <strong className="font-semibold">
             Make these patterns available to every coding agent
           </strong>
-          <span className="signal-row-rationale">
+          <span className="text-sm text-muted-foreground">
             Dosu turns repeated fixes and project conventions into durable context your agents can
             retrieve when they need it.
           </span>
         </div>
         <a
           aria-label="See how Dosu works with your agents (opens in a new tab)"
-          className="signal-row-expand dosu-row-action"
+          className="flex items-center gap-1 text-sm font-medium"
           href={dosuLink("insights_card")}
           rel="noopener"
           target="_blank"
@@ -682,14 +681,14 @@ export function ImplementedRecommendationCard({ row }: { row: Recommendation }) 
   const implementedLabel =
     row.implemented_at == null ? "Implemented" : `Implemented ${shortDate(row.implemented_at)}`;
   return (
-    <article className="catalog-card">
-      <div>
-        <span className={`signal-icon tone-${toneName(row.tone)}`}>
+    <article className="space-y-2 rounded-xl border bg-card p-4 text-card-foreground shadow-sm">
+      <div className="flex items-center gap-2">
+        <span className="rounded-md bg-muted p-2">
           <Icon name={recommendationIcon(row)} />
         </span>
         <h4>{row.title}</h4>
       </div>
-      <p className="settings-note">
+      <p className="text-sm text-muted-foreground">
         {implementedLabel}
         {isPresent(row.note) ? `: ${row.note}` : ""}
       </p>

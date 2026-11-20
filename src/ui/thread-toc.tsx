@@ -83,25 +83,20 @@ export const ThreadTocEntry = memo(function ThreadTocEntry({
   return (
     <a
       aria-label={item.kind === "dosu" ? `Dosu tool call: ${item.label}` : undefined}
-      className={[
-        item.kind === "dosu" ? "is-dosu" : null,
-        jumping ? "is-loading" : null,
-        current ? "is-current" : null,
-      ]
-        .filter(isPresent)
-        .join(" ")}
+      aria-current={current ? "location" : undefined}
+      className={`flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring ${current ? "bg-accent text-accent-foreground" : "text-muted-foreground"} ${jumping ? "opacity-60" : ""}`}
       href={`#message-${item.seq}`}
       onClick={(event) => {
         event.preventDefault();
         void onJump(item.seq);
       }}
     >
-      <span className={`toc-icon${item.kind === "dosu" ? " is-dosu" : ""}`}>
+      <span className="shrink-0 [&_svg]:size-4 [&_img]:size-4">
         {item.kind === "dosu" ? <img alt="" src={dosuOfficialUrl} /> : <Icon name={item.icon} />}
       </span>
-      <span>{item.label}</span>
-      {item.kind === "dosu" ? <em>Dosu</em> : null}
-      {jumping ? <b>loading</b> : null}
+      <span className="min-w-0 truncate">{item.label}</span>
+      {item.kind === "dosu" ? <em className="text-xs">Dosu</em> : null}
+      {jumping ? <b className="text-xs">loading</b> : null}
     </a>
   );
 });

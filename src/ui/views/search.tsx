@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
 import { Badge } from "../badges.tsx";
@@ -251,15 +253,17 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
   };
 
   return (
-    <div className="search-page">
-      <header className="page-heading">
-        <h1>Search</h1>
-        <p>Full-text search across every message and tool call in your session logs.</p>
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
+        <p className="text-sm text-muted-foreground">Full-text search across every message and tool call in your session logs.</p>
       </header>
 
-      <form className="search-form" onSubmit={(event) => event.preventDefault()}>
-        <Icon name="search" />
-        <input
+      <form className="relative" onSubmit={(event) => event.preventDefault()}>
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"><Icon name="search" /></span>
+        <Input
+          className="!pl-10"
+          aria-label="Search session logs"
           aria-activedescendant={activeHitId}
           aria-autocomplete="list"
           aria-busy={searching}
@@ -309,7 +313,7 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
       </form>
 
       {query.trim().length >= 2 && (searching || hits.length > 0 || total != null) ? (
-        <p className="result-caption">
+        <p className="text-sm text-muted-foreground">
           {total == null
             ? hits.length === 0
               ? "Finding matches"
@@ -324,22 +328,22 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
         <ApiFailureState error={error} onRetry={() => setRetryKey((key) => key + 1)} />
       ) : null}
 
-      <div className="search-results">
-        {searching && hits.length === 0 ? <div className="searching-state">Searching…</div> : null}
+      <div className="space-y-4">
+        {searching && hits.length === 0 ? <div className="text-sm text-muted-foreground" role="status">Searching…</div> : null}
         {!searching && query.trim().length < 2 ? (
           <EmptyState
             action={
               recentSearches.length > 0 ? (
-                <div className="recent-searches">
+                <div className="flex flex-wrap gap-2">
                   {recentSearches.map((recent) => (
-                    <button
-                      className="secondary-button"
+                    <Button
+                      variant="outline"
                       key={recent}
                       onClick={() => updateSearchRoute(recent)}
                       type="button"
                     >
                       {recent}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               ) : undefined
@@ -352,13 +356,13 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
         {!searching && query.trim().length >= 2 && hits.length === 0 ? (
           <EmptyState
             action={
-              <button
-                className="secondary-button"
+              <Button
+                variant="outline"
                 onClick={() => updateSearchRoute("")}
                 type="button"
               >
                 Clear search
-              </button>
+              </Button>
             }
             icon="inbox"
             message="Nothing matched your search. Try a different term."
@@ -367,11 +371,11 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
         ) : null}
         <div aria-label="Search results" id="search-results-listbox" role="listbox">
           {groups.map((group) => (
-            <section className="search-result-group" key={group.sessionId} role="presentation">
-              <header className="search-group-heading">
-                <div className="search-group-title">
-                  <strong>{group.title}</strong>
-                  <span>{basename(group.project)}</span>
+            <section className="overflow-hidden rounded-md border" key={group.sessionId} role="presentation">
+              <header className="flex items-center justify-between gap-4 bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <strong className="truncate font-medium text-foreground">{group.title}</strong>
+                  <span className="truncate">{basename(group.project)}</span>
                 </div>
                 <span>{shortDate(group.timestamp ?? "")}</span>
               </header>
@@ -382,7 +386,7 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
                     <Link
                       aria-current={index === activeIndex ? "true" : undefined}
                       aria-selected={index === activeIndex}
-                      className="result-card search-hit-row"
+                      className="block border-t p-4 text-sm hover:bg-accent aria-selected:bg-accent"
                       data-search-index={index}
                       href={hit.href}
                       id={`search-hit-${hit.block_id}`}
@@ -390,7 +394,7 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
                       onMouseEnter={() => setActiveIndex(index)}
                       role="option"
                     >
-                      <div className="result-card-heading">
+                      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
                         <Badge tone="neutral">{searchHitLabel(hit)}</Badge>
                         <span>message {hit.message_seq}</span>
                       </div>
@@ -405,8 +409,8 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
           ))}
         </div>
         {hasMore ? (
-          <button
-            className="secondary-button search-load-more"
+          <Button
+            variant="outline"
             disabled={searching}
             onClick={loadMore}
             type="button"
@@ -416,7 +420,7 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
               : exactRemaining == null
                 ? "Load more"
                 : `Load more · ${formatInt(exactRemaining)} remaining`}
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

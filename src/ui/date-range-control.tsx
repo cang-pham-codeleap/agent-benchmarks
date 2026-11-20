@@ -4,14 +4,15 @@ import {
   type SetStateAction,
   useEffect,
   useId,
-  useRef,
   useState,
 } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   ALL_DATE_RANGE,
   applyDatePreset,
   checkCustomRange,
-  datePopoverAlign,
   dateRangeLabel,
   dateRangePresetLabel,
   RANGE_PRESETS,
@@ -68,8 +69,7 @@ export function DateRangeControl({
   range: DateRangeSelection;
   onChange: (range: DateRangeSelection) => void;
 }) {
-  const menuRef = useRef<HTMLDetailsElement | null>(null);
-  const [align, setAlign] = useState<"start" | "end">("end");
+  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<{ from: string | null; to: string | null } | null>(null);
   const errorId = useId();
   const bounded = range.from != null && range.to != null;
@@ -85,94 +85,40 @@ export function DateRangeControl({
       setDraft(next);
     }
   };
-  useEffect(() => {
-    const closeOnOutsidePress = (event: PointerEvent) => {
-      const menu = menuRef.current;
-      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) {
-        menu.open = false;
-      }
-    };
-    document.addEventListener("pointerdown", closeOnOutsidePress);
-    return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
-  }, []);
-  const closeMenu = () => {
-    if (menuRef.current == null) {
-      return;
-    }
-    menuRef.current.open = false;
-    menuRef.current.querySelector("summary")?.focus();
-  };
 
   const choosePreset = (value: Exclude<RangePreset, "custom">) => {
     setDraft(null);
     if (value === "all") {
       onChange(ALL_DATE_RANGE);
-      closeMenu();
+      setOpen(false);
       return;
     }
     onChange(applyDatePreset(value, bounds));
-    closeMenu();
+    setOpen(false);
   };
 
   return (
-    <div className="date-range-control">
-      <div className="date-range-buttons">
-        <details
-          className="date-range-menu"
-          data-align={align}
-          onBlur={(event) => {
-            if (focusLeftMenu(event.currentTarget, event.relatedTarget)) {
-              event.currentTarget.open = false;
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              event.currentTarget.open = false;
-              event.currentTarget.querySelector("summary")?.focus();
-            }
-          }}
-          onToggle={(event) => {
-            if (!event.currentTarget.open) {
-              setDraft(null);
-            }
-          }}
-          ref={menuRef}
-        >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: summary is the native disclosure button, so Enter and Space already reach this click. */}
-          <summary
-            aria-label={`Time range: ${dateRangePresetLabel(range)}`}
-            onClick={(event) => {
-              const menu = menuRef.current;
-              const popover = menu?.querySelector<HTMLElement>(".date-range-popover");
-              if (menu == null || menu.open || popover == null) {
-                return;
-              }
-              // Chromium fires toggle a frame after the menu opens, so aligning there
-              // painted the popover off-screen first on phones. Opening here measures
-              // it before that frame.
-              event.preventDefault();
-              menu.open = true;
-              setAlign(datePopoverAlign(menu.getBoundingClientRect().right, popover.offsetWidth));
-            }}
-          >
-            <Icon name="clock" />
-            <span>{dateRangePresetLabel(range)}</span>
-            <Icon name="chevronDown" />
-          </summary>
-          <div className="date-range-popover">
-            <fieldset className="date-range-presets">
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setDraft(null); }}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" aria-label={`Time range: ${dateRangePresetLabel(range)}`}>
+          <Icon name="clock" />
+          <span>{dateRangePresetLabel(range)}</span>
+          <Icon name="chevronDown" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 space-y-4">
+            <fieldset className="grid gap-1">
               <legend className="sr-only">Time range presets</legend>
-              <button
+              <Button variant="ghost" className="justify-between" size="sm"
                 aria-pressed={range.preset === "all"}
                 onClick={() => choosePreset("all")}
                 type="button"
               >
                 <span>All time</span>
                 {range.preset === "all" ? <Icon name="check" /> : null}
-              </button>
+              </Button>
               {RANGE_PRESETS.map((preset) => (
-                <button
+                <Button variant="ghost" className="justify-between" size="sm"
                   aria-pressed={range.preset === preset.key}
                   key={preset.key}
                   onClick={() => choosePreset(preset.key)}
@@ -180,20 +126,20 @@ export function DateRangeControl({
                 >
                   <span>{preset.label}</span>
                   {range.preset === preset.key ? <Icon name="check" /> : null}
-                </button>
+                </Button>
               ))}
             </fieldset>
-            <div className="custom-date-range">
-              <div className="custom-date-range-heading">
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex justify-between text-sm font-medium">
                 <span>Custom range</span>
                 {range.preset === "custom" && bounded ? (
                   <small>{dateRangeLabel(range)}</small>
                 ) : null}
               </div>
-              <div className="custom-date-fields">
-                <label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="grid gap-1 text-sm">
                   <span>From</span>
-                  <input
+                  <Input
                     aria-describedby={reversed ? errorId : undefined}
                     aria-invalid={
                       reversed || (check.status === "incomplete" && check.field === "from")
@@ -207,9 +153,9 @@ export function DateRangeControl({
                     value={fields.from ?? ""}
                   />
                 </label>
-                <label>
+                <label className="grid gap-1 text-sm">
                   <span>To</span>
-                  <input
+                  <Input
                     aria-describedby={reversed ? errorId : undefined}
                     aria-invalid={
                       reversed || (check.status === "incomplete" && check.field === "to")
@@ -222,17 +168,15 @@ export function DateRangeControl({
                   />
                 </label>
               </div>
-              <div aria-live="polite" className="custom-date-range-status">
+              <div aria-live="polite">
                 {reversed ? (
-                  <p className="custom-date-range-error" id={errorId}>
+                  <p className="text-sm text-destructive" id={errorId}>
                     {REVERSED_RANGE_MESSAGE}
                   </p>
                 ) : null}
               </div>
             </div>
-          </div>
-        </details>
-      </div>
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -87,28 +87,24 @@ export const TranscriptTurn = memo(function TranscriptTurn({
       tool={tool}
     />
   ));
-  const providerClass =
-    message.role === "assistant" ? ` provider-${providerIdentity(tool).key}` : "";
   return (
     <article
       aria-current={active ? "true" : undefined}
-      className={`turn${message.is_compact_summary ? " compact-summary-turn" : ""}${
-        active ? " is-keyboard-active" : ""
-      }${providerClass}`}
+      className={`min-w-0 space-y-3 rounded-lg border bg-card p-4 text-card-foreground ${message.is_compact_summary ? "bg-muted/40" : ""} ${active ? "ring-2 ring-ring" : ""}`}
       id={`message-${message.seq}`}
       tabIndex={-1}
     >
       <TranscriptIdentityBadge message={message} tool={tool} />
-      <div className="turn-meta">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {message.model != null ? <ModelBadge model={message.model} /> : null}
         {message.timestamp != null ? <span>{relativeTime(message.timestamp)}</span> : null}
         {contextTokens != null ? (
           <ContextChip tokens={contextTokens} windowTokens={windowTokens} />
         ) : null}
       </div>
-      <div className="turn-body">
+      <div className="min-w-0 space-y-3 [&>*]:min-w-0">
         {message.is_compact_summary ? (
-          <details className="compact-summary">
+          <details className="space-y-2 text-sm [&>summary]:cursor-pointer [&>summary]:font-medium">
             <summary>Compaction summary carried forward into the continued session</summary>
             {blocks}
           </details>
@@ -139,23 +135,23 @@ export function CompactionTurn({
   return (
     <article
       aria-current={active ? "true" : undefined}
-      className={`turn compaction-turn${active ? " is-keyboard-active" : ""}`}
+      className={`min-w-0 space-y-3 rounded-lg border bg-muted/40 p-4 ${active ? "ring-2 ring-ring" : ""}`}
       id={anchorId}
       tabIndex={-1}
     >
       <Badge mono tone="accent">
         {compactionNumber == null ? "Compacted" : `Compaction ${compactionNumber}`}
       </Badge>
-      <div className="turn-meta">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {message.timestamp != null ? <span>{relativeTime(message.timestamp)}</span> : null}
       </div>
-      <div className="turn-body">
-        <div className="compaction-card">
-          <div className="compaction-card-head">
+      <div className="min-w-0 space-y-3">
+        <div className="space-y-2 rounded-md border bg-background p-4 text-sm">
+          <div className="flex flex-wrap items-center gap-2 [&_svg]:size-4">
             <Icon name="refresh" />
             <strong>Context compacted{trigger != null ? ` (${trigger})` : ""}</strong>
             {pre != null ? (
-              <span className="compaction-card-tokens">
+              <span className="text-muted-foreground">
                 {compact(pre)}
                 {post != null ? ` → ${compact(post)}` : ""} tokens
               </span>
@@ -166,7 +162,7 @@ export function CompactionTurn({
             transcript below is unaffected.
           </p>
           {message.blocks.length > 0 ? (
-            <details className="compact-summary">
+            <details className="space-y-2 [&>summary]:cursor-pointer [&>summary]:font-medium">
               <summary>Summary carried forward into the continued session</summary>
               {message.blocks.map((block, blockIndex) => (
                 <TranscriptBlock block={block} key={blockKey(block, blockIndex)} />
@@ -187,16 +183,15 @@ export function ContextChip({
   windowTokens: number | null;
 }) {
   const pct = windowTokens != null && windowTokens > 0 ? tokens / windowTokens : null;
-  const level = pct == null ? "" : pct >= 0.8 ? " is-hot" : pct >= 0.6 ? " is-warm" : "";
   const title =
     pct == null
       ? `Context window: ${formatInt(tokens)} tokens`
       : `Context window: ${formatInt(tokens)} of ${compact(windowTokens ?? 0)} tokens`;
   return (
-    <span className={`ctx-chip${level}`} title={title}>
+    <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs tabular-nums" title={title}>
       {pct != null ? (
-        <span aria-hidden="true" className="ctx-chip-bar">
-          <i style={{ width: `${Math.min(100, Math.round(pct * 100))}%` }} />
+        <span aria-hidden="true" className="h-1 w-8 overflow-hidden rounded-full bg-muted-foreground/20">
+          <i className="block h-full bg-chart-1" style={{ width: `${Math.min(100, Math.round(pct * 100))}%` }} />
         </span>
       ) : null}
       {pct != null ? `${Math.round(pct * 100)}% · ` : ""}
@@ -218,15 +213,15 @@ export function TranscriptBlock({
     const isDosu = isDosuToolName(block.tool_name);
     const presentation = presentationForTool(block.tool_name, block.tool_input);
     return (
-      <div className={`tool-call${isDosu ? " is-dosu" : ""}`}>
-        <div className="tool-call-header">
+      <div className="space-y-3 rounded-md border bg-muted/40 p-3">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground [&_svg]:size-4">
           {isDosu ? (
             <Tooltip content="Optimized with Dosu · verified Dosu MCP tool call">
               {(tooltipProps) => (
                 <span
                   {...tooltipProps}
                   aria-label="Dosu MCP tool call"
-                  className="dosu-tool-mark"
+                  className="inline-flex size-4 [&_img]:size-4"
                   role="img"
                 >
                   <img alt="" src={dosuOfficialUrl} />
@@ -236,7 +231,7 @@ export function TranscriptBlock({
           ) : (
             <Icon name="bolt" />
           )}
-          <span className="tool-call-name">{block.tool_name ?? "tool_use"}</span>
+          <span className="font-mono font-medium text-foreground">{block.tool_name ?? "tool_use"}</span>
           <small>tool call</small>
         </div>
         {isPresent(block.tool_input) ? (
@@ -259,9 +254,9 @@ export function TranscriptBlock({
       return null;
     }
     return (
-      <details className="thinking-block">
+      <details className="rounded-md border bg-muted/40 p-3 text-sm [&>summary]:cursor-pointer [&>summary]:font-medium">
         <summary>Thinking</summary>
-        <p>{block.text}</p>
+        <p className="mt-2 whitespace-pre-wrap">{block.text}</p>
       </details>
     );
   }
@@ -271,8 +266,8 @@ export function TranscriptBlock({
   const attachment = embeddedAttachmentSummary(block.block_type, block.text);
   if (attachment != null) {
     return (
-      <div className="transcript-attachment">
-        <span className="transcript-attachment-icon">
+      <div className="flex gap-3 rounded-md border bg-muted/40 p-3 text-sm [&_span]:block [&_small]:block [&_small]:text-muted-foreground">
+        <span className="[&_svg]:size-4">
           <Icon name="file" />
         </span>
         <div>
@@ -303,14 +298,14 @@ export function ToolCallPresentation({
   switch (presentation.kind) {
     case "shell":
       return (
-        <div className="tool-presentation tool-shell">
+        <div className="space-y-2 text-sm">
           {presentation.caption != null ? <p>{presentation.caption}</p> : null}
           <TranscriptCodeBlock code={`$ ${presentation.command}`} language="bash" />
         </div>
       );
     case "file":
       return (
-        <div className="tool-presentation tool-file">
+        <div className="space-y-2">
           <ToolPathHeader operation={presentation.operation} path={presentation.path} />
           {presentation.content != null ? (
             <TranscriptCodeBlock code={presentation.content} language={presentation.language} />
@@ -321,15 +316,15 @@ export function ToolCallPresentation({
       );
     case "edit":
       return (
-        <div className="tool-presentation tool-edit">
+        <div className="space-y-2">
           <ToolPathHeader operation="edit" path={presentation.path} />
           {presentation.diff.length > 0 ? (
-            <div className="tool-diff">
+            <div className="overflow-x-auto rounded-md border bg-muted/40 font-mono text-xs">
               {presentation.diff.map((line) => {
                 let partOffset = 0;
                 return (
                   <div
-                    className={`tool-diff-line is-${line.kind}`}
+                    className={`grid grid-cols-[3rem_3rem_1fr] gap-2 whitespace-pre-wrap px-2 py-0.5 ${line.kind === "added" ? "bg-chart-2/15" : line.kind === "removed" ? "bg-destructive/15" : ""}`}
                     key={`${line.kind}-${line.oldLine ?? "x"}-${line.newLine ?? "x"}-${line.text}`}
                   >
                     <span>{line.oldLine ?? ""}</span>
@@ -339,7 +334,7 @@ export function ToolCallPresentation({
                         const key = `${part.kind}-${partOffset}`;
                         partOffset += part.value.length;
                         return (
-                          <span className={`is-${part.kind}`} key={key}>
+                          <span className={part.kind === "added" ? "bg-chart-2/25" : part.kind === "removed" ? "bg-destructive/25" : undefined} key={key}>
                             {part.value}
                           </span>
                         );
@@ -356,8 +351,8 @@ export function ToolCallPresentation({
       );
     case "search":
       return (
-        <div className="tool-presentation tool-search">
-          <div className="tool-presentation-chips">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             <Badge tone="info">{presentation.searchKind}</Badge>
             {presentation.pattern != null ? <code>{presentation.pattern}</code> : null}
             {presentation.path != null ? <code>{presentation.path}</code> : null}
@@ -380,7 +375,7 @@ export function ToolPathHeader({
   path: string | null;
 }) {
   return (
-    <div className="tool-path-header">
+    <div className="flex min-w-0 items-center gap-2 text-sm [&_code]:truncate">
       <Badge tone={operation === "read" ? "info" : operation === "edit" ? "warning" : "success"}>
         {operation}
       </Badge>
@@ -397,7 +392,7 @@ export function CollapsedToolArguments({
   forceOpen?: boolean;
 }) {
   return (
-    <details className="tool-arguments" open={forceOpen || argumentsText.length <= 240}>
+    <details className="space-y-2 text-sm [&>summary]:cursor-pointer [&>summary]:text-muted-foreground" open={forceOpen || argumentsText.length <= 240}>
       <summary>arguments</summary>
       <TranscriptCodeBlock code={argumentsText} language="json" />
     </details>
@@ -417,7 +412,7 @@ export function ToolResultBlock({
   const summary = summarizeToolResult(block.tool_name, result);
   return (
     <details
-      className="tool-result"
+      className="space-y-2 rounded-md border bg-muted/30 p-3 text-sm [&>summary]:cursor-pointer [&>summary]:text-muted-foreground"
       onToggle={(event) => setExpanded(forceOpen || event.currentTarget.open)}
       open={forceOpen || expanded}
     >
@@ -584,31 +579,31 @@ export function SpecialTranscriptBlock({
     <Tooltip content={block.tooltip}>
       {(tooltipProps) => (
         <div
-          className={`special-block${block.kind != null ? ` is-${block.kind}` : ""}`}
+          className="flex gap-3 rounded-md border bg-muted/40 p-4 text-sm"
           {...tooltipProps}
         >
-          <span className="special-icon">
+          <span className="shrink-0 [&_svg]:size-4">
             <Icon name={block.icon} />
           </span>
           <div>
-            <div className="special-heading">
+            <div className="flex items-center gap-2">
               <strong>{block.title}</strong>
-              <span aria-hidden="true" className="info-tooltip">
+              <span aria-hidden="true" className="text-muted-foreground [&_svg]:size-3">
                 <Icon name="info" />
               </span>
             </div>
-            <p>{block.description}</p>
+            <p className="mt-1 text-muted-foreground">{block.description}</p>
             {block.chips.length > 0 ? (
-              <div className="special-chips">
+              <div className="mt-2 flex flex-wrap gap-2 [&>span]:rounded-md [&>span]:border [&>span]:px-2 [&>span]:py-1 [&>span]:text-xs">
                 {block.chips.map((chip) => (
                   <span key={chip}>{chip}</span>
                 ))}
               </div>
             ) : null}
             {block.dialogue != null && block.dialogue.length > 0 ? (
-              <div className="realtime-dialogue">
+              <div className="mt-3 space-y-3">
                 {keyedTranscriptLines(block.dialogue).map(({ key, line }) => (
-                  <div className={`realtime-line is-${line.speaker}`} key={key}>
+                  <div className="space-y-1" key={key}>
                     <TranscriptSpeakerBadge speaker={line.speaker} tool={tool} />
                     <p>{line.text}</p>
                   </div>
@@ -663,8 +658,8 @@ export function SubagentCard({ subagent }: { subagent: SubagentDetailData }) {
       .map((message, index) => [message.seq, index + 1]),
   );
   return (
-    <details className="subagent-card">
-      <summary>
+    <details className="rounded-md border bg-background p-3 [&>summary]:cursor-pointer">
+      <summary className="flex flex-wrap items-center gap-2 text-sm [&_svg]:size-4 [&_small]:text-muted-foreground">
         <span>
           <Icon name="cpu" />
           subagent
@@ -683,13 +678,13 @@ export function SubagentCard({ subagent }: { subagent: SubagentDetailData }) {
         </small>
       </summary>
       {messages.length === 0 ? (
-        <div className="subagent-summary">
+        <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
           <span>{formatInt(subagent.summary.message_count)} messages</span>
           <span>{formatInt(subagent.summary.subagent_count)} nested</span>
           <Link href={`/sessions/${subagent.summary.id}`}>Open session</Link>
         </div>
       ) : (
-        <div className="subagent-transcript">
+        <div className="mt-3 space-y-3">
           {messages.map((message) =>
             message.is_compact_boundary ? (
               <CompactionTurn
@@ -700,15 +695,11 @@ export function SubagentCard({ subagent }: { subagent: SubagentDetailData }) {
               />
             ) : (
               <article
-                className={`turn is-subagent${
-                  message.role === "assistant"
-                    ? ` provider-${providerIdentity(subagent.summary.tool).key}`
-                    : ""
-                }`}
+                className="min-w-0 space-y-3 rounded-md border bg-muted/30 p-3"
                 key={messageKey(message)}
               >
                 <TranscriptIdentityBadge message={message} tool={subagent.summary.tool} />
-                <div className="turn-body">
+                <div className="min-w-0 space-y-3">
                   {message.blocks.map((block, blockIndex) => (
                     <TranscriptBlock
                       block={block}
@@ -840,11 +831,11 @@ export function TranscriptSpeakerBadge({
   tool: string;
 }) {
   if (speaker === "user") {
-    return <span className="realtime-speaker">You</span>;
+    return <span className="text-xs font-medium text-muted-foreground">You</span>;
   }
   const provider = providerIdentity(tool);
   return (
-    <span className={`realtime-speaker tone-${provider.tone}`}>
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground [&_svg]:size-3">
       {provider.icon == null ? <Icon name="cpu" /> : <BrandMark name={provider.icon} />}
       {provider.label}
     </span>

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SESSION_MESSAGE_PAGE_MAX } from "../../api-limits.ts";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
 import { Badge, ModelBadge, ReasoningBadge, ToolBadge } from "../badges.tsx";
-import { OverflowMenu } from "../common.tsx";
 import { SESSION_DETAIL_MESSAGE_PAGE_SIZE } from "../constants.ts";
 import { ContextWindowPanel } from "../context-window-strip.tsx";
 import { costSourceLabel, costSourceTooltip } from "../cost-source.ts";
@@ -92,55 +96,55 @@ export function DeleteSessionDialog({
     return null;
   }
   return createPortal(
-    <div className="report-review-backdrop" ref={backdropRef}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" ref={backdropRef}>
       <section
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
         aria-modal="true"
-        className="report-review-sheet session-delete-dialog"
+        className="w-full max-w-lg space-y-4 rounded-lg border bg-background p-6 shadow-lg"
         ref={dialogRef}
         role="alertdialog"
         tabIndex={-1}
       >
-        <header>
+        <header className="flex items-start justify-between gap-4">
           <div>
-            <span className="section-eyebrow">{DELETE_SESSION_EYEBROW}</span>
+            <span className="text-sm text-muted-foreground">{DELETE_SESSION_EYEBROW}</span>
             <h2 id={titleId}>Delete session?</h2>
           </div>
-          <button
+          <Button
             aria-label="Close delete confirmation"
-            className="icon-button"
+            variant="ghost" size="icon"
             disabled={pending}
             onClick={requestClose}
             type="button"
           >
             <Icon name="x" />
-          </button>
+          </Button>
         </header>
-        <div className="report-review-body">
-          <p className="session-delete-title">{title}</p>
-          <p className="session-delete-copy" id={descriptionId}>
+        <div className="space-y-3">
+          <p className="font-medium">{title}</p>
+          <p className="text-sm text-muted-foreground" id={descriptionId}>
             {DELETE_SESSION_EXPLANATION}
           </p>
           {error != null ? (
-            <div className="notice danger" role="alert">
+            <Alert variant="destructive" role="alert">
               {error}
-            </div>
+            </Alert>
           ) : null}
         </div>
-        <footer>
-          <button
-            className="secondary-button"
+        <footer className="flex justify-end gap-2">
+          <Button
+            variant="outline"
             disabled={pending}
             onClick={requestClose}
             type="button"
           >
             Cancel
-          </button>
-          <button className="danger-button" disabled={pending} onClick={onConfirm} type="button">
+          </Button>
+          <Button variant="destructive" disabled={pending} onClick={onConfirm} type="button">
             <Icon name="trash" />
             {pending ? "Deleting…" : "Delete from Decant"}
-          </button>
+          </Button>
         </footer>
       </section>
     </div>,
@@ -728,12 +732,12 @@ export function SessionDetailView({
     : "/sessions";
 
   return (
-    <div className="session-detail">
-      <header className="thread-header">
-        <div className="thread-header-inner">
-          <div className="thread-header-title-row">
-            <h1>{detailTitle}</h1>
-            <div className="thread-header-actions">
+    <div className="flex flex-col gap-6 p-6">
+      <Card className="gap-4 p-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <h1 className="text-2xl font-semibold tracking-tight">{detailTitle}</h1>
+            <div className="flex items-center gap-2">
               <ReportExportButton
                 excluded={SESSION_REPORT_NEVER_INCLUDES}
                 href={`/api/reports/session/${detail.summary.id}.html`}
@@ -741,35 +745,36 @@ export function SessionDetailView({
                 previewHref={`/reports/session/${detail.summary.id}`}
                 title="Review session report"
               />
-              <OverflowMenu label={`More actions for ${detailTitle}`}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label={`More actions for ${detailTitle}`}><Icon name="ellipsis" /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
                 {archiveAction != null ? (
-                  <button
+                  <DropdownMenuItem
                     disabled={sessionStatePending != null}
-                    onClick={() => mutateSessionState(archiveAction)}
-                    type="button"
+                    onSelect={() => mutateSessionState(archiveAction)}
                   >
                     <Icon name="archive" />
                     <span>
                       {archiveAction === "visible" ? "Unarchive session" : "Archive session"}
                     </span>
-                  </button>
+                  </DropdownMenuItem>
                 ) : null}
-                <button
-                  className="is-danger"
+                <DropdownMenuItem
+                  variant="destructive"
                   disabled={sessionStatePending != null}
-                  onClick={() => {
+                  onSelect={() => {
                     setSessionStateError(null);
                     setDeleteDialogOpen(true);
                   }}
-                  type="button"
                 >
                   <Icon name="trash" />
                   <span>Delete session</span>
-                </button>
-              </OverflowMenu>
+                </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-          <div className="thread-badges">
+          <div className="flex flex-wrap items-center gap-2">
             <ToolBadge tool={detail.summary.tool} />
             <ModelBadge model={detail.summary.model} />
             {detail.summary.model_provider != null ? (
@@ -788,7 +793,7 @@ export function SessionDetailView({
               <button
                 aria-expanded={showIssues}
                 aria-label={`${showIssues ? "Hide" : "Show"} ingest diagnostics`}
-                className="badge-button"
+                className="rounded-md focus-visible:outline-2 focus-visible:outline-ring"
                 onClick={() => setShowIssues((value) => !value)}
                 type="button"
               >
@@ -797,7 +802,7 @@ export function SessionDetailView({
             ) : null}
             {detail.summary.project_path != null ? (
               <Link
-                className="project-chip"
+                className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent [&_svg]:size-3"
                 href={projectSessionsHref(detail.summary.project_path)}
                 title={detail.summary.project_path}
               >
@@ -806,7 +811,7 @@ export function SessionDetailView({
               </Link>
             ) : null}
           </div>
-          <div className="thread-stats">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground">
             <span>
               <strong>{formatInt(stats.turns)}</strong> {stats.turns === 1 ? "turn" : "turns"}
             </span>
@@ -837,50 +842,50 @@ export function SessionDetailView({
                   : "Unavailable"}
               </strong>
               {costSourceLabel(detail.summary.cost_source) != null ? (
-                <span className="faint"> {costSourceLabel(detail.summary.cost_source)}</span>
+                <span className="text-muted-foreground"> {costSourceLabel(detail.summary.cost_source)}</span>
               ) : null}
             </span>
           </div>
         </div>
-      </header>
+      </Card>
 
       {detail.summary.is_user_archived ? (
-        <div className="notice session-state-banner" role="status">
+        <Alert className="flex flex-wrap items-center justify-between gap-4" role="status">
           <span>
             {detail.summary.user_state === "archived"
               ? "This session is archived and hidden from default lists, search, and analytics."
               : "This session is archived with a parent session."}
           </span>
           {detail.summary.user_state === "archived" ? (
-            <button
-              className="secondary-button"
+            <Button
+              variant="outline"
               disabled={sessionStatePending != null}
               onClick={() => mutateSessionState("visible")}
               type="button"
             >
               Unarchive
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : sessionStateNotice != null ? (
-        <div className="notice session-state-banner" role="status">
+        <Alert role="status">
           {sessionStateNotice}
-        </div>
+        </Alert>
       ) : null}
       {sessionStateError != null && !deleteDialogOpen ? (
-        <div className="notice danger session-state-banner" role="alert">
+        <Alert variant="destructive" className="flex flex-wrap items-center justify-between gap-4" role="alert">
           <span>{sessionStateError}</span>
           {archiveAction != null ? (
-            <button
-              className="secondary-button"
+            <Button
+              variant="outline"
               disabled={sessionStatePending != null}
               onClick={() => mutateSessionState(archiveAction)}
               type="button"
             >
               Retry
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
 
       {showIssues ? (
@@ -893,7 +898,7 @@ export function SessionDetailView({
         />
       ) : null}
 
-      <Link className="back-link" href={sessionsHref}>
+      <Link className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground [&_svg]:size-4" href={sessionsHref}>
         <Icon name="arrowLeft" />
         Sessions
       </Link>
@@ -922,18 +927,18 @@ export function SessionDetailView({
           title="Activity breakdown"
         />
       ) : economicsError != null ? (
-        <div className="notice inline-notice">Activity breakdown unavailable: {economicsError}</div>
+        <Alert>Activity breakdown unavailable: {economicsError}</Alert>
       ) : (
         <SessionEconomicsSkeleton />
       )}
 
       <ContextWindowPanel onJump={jumpToMessage} timeline={contextWindow} />
 
-      <div className="transcript-layout">
-        <aside className="toc">
-          <div className="toc-inner">
-            <div className="toc-title">In this thread</div>
-            <div className="toc-hotkeys">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="min-w-0">
+          <div className="sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col gap-2 overflow-y-auto rounded-lg border bg-card p-4">
+            <div className="font-semibold">In this thread</div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground [&_kbd]:rounded [&_kbd]:border [&_kbd]:px-1">
               <span>
                 <kbd>↑</kbd>
                 <kbd>↓</kbd>
@@ -953,21 +958,21 @@ export function SessionDetailView({
           </div>
         </aside>
 
-        <div className="transcript-column">
+        <div className="flex min-w-0 flex-col gap-4">
           {(detail.message_offset ?? 0) > 0 ? (
-            <div className="transcript-window-start">
+            <div className="flex flex-wrap items-center gap-2 rounded-md border p-4 text-sm text-muted-foreground">
               <span>
                 {formatInt(detail.message_offset ?? 0)} earlier{" "}
                 {(detail.message_offset ?? 0) === 1 ? "message" : "messages"} not loaded
               </span>
               {loadEarlierError != null ? (
-                <span className="transcript-window-start-error" role="status">
+                <span className="text-destructive" role="status">
                   Couldn’t load the earlier messages: {loadEarlierError}
                 </span>
               ) : null}
-              <span className="transcript-window-start-actions">
-                <button
-                  className="button small secondary"
+              <span className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline" size="sm"
                   disabled={loadingMore}
                   onClick={() => void loadPreviousMessages()}
                   type="button"
@@ -977,14 +982,14 @@ export function SessionDetailView({
                     : loadingMore
                       ? "Loading…"
                       : "Load earlier"}
-                </button>
-                <button
-                  className="button small secondary"
+                </Button>
+                <Button
+                  variant="outline" size="sm"
                   onClick={() => void jumpToMessage(0)}
                   type="button"
                 >
                   Start at the beginning
-                </button>
+                </Button>
               </span>
             </div>
           ) : null}
@@ -1004,20 +1009,20 @@ export function SessionDetailView({
           {detail.has_more_messages === true ? (
             <div
               aria-live="polite"
-              className="transcript-load-more"
+              className="flex flex-wrap items-center gap-2 p-4 text-sm text-muted-foreground [&_small]:ml-2"
               ref={loadMoreSentinelRef}
               role="status"
             >
               {loadMoreError != null ? (
                 <>
                   <span>Couldn’t load the next messages: {loadMoreError}</span>
-                  <button
-                    className="button small secondary"
+                  <Button
+                    variant="outline" size="sm"
                     onClick={() => void loadMoreMessages()}
                     type="button"
                   >
                     Try again
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <span>
@@ -1029,7 +1034,7 @@ export function SessionDetailView({
               )}
             </div>
           ) : (
-            <div className="transcript-end">
+            <div className="p-4 text-center text-sm text-muted-foreground">
               {(detail.message_offset ?? 0) === 0
                 ? `All ${formatInt(detail.summary.message_count)} messages loaded`
                 : "Reached the end of this session"}
@@ -1081,11 +1086,11 @@ export function IngestIssuesPanel({
   const otherIssues = issues?.filter((issue) => issue.code !== "unknown_record_type") ?? [];
   const unknownSummary = unknownRecordTypeSummary(unknownIssues.map((issue) => issue.error));
   return (
-    <section className="panel ingest-issues-panel">
-      <div className="panel-heading">
+    <Card className="gap-0 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2>Ingest diagnostics</h2>
-          <p>
+          <h2 className="text-lg font-semibold">Ingest diagnostics</h2>
+          <p className="text-sm text-muted-foreground">
             A source line could not be parsed, so this session may be incomplete. Informational
             parser notes are included here for context.
           </p>
@@ -1097,18 +1102,18 @@ export function IngestIssuesPanel({
           onClick={onResync}
         />
       </div>
-      <div className="panel-body">
+      <div className="pt-4">
         {error != null ? (
           <ApiFailureState error={error} onRetry={onRetry} />
         ) : issues == null ? (
-          <p className="faint">Loading issues…</p>
+          <p className="text-muted-foreground">Loading issues…</p>
         ) : issues.length === 0 ? (
-          <p className="faint">No issues recorded for this session.</p>
+          <p className="text-muted-foreground">No issues recorded for this session.</p>
         ) : (
-          <div className="signal-list">
+          <div className="space-y-3">
             {unknownSummary.count > 0 ? (
-              <div className="ingest-issue-row is-informational">
-                <div className="muted">
+              <div className="rounded-md border bg-muted/50 p-3">
+                <div className="text-muted-foreground">
                   Decant safely preserved or ignored {formatInt(unknownSummary.count)} unknown
                   source {unknownSummary.count === 1 ? "record type" : "record types"}
                   {unknownSummary.types.length > 0
@@ -1128,63 +1133,40 @@ export function IngestIssuesPanel({
             ) : null}
             {otherIssues.map((issue) => (
               <div
-                className={`ingest-issue-row ${
-                  issue.code === "unparsed_line" ? "is-warning" : "is-informational"
-                }`}
+                className="rounded-md border bg-muted/50 p-3"
                 key={issue.id}
               >
                 <div>
                   <div>
-                    <code className="mono">{issue.code}</code>
+                    <code className="font-mono">{issue.code}</code>
                     {issue.line_no != null ? (
-                      <span className="faint"> · line {issue.line_no}</span>
+                      <span className="text-muted-foreground"> · line {issue.line_no}</span>
                     ) : null}
                   </div>
-                  <div className="muted">{issue.error}</div>
+                  <div className="text-muted-foreground">{issue.error}</div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-    </section>
+    </Card>
   );
 }
 
 export function SessionDetailSkeleton() {
   return (
-    <div
-      className="session-detail session-detail-skeleton"
-      aria-label="Loading session"
-      role="status"
-    >
-      <header className="thread-header">
-        <div className="thread-header-inner">
-          <span className="skeleton-line skeleton-title" />
-          <span className="skeleton-line skeleton-badges" />
-          <span className="skeleton-line skeleton-stats" />
-        </div>
-      </header>
-      <span className="skeleton-line skeleton-back" />
+    <div className="flex flex-col gap-6 p-6" aria-label="Loading session" role="status">
+      <Card className="gap-4 p-6">
+        <Skeleton className="h-7 w-1/2" />
+        <Skeleton className="h-5 w-1/3" />
+        <Skeleton className="h-5 w-2/3" />
+      </Card>
+      <Skeleton className="h-4 w-24" />
       <SessionEconomicsSkeleton />
-      <div className="transcript-layout">
-        <aside className="toc">
-          <div className="toc-inner">
-            <span className="skeleton-line skeleton-toc-title" />
-            {["one", "two", "three", "four", "five", "six", "seven"].map((key) => (
-              <span className="skeleton-line skeleton-toc-row" key={key} />
-            ))}
-          </div>
-        </aside>
-        <div className="transcript-column">
-          {["prompt", "reply", "tool", "followup", "summary"].map((key) => (
-            <article className="turn skeleton-turn" key={key}>
-              <span className="skeleton-line skeleton-meta" />
-              <span className="skeleton-line skeleton-copy" />
-              <span className="skeleton-line skeleton-copy short" />
-            </article>
-          ))}
-        </div>
+      <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <Card className="gap-3 p-4">{["one", "two", "three", "four"].map((key) => <Skeleton className="h-4 w-full" key={key} />)}</Card>
+        <div className="space-y-4">{["prompt", "reply", "tool", "followup", "summary"].map((key) => <Card className="gap-3 p-4" key={key}><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" /></Card>)}</div>
       </div>
     </div>
   );
@@ -1192,25 +1174,10 @@ export function SessionDetailSkeleton() {
 
 export function SessionEconomicsSkeleton() {
   return (
-    <section
-      aria-label="Loading activity breakdown"
-      className="panel token-economics-panel is-compact skeleton-panel"
-      role="status"
-    >
-      <div className="panel-heading">
-        <div>
-          <span className="skeleton-line skeleton-heading" />
-          <span className="skeleton-line skeleton-subheading" />
-        </div>
-        <span className="skeleton-line skeleton-summary" />
-      </div>
-      <div className="activity-table-wrap">
-        <div className="skeleton-table">
-          {["context", "planning", "code", "communicating"].map((key) => (
-            <span className="skeleton-line" key={key} />
-          ))}
-        </div>
-      </div>
-    </section>
+    <Card aria-label="Loading activity breakdown" className="gap-3 p-6" role="status">
+      <Skeleton className="h-5 w-48" />
+      <Skeleton className="h-4 w-2/3" />
+      {["context", "planning", "code", "communicating"].map((key) => <Skeleton className="h-4 w-full" key={key} />)}
+    </Card>
   );
 }

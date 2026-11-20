@@ -1,4 +1,10 @@
-import { type CSSProperties, memo, type ReactNode, useCallback, useEffect, useState } from "react";
+import { memo, type ReactNode, useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getJson } from "../api.ts";
 import dosuOfficialUrl from "../assets/dosu-official.svg";
 import { Badge, displayModelLabel, ModelBadge, ReasoningBadge, ToolBadge } from "../badges.tsx";
@@ -186,11 +192,11 @@ export function SessionsView({
   };
 
   return (
-    <div className="view-stack">
-      <header className="page-heading inline-heading">
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1>Sessions</h1>
-          <p>
+          <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
+          <p className="text-sm text-muted-foreground">
             Every Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot
             Chat in VS Code, Hermes Agent, and Pi session log on this device, plus imported ATIF
             trajectories.
@@ -199,41 +205,27 @@ export function SessionsView({
         <DateRangeControl bounds={data.dateBounds} range={dateRange} onChange={onDateRangeChange} />
       </header>
 
-      {compareFilters.length === 0 ? <div className="stat-grid sessions-stat-grid">
+      {compareFilters.length === 0 ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard icon="sessions" label="Sessions" value={formatInt(cardSummary.sessions)} />
         <StatCard icon="messages" label="Messages" value={formatInt(cardSummary.messages)} />
         <StatCard icon="money" label="Est. cost" value={estCost.text} valueTitle={estCost.title} />
       </div> : null}
 
-      <section aria-busy={pageLoading || refreshing} className="panel sessions-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Sessions</h2>
-          </div>
-          <div className="session-list-controls">
-            <label className="session-archive-toggle">
-              <input
-                checked={includeArchived}
-                onChange={(event) => {
-                  visit(sessionsArchivedHref(path, event.target.checked));
-                }}
-                type="checkbox"
-              />
+      <Card aria-busy={pageLoading || refreshing} className="gap-0 overflow-hidden py-0 [contain:layout_paint] [overflow-anchor:none]">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-6">
+          <h2 className="text-lg font-semibold">Sessions</h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={includeArchived} onCheckedChange={(checked) => visit(sessionsArchivedHref(path, checked === true))} />
               <span>Show archived</span>
             </label>
-            <input
-              aria-label="Filter sessions"
-              className="session-filter"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter by title, model, or tool..."
-              value={query}
-            />
+            <Input aria-label="Filter sessions" className="w-64 max-w-full" onChange={(event) => setQuery(event.target.value)} placeholder="Filter by title, model, or tool..." value={query} />
           </div>
         </div>
-        {compareFilters.length ? <div className="active-filter-row">{compareFilters.map((key) => <span className="filter-pill" key={key}>{key}: {params.get(key) || "Unknown"}</span>)}</div> : null}
+        {compareFilters.length ? <div className="flex flex-wrap gap-2 px-6 pb-4">{compareFilters.map((key) => <span className="rounded-md border bg-muted px-2 py-1 text-xs" key={key}>{key}: {params.get(key) || "Unknown"}</span>)}</div> : null}
         {project != null ? (
-          <div className="active-filter-row">
-            <span className="filter-pill">
+          <div className="flex flex-wrap gap-2 px-6 pb-4">
+            <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs">
               Project: <strong>{basename(project)}</strong>
               <Link
                 aria-label="Clear project filter"
@@ -245,8 +237,8 @@ export function SessionsView({
           </div>
         ) : null}
         {repo != null ? (
-          <div className="active-filter-row">
-            <span className="filter-pill" title={`${repo}, including its worktrees`}>
+          <div className="flex flex-wrap gap-2 px-6 pb-4">
+            <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs" title={`${repo}, including its worktrees`}>
               Repository: <strong>{basename(repo)}</strong>
               <Link
                 aria-label="Clear repository filter"
@@ -257,44 +249,36 @@ export function SessionsView({
             </span>
           </div>
         ) : null}
-        <div className="table-scroll">
-          <table className="data-table sessions-table">
+        <div className="@container border-y">
+          <Table className="min-w-[1084px] table-fixed">
             <colgroup>
-              <col className="col-session-tool" />
-              <col className="col-session-title" />
-              <col className="col-session-project" />
-              <col className="col-session-model" />
-              <col className="col-session-effort" />
-              <col className="col-session-context" />
-              <col className="col-session-compactions" />
-              <col className="col-session-subagents" />
-              <col className="col-session-count" />
-              <col className="col-session-cost" />
-              <col className="col-session-started" />
+              <col className="w-[156px]" /><col /><col className="w-[160px]" /><col className="w-[180px]" />
+              <col className="hidden w-[120px] @min-[1448px]:table-column" /><col className="hidden w-[72px] @min-[1448px]:table-column" /><col className="hidden w-[60px] @min-[1448px]:table-column" />
+              <col className="hidden w-[112px] @min-[1196px]:table-column" /><col className="w-[72px]" /><col className="w-[92px]" /><col className="w-[144px]" />
             </colgroup>
-            <thead>
-              <tr>
-                <th>Tool</th>
-                <th>Title</th>
-                <th>Project</th>
-                <th>Model</th>
-                <th className="col-session-effort">Effort</th>
-                <th className="numeric col-session-context">Peak ctx</th>
-                <th className="numeric col-session-compactions">Comp.</th>
-                <th className="numeric col-session-subagents">Subagents</th>
-                <th className="numeric">Msgs</th>
-                <th className="numeric">Cost</th>
-                <th className="numeric">Started</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tool</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead>Model</TableHead>
+                <TableHead className="hidden @min-[1448px]:table-cell">Effort</TableHead>
+                <TableHead className="hidden text-right @min-[1448px]:table-cell">Peak ctx</TableHead>
+                <TableHead className="hidden text-right @min-[1448px]:table-cell">Comp.</TableHead>
+                <TableHead className="hidden text-right @min-[1196px]:table-cell">Subagents</TableHead>
+                <TableHead className="text-right">Msgs</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
+                <TableHead className="text-right">Started</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {waitingForSessions ? <SessionTableSkeletonRows /> : null}
               {!waitingForSessions ? filtered.flatMap((session) => renderRows(session)) : null}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-        {emptyMessage == null ? null : <p className="sessions-empty">{emptyMessage}</p>}
-        <div className="panel-footer">
+        {emptyMessage == null ? null : <p className="p-6 text-sm text-muted-foreground">{emptyMessage}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-4 p-6 text-sm text-muted-foreground">
           <span>
             {sessionsCaption(
               query,
@@ -307,17 +291,17 @@ export function SessionsView({
             )}
           </span>
           {showPagination ? (
-            <nav aria-label="Sessions pagination" className="session-pagination">
-              <button
+            <nav aria-label="Sessions pagination" className="flex items-center gap-2">
+              <Button
                 aria-label={`Go to page ${Math.max(1, displayedPage - 1)}`}
-                className="secondary-button"
+                variant="outline"
                 disabled={pageLoading || displayedPage <= 1}
                 onClick={() => visit(sessionsPageHref(path, displayedPage - 1))}
                 type="button"
               >
                 <Icon name="chevronLeft" />
                 Previous
-              </button>
+              </Button>
               <span aria-live="polite">
                 {pageLoading && page !== displayedPage
                   ? `Loading page ${formatInt(page)}…`
@@ -325,61 +309,31 @@ export function SessionsView({
                     ? `Page ${formatInt(displayedPage)}`
                     : `Page ${formatInt(displayedPage)} of ${formatInt(pageCount)}`}
               </span>
-              <button
+              <Button
                 aria-label={`Go to page ${displayedPage + 1}`}
-                className="secondary-button"
+                variant="outline"
                 disabled={pageLoading || !hasNextPage}
                 onClick={() => visit(sessionsPageHref(path, displayedPage + 1))}
                 type="button"
               >
                 Next
                 <Icon name="chevronRight" />
-              </button>
+              </Button>
             </nav>
           ) : null}
         </div>
-      </section>
+      </Card>
     </div>
   );
 }
 
 export function SessionTableSkeletonRows() {
   return SESSION_TABLE_SKELETON_KEYS.map((key) => (
-    <tr className="session-row-skeleton" key={key}>
-      <td>
-        <span className="skeleton-line table-skeleton-line tool" />
-      </td>
-      <td>
-        <span className="skeleton-line table-skeleton-line title" />
-      </td>
-      <td>
-        <span className="skeleton-line table-skeleton-line project" />
-      </td>
-      <td>
-        <span className="skeleton-line table-skeleton-line model" />
-      </td>
-      <td className="col-session-effort">
-        <span className="skeleton-line table-skeleton-line effort" />
-      </td>
-      <td className="numeric col-session-context">
-        <span className="skeleton-line table-skeleton-line number" />
-      </td>
-      <td className="numeric col-session-compactions">
-        <span className="skeleton-line table-skeleton-line number" />
-      </td>
-      <td className="numeric col-session-subagents">
-        <span className="skeleton-line table-skeleton-line number" />
-      </td>
-      <td className="numeric">
-        <span className="skeleton-line table-skeleton-line number" />
-      </td>
-      <td className="numeric">
-        <span className="skeleton-line table-skeleton-line cost" />
-      </td>
-      <td className="numeric">
-        <span className="skeleton-line table-skeleton-line started" />
-      </td>
-    </tr>
+    <TableRow key={key}>
+      {Array.from({ length: 11 }, (_, index) => (
+        <TableCell className={index >= 4 && index <= 6 ? "hidden @min-[1448px]:table-cell" : index === 7 ? "hidden @min-[1196px]:table-cell" : undefined} key={index}><Skeleton className="h-4 w-16 animate-none" /></TableCell>
+      ))}
+    </TableRow>
   ));
 }
 
@@ -452,26 +406,26 @@ export const SessionTableRow = memo(function SessionTableRow({
   const title = sessionDisplayTitle(session);
   const childCount = Math.max(session.subagent_count, session.subagents?.length ?? 0);
   const hasChildren = childCount > 0;
-  const indentStyle = { "--depth": Math.max(0, Math.min(depth - 1, 5)) } as CSSProperties;
+  const indentStyle = { paddingLeft: `${Math.max(0, Math.min(depth - 1, 5)) * 16}px` };
   return (
-    <tr className={`session-row${isSubagent ? " is-subagent" : ""}`}>
-      <td>
-        <span className="session-tool-cell">
+    <TableRow className={isSubagent ? "bg-muted/30" : undefined}>
+      <TableCell>
+        <span className="flex items-center gap-2">
           {hasChildren ? (
-            <button
+            <Button
               aria-expanded={expanded}
               aria-label={`${expanded ? "Collapse" : "Expand"} subagents for ${title}`}
-              className="subagent-disclosure"
+              variant="ghost" size="icon-xs"
               onClick={() => onToggle(session.id)}
               type="button"
             >
               <Icon name={expanded ? "minus" : "plus"} />
-            </button>
+            </Button>
           ) : (
-            <span className="subagent-disclosure-placeholder" />
+            <span className="size-6 shrink-0" />
           )}
           {isSubagent ? (
-            <span className="subagent-source">
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <Icon name="cpu" />
               Subagent
             </span>
@@ -479,59 +433,59 @@ export const SessionTableRow = memo(function SessionTableRow({
             <ToolBadge tool={session.tool} />
           )}
         </span>
-      </td>
-      <td className="truncate-cell">
-        <span className="session-title-stack" style={indentStyle}>
-          <span className="session-title-line">
+      </TableCell>
+      <TableCell className="max-w-80 truncate">
+        <span className="flex flex-col gap-1" style={indentStyle}>
+          <span className="flex items-center gap-2">
             <Link href={`/sessions/${session.id}`} title={title}>
               {title}
             </Link>
             {session.is_user_archived ? <Badge tone="neutral">Archived</Badge> : null}
           </span>
-          {isSubagent ? <small>{subagentDescriptor(session)}</small> : null}
+          {isSubagent ? <small className="text-muted-foreground">{subagentDescriptor(session)}</small> : null}
         </span>
-      </td>
-      <td className="truncate-cell" title={session.project_path ?? ""}>
+      </TableCell>
+      <TableCell className="max-w-48 truncate" title={session.project_path ?? ""}>
         {session.project_path == null ? (
-          <span className="faint">-</span>
+          <span className="text-muted-foreground">-</span>
         ) : (
           <Link href={projectSessionsHref(session.project_path)} title={session.project_path}>
             {basename(session.project_path)}
           </Link>
         )}
-      </td>
-      <td>
+      </TableCell>
+      <TableCell>
         <ModelBadge model={session.model} />
-      </td>
-      <td className="col-session-effort">
+      </TableCell>
+      <TableCell className="hidden @min-[1448px]:table-cell">
         <ReasoningBadge
           effort={session.reasoning_effort}
           levels={session.reasoning_effort_levels}
           totalReasoningTokens={session.total_reasoning_tokens}
           reasoningSource={session.reasoning_source}
         />
-      </td>
-      <td className="numeric col-session-context">
+      </TableCell>
+      <TableCell className="hidden text-right tabular-nums @min-[1448px]:table-cell">
         <SessionContextPeak session={session} />
-      </td>
-      <td className="numeric muted col-session-compactions">
+      </TableCell>
+      <TableCell className="hidden text-right tabular-nums text-muted-foreground @min-[1448px]:table-cell">
         {formatInt(session.compaction_count)}
-      </td>
-      <td className="numeric col-session-subagents">
+      </TableCell>
+      <TableCell className="hidden text-right tabular-nums @min-[1196px]:table-cell">
         <SubagentRollup session={session} />
-      </td>
-      <td className="numeric muted">{formatInt(session.message_count)}</td>
-      <td className="numeric">
+      </TableCell>
+      <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(session.message_count)}</TableCell>
+      <TableCell className="text-right tabular-nums">
         {sessionThreadUsageAvailable(session) ? (
           money(sessionThreadCost(session))
         ) : (
-          <span className="faint">-</span>
+          <span className="text-muted-foreground">-</span>
         )}
-      </td>
-      <td className="numeric muted">
+      </TableCell>
+      <TableCell className="text-right text-muted-foreground">
         <SessionStartedAt value={session.started_at} />
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 });
 
@@ -550,7 +504,7 @@ export function DosuProvenanceBadge({
   return (
     <Tooltip
       content={
-        <div className="dosu-evidence-tooltip">
+        <div className="space-y-1">
           <strong>Optimized with Dosu</strong>
           <p>{dosuEvidenceSummary(evidence)}</p>
         </div>
@@ -560,7 +514,7 @@ export function DosuProvenanceBadge({
         <a
           {...tooltipProps}
           aria-label={dosuBadgeAriaLabel(evidence)}
-          className="dosu-provenance-badge"
+          className="inline-flex size-6 items-center justify-center rounded-md border hover:bg-accent [&_img]:size-4"
           href={dosuLink("session_badge")}
           rel="noopener"
           target="_blank"
@@ -592,11 +546,11 @@ export function SessionContextPeak({ session }: { session: SessionSummary }) {
       ? Math.round((peak / windowTokens) * 100)
       : null;
   if (pct == null || pct === 0) {
-    return <span className="faint">-</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
   return (
     <span
-      className={`session-context-peak${pct >= 80 ? " is-hot" : pct >= 60 ? " is-warm" : ""}`}
+      className={pct >= 80 ? "font-medium text-destructive" : "text-muted-foreground"}
       title={`Peak context: ${compact(peak ?? 0)} of ${compact(windowTokens ?? 0)} window`}
     >
       {pct}%
@@ -607,13 +561,13 @@ export function SessionContextPeak({ session }: { session: SessionSummary }) {
 export function SubagentRollup({ session }: { session: SessionSummary }) {
   const count = Math.max(session.subagent_count, session.subagents?.length ?? 0);
   if (count <= 0) {
-    return <span className="faint">-</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
   return (
-    <span className="subagent-rollup" title={`${formatInt(count)} subagents`}>
+    <span className="inline-flex flex-col" title={`${formatInt(count)} subagents`}>
       <span>{formatInt(count)}</span>
       {session.subagent_estimated_cost_usd > 0 ? (
-        <small>+{money(session.subagent_estimated_cost_usd)}</small>
+        <small className="text-muted-foreground">+{money(session.subagent_estimated_cost_usd)}</small>
       ) : null}
     </span>
   );

@@ -1,42 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { SessionSummary } from "../src/ui/types.ts";
 import { SessionTableRow, SessionTableSkeletonRows } from "../src/ui/views/sessions.tsx";
 
-const TITLE_FLOOR_PX = 280;
-
-const styles = readFileSync(join(import.meta.dir, "..", "src", "ui", "styles.css"), "utf8");
-const view = readFileSync(
-  join(import.meta.dir, "..", "src", "ui", "views", "sessions.tsx"),
-  "utf8",
-);
-
-const columns = [...view.matchAll(/<col className="(col-session-[a-z]+)" \/>/g)].map(
-  (match) => match[1] as string,
-);
-
-function columnWidth(column: string): number {
-  const rule = new RegExp(`\\.sessions-table \\.${column} \\{\\s*width: (\\d+)px;`).exec(styles);
-  expect(rule).not.toBeNull();
-  return Number(rule?.[1]);
-}
-
-const tiers = [
-  ...styles.matchAll(/@container sessions-table \(width < (\d+)px\) \{([\s\S]*?)\n\}/g),
-].map((match) => ({
-  below: Number(match[1]),
-  hides: [...(match[2] ?? "").matchAll(/\.sessions-table \.(col-session-[a-z]+)/g)].map(
-    (hidden) => hidden[1] as string,
-  ),
-}));
-
-function cellClasses(markup: string): string[][] {
-  return [...markup.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map((row) =>
-    [...(row[1] ?? "").matchAll(/<td(?: class="([^"]*)")?/g)].map((cell) => cell[1] ?? ""),
-  );
-}
 
 const session: SessionSummary = {
   id: 1,
@@ -76,65 +42,22 @@ const session: SessionSummary = {
   dosu_mcp_tree_calls: 0,
 };
 
-describe("sessions table layout", () => {
-  test("title is the only column without a fixed width", () => {
-    expect(columns).toContain("col-session-title");
-    expect(styles).toMatch(/\.sessions-table \.col-session-title \{\s*width: auto;/);
-    for (const column of columns.filter((name) => name !== "col-session-title")) {
-      expect(columnWidth(column)).toBeGreaterThan(0);
-    }
-  });
-
-  test("each tier drops columns before the title falls below its floor", () => {
-    expect(tiers.length).toBeGreaterThan(0);
-    let visible = columns.filter((name) => name !== "col-session-title");
-    const fixedWidth = () => visible.reduce((sum, column) => sum + columnWidth(column), 0);
-    for (const tier of tiers) {
-      expect(tier.below).toBe(fixedWidth() + TITLE_FLOOR_PX);
-      expect(tier.hides.length).toBeGreaterThan(0);
-      visible = visible.filter((column) => !tier.hides.includes(column));
-    }
-    const tableRule = /\.sessions-table \{\s*min-width: (\d+)px;/.exec(styles);
-    expect(Number(tableRule?.[1])).toBe(fixedWidth() + TITLE_FLOOR_PX);
-  });
-
-  test("never hides the columns that identify or open a session", () => {
-    const hidden = tiers.flatMap((tier) => tier.hides);
-    for (const column of ["col-session-tool", "col-session-title", "col-session-project"]) {
-      expect(hidden).not.toContain(column);
-    }
-  });
-
-  test("keeps the empty message out of the column grid", () => {
-    expect(view).not.toContain("colSpan");
-    expect(view).toContain('<p className="sessions-empty">{emptyMessage}</p>');
-  });
-
-  test("collapsible columns carry their class on every header, row, and skeleton cell", () => {
-    const head = view.slice(view.indexOf("<thead>"), view.indexOf("</thead>"));
-    const headers = [...head.matchAll(/<th(?: className="([^"]*)")?>/g)].map(
-      (match) => match[1] ?? "",
+describe("sessions table", () => {
+  test("renders the session link, metrics and expandable subagents", () => {
+    const markup = renderToStaticMarkup(
+      <table><tbody><SessionTableRow depth={0} expanded={false} onToggle={() => {}} session={session} /></tbody></table>,
     );
-    const rows = cellClasses(
-      renderToStaticMarkup(
-        <table>
-          <tbody>
-            <SessionTableRow depth={0} expanded={false} onToggle={() => {}} session={session} />
-            <SessionTableSkeletonRows />
-          </tbody>
-        </table>,
-      ),
-    );
-    expect(headers).toHaveLength(columns.length);
-    expect(rows.length).toBeGreaterThan(1);
-    for (const column of new Set(tiers.flatMap((tier) => tier.hides))) {
-      const index = columns.indexOf(column);
-      expect(index).toBeGreaterThanOrEqual(0);
-      expect(headers[index]?.split(" ")).toContain(column);
-      for (const cells of rows) {
-        expect(cells).toHaveLength(columns.length);
-        expect(cells[index]?.split(" ")).toContain(column);
-      }
-    }
+    expect(markup).toContain('href="/sessions/1"');
+    expect(markup).toContain("Synthetic session");
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain("Expand subagents for Synthetic session");
+    expect(markup).toContain("47,662");
+  });
+
+  test("renders eleven placeholder cells per skeleton row", () => {
+    const markup = renderToStaticMarkup(<table><tbody><SessionTableSkeletonRows /></tbody></table>);
+    const rows = [...markup.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) expect((row[1]?.match(/<td\b/g) ?? [])).toHaveLength(11);
   });
 });

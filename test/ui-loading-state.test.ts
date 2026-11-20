@@ -88,18 +88,9 @@ describe("session loading state", () => {
     expect(main).not.toContain("data.dateBounds?.max");
   });
 
-  test("isolates page swaps from document paint and scroll anchoring", () => {
-    expect(styles).toContain(".sessions-panel {");
-    expect(styles).toContain("contain: layout paint;");
-    expect(styles).toContain("overflow-anchor: none;");
-    expect(styles).toContain(".sessions-table tbody tr {\n  transition: none;");
-  });
 });
 
 describe("session table skeleton", () => {
-  test("keeps the reserved rows static so a first-load fling has raster headroom", () => {
-    expect(styles).toContain(".session-row-skeleton .skeleton-line {\n  animation: none;\n}");
-  });
 
   test("reserves all fifty row slots before the first page settles", () => {
     expect(main).toContain("{ length: SESSION_PAGE_SIZE }");
@@ -109,29 +100,6 @@ describe("session table skeleton", () => {
     expect(main).not.toContain("loadedSessionKey");
   });
 
-  test("keeps one placeholder aligned with each of the eleven session columns", () => {
-    const skeleton = sourceBetween(
-      main,
-      "function SessionTableSkeletonRows()",
-      "function filterSessions(",
-    );
-    expect(skeleton.match(/<td(?:\s|>)/g)).toHaveLength(11);
-    expect([...skeleton.matchAll(/table-skeleton-line ([^"]+)/g)].map((match) => match[1])).toEqual(
-      [
-        "tool",
-        "title",
-        "project",
-        "model",
-        "effort",
-        "number",
-        "number",
-        "number",
-        "number",
-        "cost",
-        "started",
-      ],
-    );
-  });
 
   test("keeps the Started cell as a precise semantic time element", () => {
     const startedCell = sourceBetween(

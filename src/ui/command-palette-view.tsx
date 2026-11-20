@@ -1,25 +1,8 @@
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { Command, CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getJson } from "./api.ts";
-import {
-  buildCommandPaletteGroups,
-  type CommandPaletteItem,
-  flattenCommandPaletteItems,
-  pointerMovementChangesSelection,
-  reconcileCommandPaletteActiveIndex,
-  reduceCommandPaletteKey,
-} from "./command-palette.ts";
+import { buildCommandPaletteGroups, type CommandPaletteItem } from "./command-palette.ts";
 import { fullDateTime } from "./date-time.ts";
-import { useBackdropDismiss, useDialogFocusTrap } from "./focus.ts";
 import {
   createSessionSearchIndex,
   fetchSessionSearchIndex,
@@ -135,19 +118,8 @@ export function CommandPaletteDialog({
   syncing: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(readRecentSearches);
-  const activeItemIdRef = useRef<string | null>(null);
-  const backdropRef = useRef<HTMLDivElement | null>(null);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const closeRef = useRef(onClose);
-  const titleId = useId();
-  const listboxId = useId();
-  closeRef.current = onClose;
-  const requestClose = useCallback(() => closeRef.current(), []);
-  useDialogFocusTrap(true, dialogRef, requestClose);
-  useBackdropDismiss(true, backdropRef, requestClose);
-
+  const requestClose = onClose;
   const normalizedQuery = query.trim();
   const matches = useMemo(
     () => (normalizedQuery === "" ? [] : fuzzyIndex.search(normalizedQuery, 10)),
@@ -265,203 +237,43 @@ export function CommandPaletteDialog({
     actions: actionItems,
     contentSearch,
   });
-  const items = flattenCommandPaletteItems(groups);
-  const renderedItemKey = items.map((item) => item.id).join("\u0000");
-
-  useLayoutEffect(() => {
-    void renderedItemKey;
-    const nextIndex = reconcileCommandPaletteActiveIndex(activeItemIdRef.current, items);
-    activeItemIdRef.current = nextIndex == null ? null : (items[nextIndex]?.id ?? null);
-    setActiveIndex(nextIndex);
-  }, [items, renderedItemKey]);
-
-  const selectPaletteIndex = (index: number | null) => {
-    const nextIndex = index != null && items[index] != null ? index : null;
-    activeItemIdRef.current = nextIndex == null ? null : (items[nextIndex]?.id ?? null);
-    setActiveIndex(nextIndex);
-  };
-
-  useEffect(() => {
-    if (activeIndex == null) {
-      return;
-    }
-    dialogRef.current
-      ?.querySelector<HTMLElement>(`[data-palette-index="${activeIndex}"]`)
-      ?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex]);
-
-  const renderedActiveIndex =
-    activeIndex != null && items[activeIndex] != null ? activeIndex : null;
-  const activeItem = renderedActiveIndex == null ? null : (items[renderedActiveIndex] ?? null);
-  const activeDescendant =
-    renderedActiveIndex == null ? undefined : `command-palette-item-${renderedActiveIndex}`;
   const quickMatchCount = sessionItems.length + pageItems.length + actionItems.length;
-  return createPortal(
-    <div className="command-palette-backdrop" ref={backdropRef}>
-      <div
-        aria-labelledby={titleId}
-        aria-modal="true"
-        className="command-palette"
-        ref={dialogRef}
-        role="dialog"
-        tabIndex={-1}
-      >
-        <h2 className="sr-only" id={titleId}>
-          Search and commands
-        </h2>
-        <div className="command-palette-input-row">
-          <Icon name="search" />
-          <input
-            aria-activedescendant={activeDescendant}
-            aria-autocomplete="list"
-            aria-controls={listboxId}
-            aria-expanded={true}
-            aria-label="Search sessions and commands"
-            autoComplete="off"
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              const result = reduceCommandPaletteKey(
-                { activeIndex },
-                {
-                  key: event.key,
-                  itemCount: items.length,
-                  isComposing: event.nativeEvent.isComposing,
-                },
-              );
-              if (!result.handled) {
-                return;
-              }
-              event.preventDefault();
-              event.stopPropagation();
-              if (result.effect === "close") {
-                requestClose();
-                return;
-              }
-              if (result.effect === "activate") {
-                activeItem?.activate();
-                return;
-              }
-              selectPaletteIndex(result.activeIndex);
-            }}
-            placeholder="Search sessions or run a command…"
-            role="combobox"
-            value={query}
-          />
-          <button
-            aria-label="Close command palette"
-            className="icon-button command-palette-close"
-            onClick={requestClose}
-            type="button"
-          >
-            <Icon name="x" />
-          </button>
+  return (
+    <CommandDialog open onOpenChange={(open) => { if (!open) requestClose(); }} title="Search and commands" description="Search sessions, pages, and commands">
+      <Command shouldFilter={false} loop>
+        <CommandInput aria-label="Search sessions and commands" placeholder="Search sessions or run a command…" value={query} onValueChange={setQuery} />
+        <div aria-live="polite" className="px-4 text-sm text-muted-foreground">
+          {loading && rows.length === 0 ? <p role="status">Loading session index…</p> : null}
+          {indexError != null && rows.length === 0 ? <p role="status" className="text-destructive">Session shortcuts are unavailable. Pages and actions still work.</p> : null}
+          {normalizedQuery !== "" && quickMatchCount === 0 && !loading && indexError == null ? <p>No quick matches. Try transcript search below.</p> : null}
         </div>
-        <div aria-live="polite" className="command-palette-state-region">
-          {loading && rows.length === 0 ? (
-            <p className="command-palette-state" role="status">
-              Loading session index…
-            </p>
-          ) : null}
-          {indexError != null && rows.length === 0 ? (
-            <p className="command-palette-state is-error" role="status">
-              Session shortcuts are unavailable. Pages and actions still work.
-            </p>
-          ) : null}
-          {normalizedQuery !== "" && quickMatchCount === 0 && !loading && indexError == null ? (
-            <p className="command-palette-state">No quick matches. Try transcript search below.</p>
-          ) : null}
-        </div>
-        <div className="command-palette-results" id={listboxId} role="listbox">
-          {groups.map((group) => {
-            const labelId = `${listboxId}-${group.id}-label`;
-            return (
-              // biome-ignore lint/a11y/useSemanticElements: fieldset is not a valid listbox child; this div is an explicit ARIA group.
-              <div
-                aria-labelledby={labelId}
-                className={`command-palette-group is-${group.id}`}
-                key={group.id}
-                role="group"
-              >
-                <div
-                  className={group.label == null ? "sr-only" : "command-palette-group-label"}
-                  id={labelId}
-                >
-                  {group.label ?? "Transcript search"}
-                </div>
-                {group.items.map((item) => {
-                  const index = items.indexOf(item);
-                  return (
-                    <button
-                      aria-selected={index === activeIndex}
-                      className={`command-palette-item is-${item.kind}${
-                        index === activeIndex ? " is-active" : ""
-                      }`}
-                      data-palette-index={index}
-                      id={`command-palette-item-${index}`}
-                      key={item.id}
-                      onClick={() => item.activate()}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onPointerMove={(event) => {
-                        if (pointerMovementChangesSelection(event)) {
-                          selectPaletteIndex(index);
-                        }
-                      }}
-                      role="option"
-                      tabIndex={-1}
-                      type="button"
-                    >
-                      <span className="command-palette-item-icon">
-                        <Icon name={item.icon} />
-                      </span>
-                      <span className="command-palette-item-copy">
-                        <strong>
-                          <PaletteHighlightedText
-                            ranges={item.highlights?.title}
-                            text={item.label}
-                          />
-                        </strong>
-                        {item.kind === "session" && item.row != null ? (
-                          <PaletteSessionMeta highlights={item.highlights} row={item.row} />
-                        ) : item.detail == null ? null : (
-                          <span>{item.detail}</span>
-                        )}
-                      </span>
-                      {item.kind === "session" && item.row?.started_at != null ? (
-                        <time
-                          className="command-palette-item-date"
-                          dateTime={item.row.started_at}
-                          title={fullDateTime(item.row.started_at) ?? item.row.started_at}
-                        >
-                          <PaletteHighlightedText
-                            ranges={item.highlights?.started_at}
-                            text={item.row.started_at.slice(0, 10)}
-                          />
-                        </time>
-                      ) : item.kind === "content-search" ? (
-                        <kbd>↵</kbd>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-        <footer className="command-palette-footer">
-          <span>
-            <kbd>↑</kbd>
-            <kbd>↓</kbd> navigate
-          </span>
-          <span>
-            <kbd>↵</kbd> open
-          </span>
-          <span>
-            <kbd>esc</kbd> close
-          </span>
+        <CommandList className="max-h-[60vh]">
+          {groups.map((group) => (
+            <CommandGroup key={group.id} heading={group.label ?? "Transcript search"}>
+              {group.items.map((item) => (
+                <CommandItem key={item.id} value={item.id} onSelect={() => item.activate()} className="gap-3">
+                  <Icon name={item.icon} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <strong className="truncate font-medium"><PaletteHighlightedText ranges={item.highlights?.title} text={item.label} /></strong>
+                    {item.kind === "session" && item.row != null ? <span className="truncate text-xs text-muted-foreground"><PaletteSessionMeta highlights={item.highlights} row={item.row} /></span> : item.detail == null ? null : <span className="text-xs text-muted-foreground">{item.detail}</span>}
+                  </span>
+                  {item.kind === "session" && item.row?.started_at != null ? (
+                    <time className="text-xs text-muted-foreground" dateTime={item.row.started_at} title={fullDateTime(item.row.started_at) ?? item.row.started_at}>
+                      <PaletteHighlightedText ranges={item.highlights?.started_at} text={item.row.started_at.slice(0, 10)} />
+                    </time>
+                  ) : item.kind === "content-search" ? <kbd>↵</kbd> : null}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ))}
+        </CommandList>
+        <footer className="flex gap-4 border-t px-4 py-3 text-xs text-muted-foreground">
+          <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+          <span><kbd>↵</kbd> open</span>
+          <span><kbd>esc</kbd> close</span>
         </footer>
-      </div>
-    </div>,
-    document.body,
+      </Command>
+    </CommandDialog>
   );
 }
 

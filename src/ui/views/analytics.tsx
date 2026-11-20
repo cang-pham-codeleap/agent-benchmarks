@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table } from "@/components/ui/table";
 import { alignToSeries, buildDaySeries, type DaySeries } from "../../day-series.ts";
 import { sharePercentLabel } from "../../share-percent.ts";
 import {
@@ -92,9 +96,9 @@ export function FirstRunPanel({
 }) {
   if (firstSync) {
     return (
-      <section className="panel first-run">
-        <div className="panel-body">
-          <span className="first-run-icon">
+      <section className="rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div className="space-y-4 p-6">
+          <span className="inline-flex rounded-md bg-muted p-2">
             <Icon name="beaker" />
           </span>
           <h2>First sync in progress</h2>
@@ -107,9 +111,9 @@ export function FirstRunPanel({
     );
   }
   return (
-    <section className="panel first-run">
-      <div className="panel-body">
-        <span className="first-run-icon">
+    <section className="rounded-xl border bg-card text-card-foreground shadow-sm">
+      <div className="space-y-4 p-6">
+        <span className="inline-flex rounded-md bg-muted p-2">
           <Icon name="beaker" />
         </span>
         <h2>No sessions yet</h2>
@@ -221,19 +225,19 @@ export function AnalyticsView({
 
   if (data.dateBounds != null && data.dateBounds.min == null && data.dateBounds.max == null) {
     return (
-      <div className="view-stack">
+      <div className="flex flex-col gap-6 p-6">
         <FirstRunPanel firstSync={firstSync} onSync={onSync} syncing={syncing} />
       </div>
     );
   }
   return (
-    <div className="view-stack">
-      <header className="page-heading inline-heading">
+    <div className="flex flex-col gap-6 p-6">
+      <header className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1>Analytics</h1>
-          <p>Usage and cost across your sessions.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+          <p className="text-sm text-muted-foreground">Usage and cost across your sessions.</p>
         </div>
-        <div className="page-heading-actions">
+        <div className="flex flex-wrap items-center gap-2">
           <ReportExportButton
             excluded={ANALYTICS_REPORT_NEVER_INCLUDES}
             href={withDateQuery("/api/reports/analytics.html", analyticsQuery)}
@@ -251,13 +255,13 @@ export function AnalyticsView({
       </header>
 
       {firstSync ? (
-        <p className="sync-partial-note">
+        <p className="rounded-md border bg-muted p-4 text-sm text-muted-foreground">
           These numbers are still loading in. The first sync is running, so totals and breakdowns
           cover only the sessions indexed so far.
         </p>
       ) : null}
 
-      <div className="stat-grid analytics-stat-grid">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           detail={delta(sessions, previousSummary?.sessions)}
           icon="sessions"
@@ -366,7 +370,7 @@ export function AnalyticsView({
         rows={data.byOutcome}
       />
 
-      <div className="split">
+      <div className="grid gap-4 lg:grid-cols-2">
         <DailyPanel
           metric="sessions"
           status={status("byDay")}
@@ -383,7 +387,7 @@ export function AnalyticsView({
         />
       </div>
 
-      <div className="split">
+      <div className="grid gap-4 lg:grid-cols-2">
         <ActivityPanel
           activity={data.activity}
           loading={status("activity") === "loading"}
@@ -398,13 +402,13 @@ export function AnalyticsView({
 
 
       <section
-        className="panel"
+        className="rounded-xl border bg-card text-card-foreground shadow-sm"
         {...updatingProps(
           modelRows.length > 0 &&
             (status("byModel") === "loading" || status("modelSparklines") === "loading"),
         )}
       >
-        <div className="panel-heading">
+        <div className="flex items-start justify-between gap-4 p-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
           <div>
             <h2>By model</h2>
             <p>
@@ -413,8 +417,8 @@ export function AnalyticsView({
             </p>
           </div>
         </div>
-        <div className="table-scroll">
-          <table>
+        <div className="overflow-x-auto px-6 pb-6 [&_table]:w-full [&_table]:text-sm [&_td]:p-2 [&_th]:p-2 [&_tr]:border-b">
+          <Table>
             <thead>
               <tr>
                 <SortableHeader
@@ -489,21 +493,21 @@ export function AnalyticsView({
                       }
                     />
                   </td>
-                  <td className="numeric">{formatInt(row.sessions)}</td>
-                  <td className="numeric muted">
+                  <td className="text-right tabular-nums">{formatInt(row.sessions)}</td>
+                  <td className="text-right tabular-nums text-muted-foreground">
                     <UsageTokens row={row} value={row.input_tokens} />
                   </td>
-                  <td className="numeric muted">
+                  <td className="text-right tabular-nums text-muted-foreground">
                     <UsageTokens row={row} value={row.output_tokens} />
                   </td>
-                  <td className="numeric muted">
+                  <td className="text-right tabular-nums text-muted-foreground">
                     {row.reasoning_tokens > 0
                       ? compact(row.reasoning_tokens)
                       : row.est_reasoning_tokens > 0
                         ? `~${compact(row.est_reasoning_tokens)}`
                         : "-"}
                   </td>
-                  <td className="numeric">
+                  <td className="text-right tabular-nums">
                     <CostValue
                       cost={row.estimated_cost_usd}
                       dense
@@ -511,25 +515,25 @@ export function AnalyticsView({
                       usageSessions={row.usage_sessions}
                     />
                   </td>
-                  <td className="share-cell">
-                    <span className="share-cell-inner">
-                      <Bar
+                  <td>
+                    <span className="flex items-center gap-2">
+                      <span className="w-24"><Bar
                         fraction={totalModelCost > 0 ? row.estimated_cost_usd / totalModelCost : 0}
                         tone={brandTone(row.key)}
-                      />
+                      /></span>
                       <small>{modelCostPercents[index] ?? 0}%</small>
                     </span>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </div>
       </section>
 
       {repoRows.length > 0 ? (
-        <section className="panel" {...updatingProps(status("byRepo") === "loading")}>
-          <div className="panel-heading">
+        <section className="rounded-xl border bg-card text-card-foreground shadow-sm" {...updatingProps(status("byRepo") === "loading")}>
+          <div className="flex items-start justify-between gap-4 p-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
             <div>
               <h2>By repository</h2>
               <p>
@@ -540,8 +544,8 @@ export function AnalyticsView({
               </p>
             </div>
           </div>
-          <div className="table-scroll">
-            <table>
+          <div className="overflow-x-auto px-6 pb-6 [&_table]:w-full [&_table]:text-sm [&_td]:p-2 [&_th]:p-2 [&_tr]:border-b">
+            <Table>
               <thead>
                 <tr>
                   <SortableHeader
@@ -569,15 +573,15 @@ export function AnalyticsView({
               <tbody>
                 {repoRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="mono truncate-cell" title={row.key}>
+                    <td className="max-w-64 truncate" title={row.key}>
                       {row.key === NO_PROJECT_KEY ? (
-                        <span className="muted">No project</span>
+                        <span className="text-muted-foreground">No project</span>
                       ) : (
                         <Link href={repoSessionsHref(row.key)}>{basename(row.key)}</Link>
                       )}
                     </td>
-                    <td className="numeric muted">{formatInt(row.sessions)}</td>
-                    <td className="numeric">
+                    <td className="text-right tabular-nums text-muted-foreground">{formatInt(row.sessions)}</td>
+                    <td className="text-right tabular-nums">
                       <CostValue
                         cost={row.estimated_cost_usd}
                         dense
@@ -588,7 +592,7 @@ export function AnalyticsView({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </Table>
           </div>
         </section>
       ) : null}
@@ -598,7 +602,7 @@ export function AnalyticsView({
 
 function UsageTokens({ row, value }: { row: DimensionRow; value: number }) {
   return row.sessions > 0 && row.usage_sessions === 0 ? (
-    <span className="faint" title={NO_USAGE_TITLE}>
+    <span className="text-muted-foreground" title={NO_USAGE_TITLE}>
       -
     </span>
   ) : (
@@ -642,8 +646,8 @@ export function OutcomesPanel({
   const ordered = orderedOutcomes(rows);
   const totalSessions = ordered.reduce((sum, row) => sum + row.sessions, 0);
   return (
-    <section className="panel outcomes-panel" {...updatingProps(loading && rows.length > 0)}>
-      <div className="panel-heading">
+    <Card {...updatingProps(loading && rows.length > 0)}>
+      <div className="flex flex-wrap items-start justify-between gap-4 px-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
         <div>
           <h2>How sessions ended</h2>
           <p>
@@ -652,7 +656,7 @@ export function OutcomesPanel({
           </p>
         </div>
         {perCompleted != null ? (
-          <div className="activity-summary">
+          <div className="flex gap-3 text-sm">
             <span title={PER_COMPLETED_TITLE}>
               <strong>{money(perCompleted)}</strong>
               of all spend per completed session
@@ -661,7 +665,7 @@ export function OutcomesPanel({
         ) : null}
       </div>
       {ordered.length === 0 ? (
-        <div className="panel-body">
+        <div className="px-6">
           {loading ? (
             <LoadingState what="session outcomes" />
           ) : (
@@ -669,16 +673,16 @@ export function OutcomesPanel({
           )}
         </div>
       ) : (
-        <div className="table-scroll">
-          <table aria-label="Sessions by outcome">
+        <div className="overflow-x-auto px-6 [&_table]:w-full [&_table]:text-sm [&_td]:p-2 [&_th]:p-2 [&_tr]:border-b">
+          <Table aria-label="Sessions by outcome">
             <thead>
               <tr>
                 <th scope="col">Outcome</th>
-                <th className="numeric" scope="col">
+                <th className="text-right" scope="col">
                   Sessions
                 </th>
                 <th scope="col">Share of sessions</th>
-                <th className="numeric" scope="col">
+                <th className="text-right" scope="col">
                   Est. cost
                 </th>
               </tr>
@@ -687,17 +691,17 @@ export function OutcomesPanel({
               {ordered.map((row) => (
                 <tr key={row.key}>
                   <td title={outcomeDescription(row.key)}>{outcomeLabel(row.key)}</td>
-                  <td className="numeric">{formatInt(row.sessions)}</td>
-                  <td className="share-cell">
-                    <span className="share-cell-inner">
-                      <Bar
+                  <td className="text-right tabular-nums">{formatInt(row.sessions)}</td>
+                  <td>
+                    <span className="flex items-center gap-2">
+                      <span className="w-24"><Bar
                         fraction={totalSessions > 0 ? row.sessions / totalSessions : 0}
                         tone={outcomeTone(row.key)}
-                      />
+                      /></span>
                       <small>{sharePercentLabel(row.sessions, totalSessions)}</small>
                     </span>
                   </td>
-                  <td className="numeric">
+                  <td className="text-right tabular-nums">
                     <CostValue
                       cost={row.estimated_cost_usd}
                       dense
@@ -708,10 +712,10 @@ export function OutcomesPanel({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -751,8 +755,8 @@ export function ActivityPanel({
     timezone,
   };
   return (
-    <section className="panel" {...updatingProps(loading && activity != null)}>
-      <div className="panel-heading">
+    <Card {...updatingProps(loading && activity != null)}>
+      <div className="flex items-start justify-between gap-4 px-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
         <div>
           <h2>Busiest hours</h2>
           <p>
@@ -768,7 +772,7 @@ export function ActivityPanel({
           variant="bar"
         />
       </div>
-      <div className="panel-body chart-panel-body">
+      <div className="px-6">
         {activity == null && loading ? (
           <LoadingState what="activity" />
         ) : (
@@ -783,7 +787,7 @@ export function ActivityPanel({
           />
         )}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -812,16 +816,16 @@ export function TokenEconomicsPanel({
   const showAgentRuns = !isCompact;
   return (
     <section
-      className={`panel token-economics-panel${isCompact ? " is-compact" : ""}`}
+      className="rounded-xl border bg-card py-6 text-card-foreground shadow-sm"
       {...updatingProps(loading && economics != null)}
     >
-      <div className="panel-heading">
+      <div className="flex flex-wrap items-start justify-between gap-4 px-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
         <div>
           <h2>{title}</h2>
           <p>{description}</p>
         </div>
         {economics != null ? (
-          <div className="activity-summary">
+          <div className="flex flex-wrap gap-4 text-sm [&_span]:grid">
             <span>
               <strong>{costAvailable ? money(totalCost) : "Unavailable"}</strong>
               total
@@ -848,7 +852,7 @@ export function TokenEconomicsPanel({
         ) : null}
       </div>
       {buckets.length === 0 ? (
-        <div className="panel-body">
+        <div className="px-6">
           {economics == null && loading ? (
             <LoadingState what="the activity breakdown" />
           ) : (
@@ -860,37 +864,27 @@ export function TokenEconomicsPanel({
           )}
         </div>
       ) : (
-        <div className="activity-table-wrap">
-          <table className="activity-table" aria-label="Activity token economics">
-            <colgroup>
-              <col className="col-activity" />
-              <col className="col-share" />
-              <col className="col-activity-number" />
-              <col className="col-share" />
-              <col className="col-activity-number" />
-              <col className="col-activity-number" />
-              <col className="col-activity-number" />
-              {showAgentRuns ? <col className="col-activity-number" /> : null}
-            </colgroup>
+        <div className="overflow-x-auto px-6 pt-4 [&_table]:w-full [&_table]:text-sm [&_td]:p-2 [&_th]:p-2 [&_tr]:border-b">
+          <Table aria-label="Activity token economics">
             <thead>
-              <tr className="activity-table-head">
+              <tr>
                 <th scope="col">Activity</th>
                 <th scope="col">Cost share</th>
-                <th className="numeric activity-number" scope="col">
+                <th className="text-right" scope="col">
                   Cost
                 </th>
                 <th scope="col">Time spent</th>
-                <th className="numeric activity-number" scope="col">
+                <th className="text-right" scope="col">
                   Time
                 </th>
-                <th className="numeric activity-number" scope="col">
+                <th className="text-right" scope="col">
                   Generated
                 </th>
-                <th className="numeric activity-number" scope="col">
+                <th className="text-right" scope="col">
                   <span title={WINDOW_TITLE}>Window</span>
                 </th>
                 {showAgentRuns ? (
-                  <th className="numeric activity-number" scope="col">
+                  <th className="text-right" scope="col">
                     <span title="Root sessions and nested subagent runs contributing to this activity">
                       Agent runs
                     </span>
@@ -906,58 +900,48 @@ export function TokenEconomicsPanel({
                 return (
                   <Tooltip content={activityDescription(bucket.bucket)} key={bucket.bucket}>
                     {(tooltipProps) => (
-                      <tr className="activity-table-row" {...tooltipProps}>
-                        <td className="activity-name">
-                          <span className="activity-name-inner">
-                            <span className={`activity-swatch tone-${tone}`} />
-                            <span className="activity-label-text">
+                      <tr {...tooltipProps}>
+                        <td>
+                          <span className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-primary" />
+                            <span>
                               {activityLabel(bucket.bucket)}
-                              <span aria-hidden="true" className="info-tooltip">
+                              <span aria-hidden="true" className="ml-1 inline-flex text-muted-foreground">
                                 <Icon name="info" />
                               </span>
                             </span>
                           </span>
                         </td>
-                        <td className="activity-share">
+                        <td>
                           {costAvailable ? (
-                            <span className="activity-share-inner">
-                              <span className="activity-bar">
-                                <span
-                                  className={`tone-${tone}`}
-                                  style={{ width: `${share * 100}%` }}
-                                />
-                              </span>
+                            <span className="flex items-center gap-2">
+                              <span className="w-24"><Bar fraction={share} tone={tone} /></span>
                               <small>{costPercents[index]}%</small>
                             </span>
                           ) : (
-                            <span className="faint">-</span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </td>
-                        <td className="numeric activity-number">
+                        <td className="text-right tabular-nums">
                           {costAvailable ? money(bucket.estimated_cost_usd) : "-"}
                         </td>
-                        <td className="activity-share">
-                          <span className="activity-share-inner">
-                            <span className="activity-bar">
-                              <span
-                                className={`tone-${tone}`}
-                                style={{ width: `${timeShare * 100}%` }}
-                              />
-                            </span>
+                        <td>
+                          <span className="flex items-center gap-2">
+                            <span className="w-24"><Bar fraction={timeShare} tone={tone} /></span>
                             <small>{timePercents[index]}%</small>
                           </span>
                         </td>
-                        <td className="numeric muted activity-number">
+                        <td className="text-right tabular-nums text-muted-foreground">
                           {duration(bucket.active_ms)}
                         </td>
-                        <td className="numeric muted activity-number">
+                        <td className="text-right tabular-nums text-muted-foreground">
                           {compact(bucket.generation_tokens)}
                         </td>
-                        <td className="numeric muted activity-number">
+                        <td className="text-right tabular-nums text-muted-foreground">
                           {compact(bucket.context_window_tokens)}
                         </td>
                         {showAgentRuns ? (
-                          <td className="numeric muted activity-number">
+                          <td className="text-right tabular-nums text-muted-foreground">
                             {formatInt(bucket.sessions)}
                           </td>
                         ) : null}
@@ -967,7 +951,7 @@ export function TokenEconomicsPanel({
                 );
               })}
             </tbody>
-          </table>
+          </Table>
         </div>
       )}
     </section>
@@ -1000,8 +984,8 @@ export function WeekdayPanel({
     timezone,
   };
   return (
-    <section className="panel" {...updatingProps(loading && activity != null)}>
-      <div className="panel-heading">
+    <Card {...updatingProps(loading && activity != null)}>
+      <div className="flex items-start justify-between gap-4 px-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
         <div>
           <h2>Busiest days</h2>
           <p>
@@ -1017,7 +1001,7 @@ export function WeekdayPanel({
           variant="bar"
         />
       </div>
-      <div className="panel-body chart-panel-body">
+      <div className="px-6">
         {activity == null && loading ? (
           <LoadingState what="activity" />
         ) : (
@@ -1032,7 +1016,7 @@ export function WeekdayPanel({
           />
         )}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -1089,12 +1073,11 @@ export function DailyPanel({
   };
   const unit = weekly ? "UTC weeks starting Monday" : "UTC days";
   return (
-    <section
+    <Card
       aria-busy={status === "loading" ? true : undefined}
-      className="panel"
       data-updating={status === "loading" && hasData ? "true" : undefined}
     >
-      <div className="panel-heading">
+      <div className="flex items-start justify-between gap-4 px-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
         <div>
           <h2>{title}</h2>
           <p title={missingUsage > 0 ? NO_USAGE_TITLE : undefined}>
@@ -1112,7 +1095,7 @@ export function DailyPanel({
           variant={metric === "cost" ? "line" : "bar"}
         />
       </div>
-      <div className="panel-body">
+      <div className="px-6">
         {status === "failed" && !hasData ? (
           <FailedState />
         ) : !hasData && status === "loading" ? (
@@ -1122,9 +1105,9 @@ export function DailyPanel({
         ) : !hasData ? (
           <EmptyState
             action={
-              <button className="secondary-button" onClick={onShowAllTime} type="button">
+              <Button variant="outline" onClick={onShowAllTime} type="button">
                 All time
-              </button>
+              </Button>
             }
             icon="chart"
             message="Widen the date range."
@@ -1141,7 +1124,7 @@ export function DailyPanel({
           />
         )}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -1204,22 +1187,9 @@ function SourceControl({
   value: DashboardSource;
 }) {
   return (
-    <label className="source-filter-control">
-      <span className="sr-only">Source</span>
-      <span className="select-shell">
-        <select
-          aria-label="Source"
-          onChange={(event) => onChange(event.target.value as DashboardSource)}
-          value={value}
-        >
-          {dashboardSourceOptions(sources).map((option) => (
-            <option key={option.key} value={option.key}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <Icon name="chevronDown" />
-      </span>
-    </label>
+    <Select value={value || "all"} onValueChange={(next) => onChange(next === "all" ? "" : next as DashboardSource)}>
+      <SelectTrigger aria-label="Source"><SelectValue /></SelectTrigger>
+      <SelectContent>{dashboardSourceOptions(sources).map((option) => <SelectItem key={option.key} value={option.key || "all"}>{option.label}</SelectItem>)}</SelectContent>
+    </Select>
   );
 }
