@@ -1,16 +1,36 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Gauge, Monitor, Moon, Search, Settings, Sun } from "lucide-react";
 import { ApiError, getJson, getSyncStatus } from "./api.ts";
 import { ApiFailureState } from "./api-failure.tsx";
-import dosuDecantUrl from "./assets/dosu-decant.png";
-import dosuOfficialUrl from "./assets/dosu-official.svg";
 import { paletteShortcutLabel, shouldOpenCommandPalette } from "./command-palette.ts";
 import { CommandPalette } from "./command-palette-view.tsx";
 import { CostValue, EmptyState, ErrorState } from "./common.tsx";
+import { Button } from "./components/ui/button.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "./components/ui/dropdown-menu.tsx";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from "./components/ui/sidebar.tsx";
 import { emptyData, SLICE_LOADERS, slicesForView } from "./data-slices.ts";
 import { ALL_DATE_RANGE, dateRangeQuery, withDateQuery } from "./date-range.ts";
 import { useTodayRollover } from "./date-range-control.tsx";
-import { dosuLink } from "./dosu-links.ts";
 import { ErrorBoundary } from "./error-boundary.tsx";
 import { useDisabledFocusRescue } from "./focus.ts";
 import { formatDay, formatInt, versionLabel } from "./format.ts";
@@ -48,7 +68,6 @@ import {
   loadSlicesIndependently,
 } from "./slice-loading.ts";
 import { type DashboardSource, sourceScopeQuery } from "./source-scope.ts";
-import { SyncButton } from "./sync-button.tsx";
 import {
   isForegroundSync,
   LIVE_SESSIONS_REFRESH_MS,
@@ -67,6 +86,7 @@ import {
   syncNoticeDelay,
 } from "./sync-events.ts";
 import { SyncProgressLine, SyncProgressNotice } from "./sync-progress.tsx";
+import { SyncButton } from "./sync-button.tsx";
 import { hasOpenModal, isInteractiveTarget } from "./transcript-navigation.ts";
 import type {
   DashboardData,
@@ -89,6 +109,7 @@ import { SessionDetailView } from "./views/session-detail.tsx";
 import { SessionsView } from "./views/sessions.tsx";
 import { SettingsView } from "./views/settings.tsx";
 import { ToolsView } from "./views/tools.tsx";
+import "./globals.css";
 import "./styles.css";
 
 const LIVE_DISCONNECT_GRACE_MS = 15_000;
@@ -119,7 +140,6 @@ function App() {
   });
   const [sourceSelection, setSourceSelection] = useState<DashboardSource>("");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [localSyncing, setLocalSyncing] = useState(false);
   const [syncError, setSyncError] = useState<unknown>(null);
   const [syncComplete, setSyncComplete] = useState(false);
@@ -369,14 +389,30 @@ function App() {
   );
 
   useEffect(() => {
+    const root = document.documentElement;
     if (theme === "system") {
-      document.documentElement.removeAttribute("data-theme");
+      root.removeAttribute("data-theme");
       removeStorage("decant-theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.toggle("dark", prefersDark);
     } else {
-      document.documentElement.dataset.theme = theme;
+      root.dataset.theme = theme;
       writeStorage("decant-theme", theme);
+      root.classList.toggle("dark", theme === "dark");
     }
     window.dispatchEvent(new CustomEvent("decant:set-theme"));
+  }, [theme]);
+
+  useEffect(() => {
+    if (theme !== "system") {
+      return;
+    }
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onSchemeChange = (e: MediaQueryListEvent) => {
+      document.documentElement.classList.toggle("dark", e.matches);
+    };
+    media.addEventListener("change", onSchemeChange);
+    return () => media.removeEventListener("change", onSchemeChange);
   }, [theme]);
 
   useLayoutEffect(() => {
@@ -721,291 +757,95 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <button
-        aria-label="Close menu"
-        className={`sidebar-backdrop${menuOpen ? " is-open" : ""}`}
-        onClick={() => setMenuOpen(false)}
-        type="button"
-      />
-      <aside className={`sidebar${menuOpen ? " is-open" : ""}`}>
-        <div className="brand-row">
-          <Link className="brand" href="/" setPath={setPath}>
-            <span className="brand-icon">
-              <img alt="" src={dosuDecantUrl} />
-            </span>
-            <span>Decant</span>
-          </Link>
-          <button
-            aria-label="Close menu"
-            className="icon-button mobile-only"
-            onClick={() => setMenuOpen(false)}
-            type="button"
-          >
-            <Icon name="x" />
-          </button>
-        </div>
-        <nav aria-label="Primary">
+    <SidebarProvider className="app-shell">
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="border-b">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild size="lg">
+                <Link className="brand" href="/" setPath={setPath}>
+                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Gauge className="size-4" /></span>
+                  <span className="truncate font-semibold">Agent Benchmarks</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
           {navGroups.map((group) => (
-            <div className="nav-group" key={group.label}>
-              <h2 className="nav-group-label" id={`nav-group-${group.label.toLowerCase()}`}>
-                {group.label}
-              </h2>
-              <ul aria-labelledby={`nav-group-${group.label.toLowerCase()}`}>
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel className="nav-group-label">{group.label}</SidebarGroupLabel>
+              <SidebarMenu aria-label={group.label}>
                 {group.items.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      aria-current={activeView === item.key ? "page" : undefined}
-                      href={item.href}
-                      onClick={() => setMenuOpen(false)}
-                      setPath={setPath}
-                    >
-                      <Icon name={item.icon} />
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={activeView === item.key} tooltip={item.label}>
+                      <Link href={item.href} setPath={setPath}><Icon name={item.icon} /><span>{item.label}</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 ))}
-              </ul>
-            </div>
+              </SidebarMenu>
+            </SidebarGroup>
           ))}
-        </nav>
-        <div className="sidebar-footer">
+        </SidebarContent>
+        <SidebarFooter className="border-t text-xs text-muted-foreground">
           {firstSync ? (
-            <div className="sidebar-stat">
-              <span className="sidebar-stat-icon">
-                <Icon name="trend" />
-              </span>
-              <span>Totals after the first sync</span>
-            </div>
+            <div className="flex items-center gap-2 px-2 py-1"><Icon name="trend" /><span>Totals after the first sync</span></div>
           ) : (
             <>
-              <div className="sidebar-stat" title="Top-level sessions matching this page's filters">
-                <span className="sidebar-stat-icon">
-                  <Icon name="trend" />
-                </span>
-                <span>
-                  <strong>{metrics == null ? "-" : formatInt(metrics.sessions)}</strong> sessions
-                </span>
-              </div>
-              <div className="sidebar-stat">
-                <span className="sidebar-stat-icon">
-                  <Icon name="money" />
-                </span>
-                <span>
-                  <strong>
-                    {metrics == null ? (
-                      "-"
-                    ) : (
-                      <CostValue
-                        cost={metrics.estimated_cost_usd}
-                        sessions={metrics.sessions}
-                        usageSessions={metrics.usage_sessions}
-                      />
-                    )}
-                  </strong>{" "}
-                  tracked
-                </span>
-              </div>
+              <div className="flex items-center gap-2 px-2 py-1" title="Top-level sessions matching this page's filters"><Icon name="trend" /><span><strong className="font-medium text-sidebar-foreground">{metrics == null ? "-" : formatInt(metrics.sessions)}</strong> sessions</span></div>
+              <div className="flex items-center gap-2 px-2 py-1"><Icon name="money" /><span><strong className="font-medium text-sidebar-foreground">{metrics == null ? "-" : <CostValue cost={metrics.estimated_cost_usd} sessions={metrics.sessions} usageSessions={metrics.usage_sessions} />}</strong>{" "}tracked</span></div>
             </>
           )}
-          {lastActivity != null && !firstSync ? (
-            <div className="sidebar-stat">
-              <span className="sidebar-stat-icon">
-                <Icon name="clock" />
-              </span>
-              <span>latest {lastActivity}</span>
-            </div>
-          ) : null}
-          <a className="dosu-attribution" href={dosuLink("sidebar")} rel="noopener" target="_blank">
-            <img alt="" src={dosuOfficialUrl} />
-            <span>Created by Dosu</span>
-          </a>
+          {lastActivity != null && !firstSync ? <div className="flex items-center gap-2 px-2 py-1"><Icon name="clock" /><span>latest {lastActivity}</span></div> : null}
           <UpdateNudge status={data.update} />
-          <a
-            className="sidebar-version"
-            href="https://github.com/dosu-ai/decant/releases"
-            rel="noopener"
-            target="_blank"
-            title={`Current build: ${versionLabel(data.config?.version)}`}
-          >
-            Decant {versionLabel(data.config?.version)}
-          </a>
-        </div>
-      </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <button
-            aria-label="Open menu"
-            className="icon-button mobile-only"
-            onClick={() => setMenuOpen(true)}
-            type="button"
-          >
-            <Icon name="menu" />
-          </button>
-          {VIEWS_WITHOUT_HEADING.has(activeView) ? (
-            <h1 className="topbar-title">{titleFor(activeLabel)}</h1>
-          ) : (
-            <p className="topbar-title">{titleFor(activeLabel)}</p>
-          )}
-          <button
-            aria-expanded={commandPaletteOpen}
-            aria-haspopup="dialog"
-            aria-label="Open command palette"
-            className="topbar-search"
-            onClick={() => setCommandPaletteOpen(true)}
-            type="button"
-          >
-            <Icon name="search" />
-            <span className="topbar-search-label">Search sessions, messages, and tools…</span>
-            <kbd>{paletteShortcutLabel(navigator.userAgent)}</kbd>
-          </button>
-          <div className="topbar-spacer" />
-          <button
-            aria-expanded={commandPaletteOpen}
-            aria-haspopup="dialog"
-            aria-label="Search"
-            className="icon-button topbar-search-mobile"
-            onClick={() => setCommandPaletteOpen(true)}
-            type="button"
-          >
-            <Icon name="search" />
-          </button>
-          <SyncButton
-            ariaLabel={archiveUpdateAvailable ? "Load new activity" : "Sync session logs"}
-            busy={syncInProgress}
-            label={archiveUpdateAvailable ? "Update" : "Sync"}
-            labels={TOPBAR_SYNC_LABELS}
-            onClick={archiveUpdateAvailable ? loadArchiveUpdates : runSync}
-            update={archiveUpdateAvailable}
-          />
-          <span aria-live="polite" className="sr-only" role="status">
-            {syncInProgress
-              ? syncAnnouncement(syncProgress)
-              : syncCompleteShown
-                ? syncCompleteLabel(syncProgress)
-                : ""}
-          </span>
-          <Link
-            aria-label="Settings"
-            className="icon-button"
-            href="/settings"
-            setPath={setPath}
-            title="Settings"
-          >
-            <Icon name="settings" />
-          </Link>
-          <fieldset className="theme-toggle">
-            <legend>Theme</legend>
-            {(["system", "light", "dark"] as const).map((choice) => (
-              <button
-                aria-label={`${choice} theme`}
-                aria-pressed={theme === choice}
-                key={choice}
-                onClick={() => setTheme(choice)}
-                type="button"
-              >
-                <Icon
-                  name={choice === "system" ? "desktop" : choice === "light" ? "sun" : "moon"}
-                />
-              </button>
-            ))}
-          </fieldset>
-          {syncInProgress || syncComplete ? (
-            <SyncProgressLine complete={syncCompleteShown} progress={syncProgress} />
-          ) : null}
+          <a className="px-2 py-1 text-[11px] hover:text-sidebar-foreground" href="https://github.com/dosu-ai/decant/releases" rel="noopener" target="_blank" title={`Current build: ${versionLabel(data.config?.version)}`}>Agent Benchmarks {versionLabel(data.config?.version)}</a>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <header className="topbar sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger className="-ml-1" />
+          {VIEWS_WITHOUT_HEADING.has(activeView) ? <h1 className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</h1> : <p className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</p>}
+          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Open command palette" className="topbar-search" onClick={() => setCommandPaletteOpen(true)} size="sm" type="button" variant="outline"><Search /><span className="topbar-search-label">Search sessions, messages, and tools…</span><kbd className="rounded border bg-muted px-1.5 font-mono text-[11px]">{paletteShortcutLabel(navigator.userAgent)}</kbd></Button>
+          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Search" className="icon-button topbar-search-mobile" onClick={() => setCommandPaletteOpen(true)} size="icon" type="button" variant="ghost"><Search /></Button>
+          <div className="ml-auto hidden sm:block" />
+          <SyncButton ariaLabel={archiveUpdateAvailable ? "Load new activity" : "Sync session logs"} busy={syncInProgress} label={archiveUpdateAvailable ? "Update" : "Sync"} labels={TOPBAR_SYNC_LABELS} onClick={archiveUpdateAvailable ? loadArchiveUpdates : runSync} update={archiveUpdateAvailable} />
+          <span aria-live="polite" className="sr-only" role="status">{syncInProgress ? syncAnnouncement(syncProgress) : syncCompleteShown ? syncCompleteLabel(syncProgress) : ""}</span>
+          <Button asChild aria-label="Settings" size="icon" title="Settings" variant="ghost"><Link href="/settings" setPath={setPath}><Settings /></Link></Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button aria-label="Choose theme" className="theme-toggle" size="icon" variant="ghost">{theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />}</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end"><DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as ThemeChoice)}><DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem><DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem><DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem></DropdownMenuRadioGroup></DropdownMenuContent>
+          </DropdownMenu>
+          {syncInProgress || syncComplete ? <SyncProgressLine complete={syncCompleteShown} progress={syncProgress} /> : null}
         </header>
-        <main className="content">
+        <div className="content">
           <div className="content-wrap">
-            {syncNoticeShown && (syncInProgress || syncComplete) ? (
-              <SyncProgressNotice
-                complete={syncCompleteShown}
-                firstSync={firstSync}
-                progress={syncProgress}
-              />
-            ) : null}
-            {liveDisconnected ? (
-              <div className="live-disconnected" role="status">
-                <span>Live updates disconnected · the browser will reconnect automatically.</span>
-                <button className="secondary-button" onClick={reconnectLiveUpdates} type="button">
-                  Reconnect
-                </button>
-              </div>
-            ) : null}
-            {syncError != null ? (
-              <div className="inline-recovery">
-                <ApiFailureState error={syncError} onRetry={runSync} />
-              </div>
-            ) : null}
-            {activeFailedSlices.length > 0 ? (
-              <div className="notice danger slice-load-notice" role="alert">
-                <span>
-                  Some dashboard data could not be loaded. Available data is still shown. Failed:{" "}
-                  {activeFailedSlices.join(", ")}.
-                </span>
-                <button className="secondary-button" onClick={requestRefresh} type="button">
-                  Retry
-                </button>
-              </div>
-            ) : null}
-            {activeView === "sessions" && sessionFailure === "notice" ? (
-              <div className="notice danger slice-load-notice" role="alert">
-                <span>
-                  The session list could not be refreshed. The sessions shown may be out of date.
-                </span>
-                <button className="secondary-button" onClick={requestRefresh} type="button">
-                  Retry
-                </button>
-              </div>
-            ) : null}
-            {activeView === "sessions" && sessionFailure === "replace" ? (
-              <ApiFailureState
-                error={sessionPageState.error}
-                onRetry={requestRefresh}
-                onSync={runSync}
-              />
-            ) : (
-              renderView(activeView, path, data, {
-                dashboardQuery,
-                dateRange: dateRangeSelection,
-                onDateRangeChange: handleDateRangeChange,
-                onSessionTextFilterChange: setSessionTextFilterActive,
-                onSourceChange: setSourceSelection,
-                refresh: requestRefresh,
-                reloadKey,
-                runSync,
-                failedSlices,
-                firstSync,
-                loadedSlices: loadedSlicesRef.current,
-                recommendationsLoading,
-                sessionPageState,
-                source: sourceSelection,
-                syncing: syncInProgress,
-              })
-            )}
+            {syncNoticeShown && (syncInProgress || syncComplete) ? <SyncProgressNotice complete={syncCompleteShown} firstSync={firstSync} progress={syncProgress} /> : null}
+            {liveDisconnected ? <div className="live-disconnected" role="status"><span>Live updates disconnected · the browser will reconnect automatically.</span><button className="secondary-button" onClick={reconnectLiveUpdates} type="button">Reconnect</button></div> : null}
+            {syncError != null ? <div className="inline-recovery"><ApiFailureState error={syncError} onRetry={runSync} /></div> : null}
+            {activeFailedSlices.length > 0 ? <div className="notice danger slice-load-notice" role="alert"><span>Some dashboard data could not be loaded. Available data is still shown. Failed: {activeFailedSlices.join(", ")}.</span><button className="secondary-button" onClick={requestRefresh} type="button">Retry</button></div> : null}
+            {activeView === "sessions" && sessionFailure === "notice" ? <div className="notice danger slice-load-notice" role="alert"><span>The session list could not be refreshed. The sessions shown may be out of date.</span><button className="secondary-button" onClick={requestRefresh} type="button">Retry</button></div> : null}
+            {activeView === "sessions" && sessionFailure === "replace" ? <ApiFailureState error={sessionPageState.error} onRetry={requestRefresh} onSync={runSync} /> : renderView(activeView, path, data, {
+              dashboardQuery,
+              dateRange: dateRangeSelection,
+              onDateRangeChange: handleDateRangeChange,
+              onSessionTextFilterChange: setSessionTextFilterActive,
+              onSourceChange: setSourceSelection,
+              refresh: requestRefresh,
+              reloadKey,
+              runSync,
+              failedSlices,
+              firstSync,
+              loadedSlices: loadedSlicesRef.current,
+              recommendationsLoading,
+              sessionPageState,
+              source: sourceSelection,
+              syncing: syncInProgress,
+            })}
           </div>
-        </main>
-      </div>
-      <CommandPalette
-        analyticsReportHref={withDateQuery("/reports/analytics", dashboardQuery)}
-        onClose={() => setCommandPaletteOpen(false)}
-        onNavigate={(href) => {
-          setCommandPaletteOpen(false);
-          visit(href, setPath);
-        }}
-        onRunSync={() => {
-          setCommandPaletteOpen(false);
-          runSync();
-        }}
-        onToggleTheme={() => {
-          setTheme((current) =>
-            current === "system" ? "light" : current === "light" ? "dark" : "system",
-          );
-        }}
-        open={commandPaletteOpen}
-        refreshKey={reloadKey}
-        syncing={syncInProgress}
-      />
-    </div>
+        </div>
+      </SidebarInset>
+      <CommandPalette analyticsReportHref={withDateQuery("/reports/analytics", dashboardQuery)} onClose={() => setCommandPaletteOpen(false)} onNavigate={(href) => { setCommandPaletteOpen(false); visit(href, setPath); }} onRunSync={() => { setCommandPaletteOpen(false); runSync(); }} onToggleTheme={() => setTheme((current) => current === "system" ? "light" : current === "light" ? "dark" : "system")} open={commandPaletteOpen} refreshKey={reloadKey} syncing={syncInProgress} />
+    </SidebarProvider>
   );
 }
 

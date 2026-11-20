@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { badgeVariants } from "./components/ui/badge.tsx";
+import { cn } from "./lib/utils.ts";
 import { effortDisplayLabel, effortTooltip } from "./effort.ts";
 import { capitalize, formatInt } from "./format.ts";
 import { BrandMark } from "./icons.tsx";
@@ -18,9 +20,26 @@ export function Badge({
   title?: string;
   tone?: BadgeTone;
 }) {
+  // Brand tones stay neutral: the brand icon already identifies the harness/model; color is reserved for status.
+  const toneClasses: Record<BadgeTone, string> = {
+    neutral: "",
+    accent: "",
+    info: "",
+    claude: "",
+    openai: "",
+    gemini: "",
+    opencode: "",
+    zai: "",
+    meta: "",
+    success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    warning: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    danger: "border-destructive/30 bg-destructive/10 text-destructive",
+  };
+
   return (
     <span
-      className={`badge tone-${tone}${mono ? " is-mono" : ""}${className ? ` ${className}` : ""}`}
+      className={cn(badgeVariants({ variant: "outline" }), "gap-1 font-normal", mono && "font-mono", toneClasses[tone], className)}
+      data-slot="badge"
       title={title}
     >
       {children}

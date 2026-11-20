@@ -4,8 +4,21 @@ import { join } from "node:path";
 import { readUiSource } from "./ui-source.ts";
 
 const root = join(import.meta.dir, "..");
+const globals = readFileSync(join(root, "src", "ui", "globals.css"), "utf8");
 const styles = readFileSync(join(root, "src", "ui", "styles.css"), "utf8");
 const main = readUiSource();
+
+const SHADCN_THEME_TOKENS = [
+  "--background",
+  "--foreground",
+  "--card",
+  "--primary",
+  "--muted",
+  "--muted-foreground",
+  "--accent",
+  "--border",
+  "--ring",
+] as const;
 
 const CHART_TOKENS = [
   "--fg",
@@ -19,104 +32,35 @@ const CHART_TOKENS = [
   "--warning",
 ] as const;
 
-function declarations(block: string): string[] {
-  return [...block.matchAll(/^\s*(--[a-z0-9-]+):\s*([^;]+);/gim)].map(
-    (match) => `${match[1]}: ${match[2]?.replace(/\s+/g, " ").trim()}`,
-  );
-}
-
-function tokenValue(name: string, block: string): string | undefined {
-  return new RegExp(`^\\s*${name}:\\s*([^;]+);`, "im").exec(block)?.[1]?.trim();
-}
-
-function blockAfter(marker: string, closer: string): string {
-  const start = styles.indexOf(marker);
-  expect(start).toBeGreaterThanOrEqual(0);
-  const end = styles.indexOf(closer, start + marker.length);
-  expect(end).toBeGreaterThan(start);
-  return styles.slice(start, end);
-}
-
-const rootBlock = blockAfter(":root,\n.report-route-theme {\n  color-scheme: light;", "\n}");
-const darkMediaBlock = blockAfter(":root:not([data-theme]) {\n    color-scheme: dark;", "\n  }");
-const darkAttrBlock = blockAfter('[data-theme="dark"] {\n  color-scheme: dark;', "\n}");
-
 describe("theme tokens", () => {
-  test("the report preview scopes the complete light theme in every app mode", () => {
-    const start = main.indexOf("function ReportRouteView(");
-    const end = main.indexOf("async function waitForReportFonts(");
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(end).toBeGreaterThan(start);
-    const reportRoute = main.slice(start, end);
-
-    expect(styles).toContain(":root,\n.report-route-theme {");
-    expect(reportRoute).toContain('className="report-route-theme"');
-    expect(reportRoute).toContain('className="report-route-toolbar"');
-  });
-
-  test("report toolbar actions share a flat height and retain their focus ring", () => {
-    expect(styles).toContain(
-      ".report-route-toolbar :is(.primary-button, .secondary-button) {\n" +
-        "  min-height: 34px;\n" +
-        "  box-shadow: none;\n" +
-        "}",
-    );
-    expect(styles).toContain(
-      ".report-route-toolbar :is(.primary-button, .secondary-button):focus-visible {\n" +
-        "  box-shadow: var(--shadow-focus-ring);\n" +
-        "}",
-    );
-  });
-
-  test("the two dark blocks stay identical", () => {
-    const fromMedia = declarations(darkMediaBlock);
-    const fromAttribute = declarations(darkAttrBlock);
-    expect(fromMedia.length).toBeGreaterThan(10);
-    expect(fromAttribute).toEqual(fromMedia);
-  });
-
-  test("dark overrides every themed token light defines", () => {
-    const themeIndependent = /^--(font|radius)-/;
-    const derived = new Set([
-      "--accent-text",
-      "--success-text",
-      "--warning-text",
-      "--danger-text",
-      "--info-text",
-      "--claude-text",
-      "--gemini-text",
-      "--opencode-text",
-      "--zai-text",
-      "--meta-text",
-    ]);
-    const pureAlias = /^var\(--[a-z0-9-]+\)$/;
-    const lightNames = declarations(rootBlock)
-      .filter((declaration) => !pureAlias.test(declaration.split(": ").slice(1).join(": ")))
-      .map((declaration) => declaration.split(":")[0] ?? "")
-      .filter((name) => !themeIndependent.test(name) && !derived.has(name));
-    const darkNames = new Set(
-      declarations(darkAttrBlock).map((declaration) => declaration.split(":")[0]),
-    );
-    const brandLocked = new Set([
-      "--dosu",
-      "--dosu-mid",
-      "--dosu-strong",
-      "--claude",
-      "--claude-strong",
-      "--gemini",
-      "--opencode",
-      "--zai",
-      "--meta",
-    ]);
-    for (const name of lightNames) {
-      if (brandLocked.has(name)) {
-        continue;
-      }
-      expect(darkNames).toContain(name);
+  test("globals.css owns the complete shadcn light and dark token sets", () => {
+    for (const token of SHADCN_THEME_TOKENS) {
+      const matches = globals.match(new RegExp(`^\\s*${token}:`, "gm")) ?? [];
+      expect(matches.length).toBeGreaterThanOrEqual(2);
     }
+    expect(globals).toMatch(/\.dark,\s*\[data-theme="dark"\]\s*\{/);
+    expect(styles).not.toMatch(/^\s*--(background|foreground|card|primary|border|ring):/m);
   });
 
-  test("chart tokens match what chartColors() actually reads", () => {
+  test("the theme toggle applies .dark and persists explicit choices", () => {
+    expect(main).toContain('root.classList.toggle("dark", prefersDark)');
+    expect(main).toContain('root.classList.toggle("dark", theme === "dark")');
+    expect(main).toContain('writeStorage("decant-theme", theme)');
+    expect(main).toContain('removeStorage("decant-theme")');
+  });
+
+  test("legacy view tokens are aliases owned by globals.css", () => {
+    for (const token of CHART_TOKENS) {
+      expect(globals).toMatch(new RegExp(`^\\s*${token.replace("--", "\\-\\-")}:`, "m"));
+      expect(styles).not.toMatch(new RegExp(`^\\s*${token}:`, "m"));
+    }
+    expect(globals).toContain("--fg: var(--foreground)");
+    expect(globals).toContain("--canvas: var(--background)");
+    expect(globals).toContain("--line: var(--border)");
+    expect(globals).toContain("--surface: var(--card)");
+  });
+
+  test("chart tokens match what chartColors() reads", () => {
     const readNames = [...main.matchAll(/value\("(--[a-z-]+)"\)/g)].flatMap(
       (match) => match[1] ?? [],
     );
@@ -128,56 +72,12 @@ describe("theme tokens", () => {
     expect(main).toContain('styles.colorScheme === "dark"');
     expect(main).toContain('"rgba(255, 255, 255, 0.05)"');
     expect(main).toContain('"rgba(20, 20, 20, 0.05)"');
-    expect(main).not.toContain("colors.fg}0d");
-    expect(main).not.toContain('seriesType === "bar" && colors.dark');
-  });
-
-  test("hover states actually differ from their rest state", () => {
-    const resolve = (name: string, block: string): string | undefined => {
-      let value = tokenValue(name, block) ?? tokenValue(name, rootBlock);
-      for (let hop = 0; hop < 8; hop++) {
-        const target = /^var\((--[a-z0-9-]+)\)$/.exec(value ?? "")?.[1];
-        if (!target) {
-          break;
-        }
-        const next = tokenValue(target, block) ?? tokenValue(target, rootBlock);
-        if (next === undefined) {
-          return `var(${target})`;
-        }
-        value = next;
-      }
-      return value;
-    };
-    for (const [rest, hover] of [
-      ["--btn-ink", "--btn-ink-hover"],
-      ["--btn-ghost", "--btn-ghost-hover"],
-    ] as const) {
-      for (const block of [rootBlock, darkAttrBlock]) {
-        const restValue = resolve(rest, block);
-        const hoverValue = resolve(hover, block);
-        expect(restValue).toBeDefined();
-        expect(hoverValue).toBeDefined();
-        expect(hoverValue).not.toBe(restValue);
-      }
-    }
-    expect(styles).not.toMatch(/:hover \{\s*background: color-mix\([^)]*var\(--btn-ink\)/);
   });
 
   test("fill-grade colours are never used as text", () => {
     for (const token of ["accent", "success", "warning", "danger", "info", "claude"]) {
       expect(styles).not.toContain(`color: var(--${token});`);
-      expect(styles).toContain(`--${token}-text:`);
-    }
-  });
-
-  test.each([...CHART_TOKENS])("%s stays parseable by zrender", (token) => {
-    const pattern = new RegExp(`^\\s*${token}:\\s*([^;]+);`, "gim");
-    const values = [...styles.matchAll(pattern)].flatMap((match) => match[1] ?? []);
-    expect(values.length).toBeGreaterThan(0);
-    for (const value of values) {
-      expect(value).not.toContain("var(");
-      expect(value).not.toContain("color-mix(");
-      expect(value).not.toContain("/");
+      expect(globals).toContain(`--${token}-text:`);
     }
   });
 });

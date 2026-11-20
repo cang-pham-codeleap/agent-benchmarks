@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 import type { BuildArtifact, HTMLBundle } from "bun";
-
+import tailwind from "bun-plugin-tailwind";
 export const UI_DOCUMENT_HEADERS: Readonly<Record<string, string>> = {
   "content-security-policy": "frame-ancestors 'none'",
   "x-frame-options": "DENY",
@@ -90,7 +90,12 @@ function prebuiltUi(bundle: HTMLBundle): UiBuild {
 }
 
 async function buildUi(entrypoint: string): Promise<UiBuild> {
-  const result = await Bun.build({ entrypoints: [entrypoint], target: "browser", publicPath: "/" });
+  const result = await Bun.build({
+    entrypoints: [entrypoint],
+    target: "browser",
+    publicPath: "/",
+    plugins: [tailwind],
+  });
   return fromArtifacts(result.outputs);
 }
 

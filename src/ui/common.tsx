@@ -9,10 +9,10 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { cn } from "./lib/utils.ts";
 import { clampNumber, costDisplay } from "./format.ts";
 import { Icon } from "./icons.tsx";
 import type { BadgeTone, IconName } from "./types.ts";
-
 export function PrivacyReviewLists({
   className,
   excluded,
@@ -275,24 +275,25 @@ export function StatCard({
       aria-busy={loading || updating ? true : undefined}
       className="stat-card"
       data-alert={alert ? "true" : undefined}
+      data-slot="card"
       data-updating={updating ? "true" : undefined}
     >
       <div>
-        <span>{label}</span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
         {loading ? (
           <strong>
-            <i aria-label="Loading" className="skeleton-line stat-skeleton" role="img" />
+            <i aria-label="Loading" className="skeleton-line stat-skeleton inline-block h-6 w-20 animate-pulse rounded-md bg-accent" role="img" />
           </strong>
         ) : (
-          <strong title={valueTitle}>{value}</strong>
+          <strong className="text-xl font-semibold tracking-tight" title={valueTitle}>{value}</strong>
         )}
         {detail != null && !loading ? (
-          <small className="stat-detail" title={detailTitle}>
+          <small className="stat-detail text-xs text-muted-foreground" title={detailTitle}>
             {detail}
           </small>
         ) : null}
       </div>
-      <span className="stat-icon">
+      <span className="stat-icon text-muted-foreground">
         <Icon name={icon} />
       </span>
     </div>
@@ -311,13 +312,18 @@ export function EmptyState({
   title: string;
 }) {
   return (
-    <div className="empty-state">
-      <span>
+    <div
+      className={cn(
+        "empty-state flex flex-col items-center justify-center rounded-xl border border-dashed bg-card/50 p-8 text-center text-card-foreground",
+      )}
+      data-slot="card"
+    >
+      <span className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <Icon name={icon} />
       </span>
-      <h3>{title}</h3>
-      <p>{message}</p>
-      {action != null ? <div className="state-actions">{action}</div> : null}
+      <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground max-w-sm">{message}</p>
+      {action != null ? <div className="state-actions mt-4 flex items-center gap-2">{action}</div> : null}
     </div>
   );
 }
@@ -336,15 +342,21 @@ export function ErrorState({
   title: string;
 }) {
   return (
-    <div className="error-state" role="alert">
-      <span>
+    <div
+      className={cn(
+        "error-state relative grid w-full grid-cols-[auto_1fr] items-start gap-3 rounded-lg border border-destructive/50 bg-card p-4 text-card-foreground shadow-xs",
+      )}
+      data-slot="alert"
+      role="alert"
+    >
+      <span className="text-destructive mt-0.5">
         <Icon name={icon} />
       </span>
       <div>
-        <h3>{title}</h3>
-        <p>{detail}</p>
+        <h3 className="font-medium tracking-tight text-destructive">{title}</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">{detail}</p>
         {action != null || secondaryAction != null ? (
-          <div className="state-actions">
+          <div className="state-actions mt-3 flex items-center gap-2">
             {action}
             {secondaryAction}
           </div>

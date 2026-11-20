@@ -31,15 +31,17 @@ describe("OpenCode source copy", () => {
   });
 
   test("defines every new tone in the stylesheet", () => {
+    const globals = readUiFile("globals.css");
     const css = readUiFile("styles.css");
     for (const tone of ["opencode", "zai", "meta"]) {
-      expect(css).toContain(`--${tone}:`);
-      expect(css).toContain(`--${tone}-text:`);
+      expect(globals).toContain(`--${tone}:`);
+      expect(globals).toContain(`--${tone}-text:`);
       expect(css).toContain(`.tone-${tone} {`);
       expect(css).toContain(`.badge.tone-${tone} {`);
       expect(css).toContain(`.bar span.tone-${tone} {`);
       expect(css).toContain(`.sparkline.tone-${tone} {`);
     }
+
     expect(css).toContain(".provider-opencode {");
   });
 

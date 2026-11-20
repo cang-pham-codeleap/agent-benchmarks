@@ -174,29 +174,29 @@ describe("titleFor", () => {
 
 describe("documentTitleFor", () => {
   test.each([
-    ["/", "Analytics · Decant"],
-    ["/analytics", "Analytics · Decant"],
-    ["/sessions", "Sessions · Decant"],
-    ["/sessions/42", "Session detail · Decant"],
-    ["/sessions/abc", "Not found · Decant"],
-    ["/sessions/42/extra", "Not found · Decant"],
-    ["/reports/analytics", "Analytics report · Decant"],
-    ["/reports/session/42", "Session report · Decant"],
-    ["/reports/session/abc", "Not found · Decant"],
-    ["/projects", "Projects · Decant"],
-    ["/search", "Search · Decant"],
-    ["/insights", "Insights · Decant"],
-    ["/tools", "Tools & MCP · Decant"],
-    ["/files", "File hotspots · Decant"],
-    ["/settings", "Settings · Decant"],
-    ["/nope", "Not found · Decant"],
+    ["/", "Analytics · Agent Benchmarks"],
+    ["/analytics", "Analytics · Agent Benchmarks"],
+    ["/sessions", "Sessions · Agent Benchmarks"],
+    ["/sessions/42", "Session detail · Agent Benchmarks"],
+    ["/sessions/abc", "Not found · Agent Benchmarks"],
+    ["/sessions/42/extra", "Not found · Agent Benchmarks"],
+    ["/reports/analytics", "Analytics report · Agent Benchmarks"],
+    ["/reports/session/42", "Session report · Agent Benchmarks"],
+    ["/reports/session/abc", "Not found · Agent Benchmarks"],
+    ["/projects", "Projects · Agent Benchmarks"],
+    ["/search", "Search · Agent Benchmarks"],
+    ["/insights", "Insights · Agent Benchmarks"],
+    ["/tools", "Tools & MCP · Agent Benchmarks"],
+    ["/files", "File hotspots · Agent Benchmarks"],
+    ["/settings", "Settings · Agent Benchmarks"],
+    ["/nope", "Not found · Agent Benchmarks"],
   ])("maps %s to a privacy-safe browser title", (path, expected) => {
     expect(documentTitleFor(path, ITEMS)).toBe(expected);
   });
 
   test("never places a session title or query string in browser history", () => {
     expect(documentTitleFor("/sessions/42?title=private-repository", ITEMS)).toBe(
-      "Session detail · Decant",
+      "Session detail · Agent Benchmarks",
     );
   });
 });

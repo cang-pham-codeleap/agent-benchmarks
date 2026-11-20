@@ -396,32 +396,6 @@ export function AnalyticsView({
         />
       </div>
 
-      {shouldShowDosuCta({
-        dismissed: dosuDismissed,
-        route: "analytics",
-      }) ? (
-        <aside className="dosu-callout">
-          <img alt="" src={dosuOfficialUrl} />
-          <div>
-            <strong>Your agents keep relearning what your team already knows.</strong>
-            <span>Dosu gets them that knowledge faster and cheaper.</span>
-          </div>
-          <a href={dosuLink("analytics_callout")} rel="noopener" target="_blank">
-            Learn about Dosu →
-          </a>
-          <button
-            aria-label="Dismiss Dosu suggestion"
-            className="icon-button"
-            onClick={() => {
-              writeStorage(DOSU_ANALYTICS_DISMISSAL_KEY, "1");
-              setDosuDismissed(true);
-            }}
-            type="button"
-          >
-            <Icon name="x" />
-          </button>
-        </aside>
-      ) : null}
 
       <section
         className="panel"

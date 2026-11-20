@@ -103,7 +103,7 @@ export function SettingsView({
               update?.envOverride === true ? update.enabled : (settings?.updateCheck ?? false)
             }
             disabled={update?.envOverride === true}
-            help="Once a day, ask the npm registry for the newest Decant version. The request carries no session data."
+            help="Once a day, ask the npm registry for the newest Agent Benchmarks version. The request carries no session data."
             label="Check for updates"
             onChange={(updateCheck) => save({ updateCheck })}
             status={updateNote(update, settings?.updateCheck ?? false)}
@@ -115,21 +115,20 @@ export function SettingsView({
       <section className="panel about-decant">
         <div className="panel-heading">
           <div>
-            <h2>About Decant</h2>
+            <h2>About Agent Benchmarks</h2>
             <p>
               See where your coding agents spend tokens, money, and time: a local-first, searchable
               archive of Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI,
               Copilot Chat in VS Code, Hermes Agent, and Pi sessions, with ATIF import and export.
-              Decant is an open source tool from Dosu.
+            </p>
+            <p className="about-attribution">
+              Based on Decant by Dosu (Apache-2.0)
             </p>
           </div>
           <img alt="" src={dosuDecantUrl} />
         </div>
         <div className="panel-body">
           <div className="about-links">
-            <a href={dosuLink("about")} rel="noopener" target="_blank">
-              Visit Dosu ↗
-            </a>
             <a href="https://github.com/dosu-ai/decant" rel="noopener" target="_blank">
               View source ↗
             </a>
@@ -144,8 +143,8 @@ export function SettingsView({
           <p className="about-version">Version {versionLabel(config?.version)}</p>
           <p className="about-privacy">
             {update?.enabled === true && update.channel !== "source"
-              ? "Decant contacts the npm registry once a day to check for a newer version. Your session logs stay on this machine."
-              : "Decant makes no outbound network calls. Your session logs stay on this machine."}
+              ? "Agent Benchmarks contacts the npm registry once a day to check for a newer version. Your session logs stay on this machine."
+              : "Agent Benchmarks makes no outbound network calls. Your session logs stay on this machine."}
           </p>
         </div>
       </section>
@@ -240,10 +239,10 @@ function updateNote(update: UpdateStatus | null, saved: boolean): string {
     return `Checks are off. Run decant update to check and install by hand.${override}`;
   }
   if (update.updateAvailable && update.latest != null) {
-    return `Decant ${versionLabel(update.latest)} is available. Run ${update.command} to install it.${override}`;
+    return `Agent Benchmarks ${versionLabel(update.latest)} is available. Run ${update.command} to install it.${override}`;
   }
   if (update.channel === "source") {
-    return `This is a source checkout, so Decant does not check for releases. Update it with git pull.${override}`;
+    return `This is a source checkout, so Agent Benchmarks does not check for releases. Update it with git pull.${override}`;
   }
   if (update.latest != null) {
     const checked =
@@ -253,7 +252,7 @@ function updateNote(update: UpdateStatus | null, saved: boolean): string {
     return `You have the newest release.${checked}${override}`;
   }
   if (update.error != null) {
-    return `The last check failed: ${update.error}. Decant can check again after an hour.${override}`;
+    return `The last check failed: ${update.error}. Agent Benchmarks can check again after an hour.${override}`;
   }
   return `No check has finished yet.${override}`;
 }

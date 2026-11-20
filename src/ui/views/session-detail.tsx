@@ -777,7 +777,6 @@ export function SessionDetailView({
                 {detail.summary.model_provider}
               </Badge>
             ) : null}
-            <DosuProvenanceBadge session={detail.summary} />
             <ReasoningBadge
               effort={detail.summary.reasoning_effort}
               levels={detail.summary.reasoning_effort_levels}

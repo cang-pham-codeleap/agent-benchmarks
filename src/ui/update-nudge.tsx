@@ -30,7 +30,7 @@ export function UpdateNudge({ status }: { status: UpdateStatus | null }) {
         rel="noopener"
         target="_blank"
       >
-        Decant {versionLabel(status.latest)} is available
+        Agent Benchmarks {versionLabel(status.latest)} is available
       </a>
       <button
         aria-label={`Copy the update command: ${status.command}`}

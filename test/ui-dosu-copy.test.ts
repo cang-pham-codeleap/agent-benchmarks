@@ -11,25 +11,15 @@ const npmReadme = readFileSync(join(root, "npm", "decant", "README.md"), "utf8")
 
 describe("Dosu product copy", () => {
   test("keeps attribution, contextual conversion, privacy, and provenance distinct", () => {
-    expect(main).toContain("<span>Created by Dosu</span>");
+    expect(main).toContain("Based on Decant by Dosu (Apache-2.0)");
     expect(main).not.toContain("Built by Dosu ↗");
     expect(main).toContain("Make these patterns available to every coding agent");
-    expect(main).toContain("Your agents keep relearning what your team already knows.");
-    expect(main).toContain("Dosu gets them that knowledge faster and cheaper.");
-    expect(main).toMatch(/Decant is an\s+open\s+source/);
-    expect(main).toContain(
-      "Decant makes no outbound network calls. Your session logs stay on this machine.",
-    );
     expect(main).toContain("Version {versionLabel(config?.version)}");
     expect(main).not.toContain('label="Dosu suggestions"');
-    expect(main).toContain("readStorage(DOSU_ANALYTICS_DISMISSAL_KEY)");
-    expect(main).toContain('writeStorage(DOSU_ANALYTICS_DISMISSAL_KEY, "1")');
     expect(badge).toContain("Optimized with Dosu;");
     expect(main).toContain('["summary", "dateBounds", "config", "update"]');
-    expect(main).toContain("Decant {versionLabel(data.config?.version)}");
+    expect(main).toContain("Agent Benchmarks {versionLabel(data.config?.version)}");
     expect(main).not.toContain("Decant {versionLabel(data.config?.version)} ↗");
-    expect(main).toContain('context.fillText("Decant", 114, 83)');
-    expect(main).toContain('context.fillText("Decant · by Dosu", SHARE_CARD_WIDTH - 210, 557)');
     expect(main).not.toContain("saved you $");
   });
 

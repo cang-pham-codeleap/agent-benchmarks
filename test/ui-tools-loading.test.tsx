@@ -83,7 +83,7 @@ describe("Tools initial loading", () => {
 
   test("later-page links keep summary values pending instead of claiming zero calls", () => {
     const html = renderTools("ready", emptyData, "?offset=100");
-    expect(html).toMatch(/Total calls<\/span><strong>Loading…<\/strong>/);
+    expect(html).toMatch(/Total calls<\/span><strong[^>]*>Loading…<\/strong>/);
     expect(html).not.toContain("0 matching");
   });
 
@@ -134,7 +134,7 @@ describe("Tools initial loading", () => {
         },
       ],
     });
-    expect(html).toContain('<strong title="mcp__exa__web_search_exa">web_search_exa</strong>');
+    expect(html).toMatch(/<strong[^>]*title="mcp__exa__web_search_exa"[^>]*>web_search_exa<\/strong>/);
     const changedDates = renderTools(
       "ready",
       {
@@ -154,6 +154,6 @@ describe("Tools initial loading", () => {
       },
       "?from=2026-05-01",
     );
-    expect(changedDates).toMatch(/Top tool<\/span><strong>Loading…<\/strong>/);
+    expect(changedDates).toMatch(/Top tool<\/span><strong[^>]*>Loading…<\/strong>/);
   });
 });

@@ -158,23 +158,6 @@ describe("restyle contract", () => {
     expect(start).toContain("right: auto");
   });
 
-  test("the display serif is only asked for a weight that ships", () => {
-    const weightTokens = new Map(
-      [...styles.matchAll(/--font-weight-(\w+):\s*(\d+);/g)].map((match) => [
-        match[1] as string,
-        match[2] as string,
-      ]),
-    );
-    expect(weightTokens.size).toBe(3);
-    const serifWeights = [...styles.matchAll(/font-family: var\(--font-serif\)[^}]*?}/gs)]
-      .flatMap((match) => [...match[0].matchAll(/font-weight: var\(--font-weight-(\w+)\)/g)])
-      .map((match) => weightTokens.get(match[1] as string));
-    expect(serifWeights.length).toBeGreaterThan(0);
-    for (const weight of serifWeights) {
-      expect(weight).toBe("400");
-    }
-    expect(styles).toMatch(/--text-serif-xl-regular:\s*400 /);
-  });
 
   test("badges truncate with an ellipsis instead of clipping raw text", () => {
     const badge = /^\s*\.badge\s*\{([^}]*)\}/m.exec(styles)?.[1] ?? "";

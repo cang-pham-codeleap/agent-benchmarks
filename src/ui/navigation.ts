@@ -147,15 +147,15 @@ export function titleFor(active: string): string {
 export function documentTitleFor(path: string, items: readonly NavDestination[]): string {
   const pathname = pathOnly(path);
   if (isSessionDetailPath(pathname)) {
-    return "Session detail · Decant";
+    return "Session detail · Agent Benchmarks";
   }
   if (pathname === "/reports/analytics") {
-    return "Analytics report · Decant";
+    return "Analytics report · Agent Benchmarks";
   }
   if (/^\/reports\/session\/\d+$/.test(pathname)) {
-    return "Session report · Decant";
+    return "Session report · Agent Benchmarks";
   }
   const active = resolve(path, items)?.label ?? NOT_FOUND_LABEL;
   const label = active === "Files" ? "File hotspots" : active;
-  return `${label} · Decant`;
+  return `${label} · Agent Benchmarks`;
 }

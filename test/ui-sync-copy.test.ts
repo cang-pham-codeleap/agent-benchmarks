@@ -5,6 +5,7 @@ import { readUiFile, readUiSource } from "./ui-source.ts";
 
 const root = join(import.meta.dir, "..");
 const main = readUiSource();
+const globals = readFileSync(join(root, "src", "ui", "globals.css"), "utf8");
 const styles = readFileSync(join(root, "src", "ui", "styles.css"), "utf8");
 
 test("sync stays visually icon-led while retaining a hidden live announcement", () => {
@@ -18,8 +19,8 @@ test("sync stays visually icon-led while retaining a hidden live announcement", 
   expect(main).toMatch(
     /setArchiveUpdateAvailable\(false\);\s*setLocalSyncing\(false\);\s*setSyncError\(null\);\s*setSyncComplete\(true\);/,
   );
-  expect(styles).toContain(".sr-only {");
-  expect(styles).toContain("clip-path: inset(50%)");
+  expect(main).toContain('className="sr-only"');
+  expect(globals).toContain('@import "tailwindcss"');
 });
 
 test("background archive activity waits for an explicit update", () => {

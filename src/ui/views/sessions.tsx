@@ -487,7 +487,6 @@ export const SessionTableRow = memo(function SessionTableRow({
               {title}
             </Link>
             {session.is_user_archived ? <Badge tone="neutral">Archived</Badge> : null}
-            <DosuProvenanceBadge session={session} />
           </span>
           {isSubagent ? <small>{subagentDescriptor(session)}</small> : null}
         </span>
