@@ -22,7 +22,7 @@
     "lens": "AGENT_BENCHMARKS_DB=$HOME/.agent-lens/lens.db bun run src/cli.ts serve --port 4711"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.7",
+    "@biomejs/biome": "^2.6.8",
     "@letta-ai/trajectory": "^0.4.4",
     "@types/bun": "^1.4.4",
     "@types/react": "^19.3.0",
@@ -60,7 +60,7 @@
     "commander": "^15.1.0",
     "diff": "^9.0.0",
     "echarts": "^6.1.0",
-    "lucide-react": "^1.72.0",
+    "lucide-react": "^1.73.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
