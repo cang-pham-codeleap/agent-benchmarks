@@ -2,7 +2,9 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Agent Benchmarks is a private research fork for evaluating models, agent harnesses, and agentic workflows. It shows where coding agents spend tokens, money, and time. It reads the session logs that Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write on your machine, plus [ATIF](https://harborframework.com/docs/agents/atif) trajectories you import, into one searchable archive.
+Agent Benchmarks is a private research fork for evaluating models, agent harnesses, and agentic workflows. It shows where coding agents spend tokens, money, and time. It reads the session logs that Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, Pi, Oh My Pi, and Factory Droid already write on your machine, plus [ATIF](https://harborframework.com/docs/agents/atif) trajectories you import, into one searchable archive.
+
+![Real-task evaluation comparing three agent harnesses on Sonnet against the human commit](docs/images/real-task-evaluation.png)
 
 ## Quick start
 
@@ -33,6 +35,9 @@ This indexes the local agent logs it finds, starts the web UI at <http://127.0.0
   before you share it.
 - Workflow scripts, session replays, and agent instructions (`SKILL.md`,
   `AGENTS.md` sections, and slash commands) distilled from command history.
+- Real-task evaluations that run Claude Code, Codex, Copilot CLI, Oh My Pi, and
+  other harnesses headless on a replayed commit or your own prompt, then score
+  each against hidden tests, checks, and the human diff.
 - A local HTTP API with an OpenAPI 3.1 contract.
 
 ## Supported agents
@@ -51,6 +56,8 @@ else, or for per-agent details, see [Sources](docs/sources.md).
 | Copilot Chat in VS Code | VS Code's `User` directory | VS Code builds from April 2026 on, as a rough estimate |
 | Hermes Agent | `~/.hermes` | Recorded per session and model, not per message |
 | Pi | `~/.pi/agent/sessions` | Recorded |
+| Oh My Pi | `~/.omp/agent/sessions` | Recorded |
+| Factory Droid | `~/.factory/sessions` | Recorded per session, not per message |
 | ATIF trajectories | `~/.agent-benchmarks/atif` | From step `metrics` or `final_metrics` |
 
 When an agent records no usage, Agent Benchmarks shows tokens and cost as unavailable
