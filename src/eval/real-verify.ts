@@ -110,10 +110,12 @@ export async function verifyCell(
     join(dir, "diff.patch"),
     git(workspace, "diff", "--cached", "--binary", "--no-renames", spec.baseSha),
   );
+  const hiddenPaths = spec.sha == null ? [] : spec.hiddenPaths;
+  // Matches the human reference, whose stats also leave out the hidden tests.
   const diffStat = parseNumstat(
     git(workspace, "diff", "--cached", "--numstat", "-z", "--no-renames", spec.baseSha),
+    hiddenPaths,
   );
-  const hiddenPaths = spec.sha == null ? [] : spec.hiddenPaths;
   const total = spec.profile.checks.length + hiddenPaths.length;
   const deadline = Date.now() + verifyBudgetMs(total);
   let left = total;

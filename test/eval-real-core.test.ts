@@ -260,6 +260,7 @@ describe("prepareRealRun and real-verify", () => {
     const worktree = join(root, name);
     git(join(runDir(), "repo"), "worktree", "add", "-q", "-b", name, worktree, "HEAD");
     if (fix) write(worktree, "src/x.js", fixed);
+    else write(worktree, "test/x.test.js", "// the agent's own attempt at the hidden test\n");
     write(worktree, "notes.txt", "agent notes\n");
     return Bun.spawnSync(["bun", verifyScript, join(runDir(), "real-spec.json"), "current"], {
       cwd: worktree,
