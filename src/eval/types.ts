@@ -78,7 +78,10 @@ export type CostBasis = "harness-reported" | "list-price-estimate";
 
 export type CellCost =
   | { kind: "priced"; usd: number; basis: CostBasis }
-  | { kind: "unavailable"; reason: "not-metered" | "not-found" | "ambiguous" | "unpriced-model" | "not-run" };
+  | {
+      kind: "unavailable";
+      reason: "not-metered" | "not-found" | "ambiguous" | "unpriced-model" | "not-run";
+    };
 
 export interface CellTokens {
   input: number;
@@ -100,7 +103,13 @@ export interface EvalCell {
   cost: CellCost;
   observedModel: string | null;
   session: { tool: string; sourceSessionId: string } | null;
-  raw: { status: string; exitStatus: string | null; verify: string | null; error: string | null; runId: string | null };
+  raw: {
+    status: string;
+    exitStatus: string | null;
+    verify: string | null;
+    error: string | null;
+    runId: string | null;
+  };
 }
 
 export interface InterruptedAttempt {

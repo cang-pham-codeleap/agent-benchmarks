@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import {
   SEARCH_INDEX_PAGE_MAX,
@@ -8,6 +9,21 @@ import {
 import type { Config } from "../config.ts";
 import type { dateFilterFromSearch } from "../date-filter.ts";
 import { parseFileOperation } from "../distill.ts";
+import { readCatalog } from "../eval/catalog.ts";
+import { readEvalCells } from "../eval/ledger.ts";
+import {
+  activeRunId,
+  cancelEvalRun,
+  EvalRequestError,
+  evalProgress,
+  listRunManifests,
+  readRunManifest,
+  resumeEvalRun,
+  runDirFor,
+  startEvalRun,
+} from "../eval/runner.ts";
+import { pairedComparisons, summarizeSetups } from "../eval/stats.ts";
+import type { EvalResults, EvalRunManifest } from "../eval/types.ts";
 import {
   canLaunch,
   isSafeRecommendationKey,
@@ -66,7 +82,7 @@ import {
 } from "../stats.ts";
 import { AGENT_BENCHMARKS_VERSION } from "../version.ts";
 import { type Db, type RequestContext, withDb } from "./context.ts";
-import { errorResponse, isJsonObject, json } from "./http.ts";
+import { type ApiErrorCode, errorResponse, isJsonObject, json } from "./http.ts";
 import { integerParam, isNonNegativeInteger, isValidSessionId, usageLimit } from "./params.ts";
 import { isLoopbackPeer } from "./peers.ts";
 import { readOutputResponse, runRead } from "./read.ts";
@@ -368,8 +384,23 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
     },
   },
   "/api/recommendations/mark": { POST: { body: "object", handle: markRecommendationRoute } },
+  "/api/evals/catalog": {
+    GET: ({ config, context }) => withDb(config, context, async (db) => json(await readCatalog(db, activeRunId(config.dbPath)))),
+  },
+  "/api/evals": {
+    GET: ({ config }) => json(listRunManifests(config.dbPath)),
+    POST: { body: "json", handle: evalStartRoute },
+  },
+  "/api/evals/{id}": {
+    GET: evalResultsRoute,
+  },
+  "/api/evals/{id}/cancel": {
+    POST: { body: "object", handle: evalCancelRoute },
+  },
+  "/api/evals/{id}/resume": {
+    POST: { body: "object", handle: evalResumeRoute },
+  },
 };
-
 interface CompiledRoute extends RouteMatcher {
   spec: RouteSpec;
 }
@@ -668,6 +699,73 @@ function markRecommendationRoute(
           404,
         );
   });
+}
+
+async function evalStartRoute(ctx: RouteContext, body: unknown): Promise<Response> {
+  try {
+    return json(await startEvalRun(ctx.config, ctx.context, body), 201);
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+async function evalCancelRoute(ctx: RouteContext, body: Record<string, unknown>): Promise<Response> {
+  if (Object.keys(body).length !== 0) return errorResponse("invalid_request", "cancel body must be an empty object", {}, 400);
+  try {
+    return json(await cancelEvalRun(ctx.config.dbPath, ctx.params.id));
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+function evalResumeRoute(ctx: RouteContext, body: Record<string, unknown>): Response {
+  if (Object.keys(body).some((key) => key !== "retryFailed") || (body.retryFailed != null && typeof body.retryFailed !== "boolean")) {
+    return errorResponse("invalid_request", "resume body accepts only { retryFailed?: boolean }", {}, 400);
+  }
+  try {
+    return json(resumeEvalRun(ctx.config, ctx.context, ctx.params.id, body.retryFailed === true));
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+function evalResultsRoute(ctx: RouteContext): Response {
+  try {
+    const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
+    if (manifest == null) return errorResponse("not_found", "evaluation run not found", {}, 404);
+    return withDb(ctx.config, ctx.context, (db) => {
+      const runDir = runDirFor(ctx.config.dbPath, manifest.id);
+      const { cells, interrupted } = readEvalCells(db, runDir, manifest.input);
+      const setups = summarizeSetups(cells, manifest.input.setups, manifest.input.taskIds, manifest.input.trials);
+      const paired = pairedComparisons(cells, manifest.input.setups);
+      const repairedTornLedger = readdirSync(runDir).some((name) => name.startsWith("ledger.torn-"));
+      const warnings = evalWarnings(manifest, setups, interrupted.length, repairedTornLedger);
+      const result: EvalResults = { manifest, cells, interrupted, setups, paired, warnings, progress: evalProgress(ctx.config.dbPath, manifest) };
+      return json(result);
+    });
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+function evalWarnings(
+  manifest: EvalRunManifest,
+  setups: EvalResults["setups"],
+  interrupted: number,
+  repairedTornLedger: boolean,
+): string[] {
+  const warnings = ["Public tasks; verifier and reference files are readable by the agent.", "Setups ran sequentially; provider load and cache state may differ."];
+  if (manifest.input.taskIds.length < 20) warnings.push("Descriptive only: fewer than 20 tasks.");
+  if (setups.some((setup) => setup.priced.priced < setup.priced.total)) warnings.push("Some cells are unpriced; cost ratios are withheld unless coverage is complete.");
+  if (interrupted > 0) warnings.push("Interrupted attempts with partial spend are excluded from cell results.");
+  if (repairedTornLedger) warnings.push("A torn ledger tail was preserved in a ledger.torn-* file and excluded from results.");
+  return warnings;
+}
+
+function evalError(error: unknown): Response {
+  if (error instanceof EvalRequestError) return errorResponse(error.code as ApiErrorCode, error.message, {}, error.status);
+  console.error("[eval/routes] evaluation request failed", error);
+  return errorResponse("internal_error", "Agent Benchmarks could not complete the evaluation request.", {}, 500);
 }
 
 function settingsResponse(settings = getSettings()): Record<string, unknown> {

@@ -2,13 +2,20 @@ import { SchemaDriftError, SchemaTooNewError, SchemaTooOldError } from "../db.ts
 import { ReadPoolBusyError } from "./read-pool.ts";
 
 export type ApiErrorCode =
+  | "ach_missing"
+  | "ach_not_installed"
   | "archive_locked"
   | "background_failed"
   | "background_unsupported"
   | "cross_origin_read"
   | "cross_origin_write"
+  | "eval_active"
+  | "eval_not_resumable"
+  | "eval_not_running"
+  | "eval_survivors"
   | "forbidden_host"
   | "forbidden_remote"
+  | "harness_missing"
   | "internal_error"
   | "invalid_files_query"
   | "invalid_request"

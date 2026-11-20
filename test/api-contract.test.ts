@@ -318,6 +318,43 @@ describe("local API OpenAPI contract", () => {
           url: "/api/recommendations/mark",
           body: { key: recommendationKey, source: "api-contract", note: "fixture-only" },
         },
+        { path: "/api/evals/catalog", method: "get", url: "/api/evals/catalog" },
+        { path: "/api/evals", method: "get", url: "/api/evals" },
+        {
+          path: "/api/evals/{id}",
+          method: "get",
+          url: "/api/evals/00000000-0000-4000-8000-000000000000",
+          status: 404,
+          expectedCode: "not_found",
+        },
+        {
+          path: "/api/evals",
+          method: "post",
+          url: "/api/evals",
+          body: {},
+          requestValid: false,
+          headers: { "content-type": "text/plain" },
+          status: 415,
+          expectedCode: "unsupported_media_type",
+        },
+        {
+          path: "/api/evals/{id}/cancel",
+          method: "post",
+          url: "/api/evals/00000000-0000-4000-8000-000000000000/cancel",
+          body: { unexpected: true },
+          requestValid: false,
+          status: 400,
+          expectedCode: "invalid_request",
+        },
+        {
+          path: "/api/evals/{id}/resume",
+          method: "post",
+          url: "/api/evals/00000000-0000-4000-8000-000000000000/resume",
+          body: { retryFailed: "yes" },
+          requestValid: false,
+          status: 400,
+          expectedCode: "invalid_request",
+        },
       ];
       const errorCases: ContractCase[] = [
         {
@@ -482,6 +519,7 @@ describe("local API OpenAPI contract", () => {
       expect(sseEventNames(document)).toEqual([
         "archive_updated",
         "error",
+        "eval_progress",
         "hello",
         "ping",
         "ready",

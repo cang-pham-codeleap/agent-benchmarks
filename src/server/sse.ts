@@ -1,6 +1,7 @@
+import type { EvalProgressEvent } from "../eval/types.ts";
 import { errorResponse } from "./http.ts";
 
-type ServerEvent = { type: string };
+export type ServerEvent = { type: string } | (EvalProgressEvent & { type: "eval_progress" });
 
 /** One stream per tab; browsers allow six connections per origin. */
 export const MAX_EVENT_CLIENTS = 32;

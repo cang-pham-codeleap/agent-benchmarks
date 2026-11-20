@@ -53,7 +53,7 @@ tags:
   - name: Files
   - name: Tools
   - name: Recommendations
-
+  - name: Evaluations
 paths:
   /api/health:
     get:
@@ -102,6 +102,8 @@ paths:
           $ref: "#/components/schemas/SyncErrorEvent"
         stopped:
           $ref: "#/components/schemas/WatchStoppedEvent"
+        eval_progress:
+          $ref: "#/components/schemas/EvaluationProgressEvent"
       responses:
         "200":
           description: Open SSE stream
@@ -1273,9 +1275,135 @@ paths:
           $ref: "#/components/responses/InternalError"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /api/evals/catalog:
+    get:
+      tags: [Evaluations]
+      operationId: getEvaluationCatalog
+      summary: Read evaluation harnesses, tasks, presets, and checkout status
+      responses:
+        "200":
+          description: Evaluation catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluationCatalog"
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /api/evals:
+    get:
+      tags: [Evaluations]
+      operationId: listEvaluationRuns
+      summary: List evaluation run manifests
+      responses:
+        "200":
+          description: Evaluation manifests, newest first
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/EvaluationManifest" } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+    post:
+      tags: [Evaluations]
+      operationId: startEvaluationRun
+      summary: Start a controlled evaluation run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvaluationRunInput" }
+      responses:
+        "201":
+          description: Started evaluation manifest
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvaluationManifest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/SchemaConflict" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /api/evals/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/EvaluationRunId" }
+    get:
+      tags: [Evaluations]
+      operationId: getEvaluationResults
+      summary: Read durable cells, summaries, comparisons, and progress for one run
+      responses:
+        "200":
+          description: Evaluation results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvaluationResults" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /api/evals/{id}/cancel:
+    parameters:
+      - { $ref: "#/components/parameters/EvaluationRunId" }
+    post:
+      tags: [Evaluations]
+      operationId: cancelEvaluationRun
+      summary: Cancel a running evaluation and remove surviving processes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, maxProperties: 0, additionalProperties: false }
+      responses:
+        "200":
+          description: Cancelled or cancel-incomplete manifest
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvaluationManifest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/SchemaConflict" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/evals/{id}/resume:
+    parameters:
+      - { $ref: "#/components/parameters/EvaluationRunId" }
+    post:
+      tags: [Evaluations]
+      operationId: resumeEvaluationRun
+      summary: Resume a cancelled or interrupted evaluation from its ledger
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { retryFailed: { type: boolean } }
+              additionalProperties: false
+      responses:
+        "200":
+          description: Resumed evaluation manifest
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvaluationManifest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/SchemaConflict" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
 components:
   parameters:
+    EvaluationRunId:
+      name: id
+      in: path
+      required: true
+      description: Evaluation run UUID
+      schema:
+        type: string
+        pattern: '^[0-9A-Za-z_-]{8,128}$'
     SessionId:
       name: id
       in: path
@@ -1524,6 +1652,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ApiError"
+    NotFound:
+      description: The requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
     InternalError:
       description: Unexpected error; private details are retained only in local structured logs
       content:
@@ -1661,6 +1795,63 @@ components:
               const: false
             key:
               type: string
+    EvaluationHarness:
+      type: string
+      enum: [claude, codex, copilot, opencode, omp, droid]
+    EvaluationSetup:
+      type: object
+      required: [harness, model]
+      properties:
+        harness: { $ref: "#/components/schemas/EvaluationHarness" }
+        model: { type: string, maxLength: 128, pattern: '^[\w.:/@-]+$' }
+      additionalProperties: false
+    EvaluationRunInput:
+      type: object
+      required: [name, setups, taskIds, trials, wallMs, preset]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        setups: { type: array, minItems: 1, maxItems: 8, items: { $ref: "#/components/schemas/EvaluationSetup" } }
+        taskIds: { type: array, minItems: 1, uniqueItems: true, items: { type: string } }
+        trials: { type: integer, minimum: 1, maximum: 10 }
+        wallMs: { type: integer, minimum: 1, maximum: 3600000 }
+        preset: { type: string, enum: [smoke, quick, reliability, custom] }
+      additionalProperties: false
+    EvaluationManifest:
+      type: object
+      required: [id, createdAt, input, status, pid, startedAt, endedAt, exitCode, error, survivors, provenance]
+      properties:
+        id: { type: string }
+        createdAt: { type: string, format: date-time }
+        input: { $ref: "#/components/schemas/EvaluationRunInput" }
+        status: { type: string, enum: [running, completed, failed, cancelled, cancel-incomplete, interrupted] }
+        pid: { type: [integer, "null"] }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: [string, "null"], format: date-time }
+        exitCode: { type: [integer, "null"] }
+        error: { type: [string, "null"] }
+        survivors: { type: array, items: { type: integer } }
+        provenance: { type: object, additionalProperties: true }
+      additionalProperties: false
+    EvaluationCatalog:
+      type: object
+      required: [ach, harnesses, tasks, presets, limits, activeRunId]
+      additionalProperties: true
+    EvaluationResults:
+      type: object
+      required: [manifest, cells, interrupted, setups, paired, warnings, progress]
+      additionalProperties: true
+    EvaluationProgressEvent:
+      type: object
+      required: [type, runId, status, done, total, currentCell]
+      properties:
+        type: { type: string, const: eval_progress }
+        runId: { type: string }
+        status: { type: string }
+        done: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 0 }
+        currentCell: { type: [string, "null"] }
+      additionalProperties: false
+
     Health:
       type: object
       required: [ok]
@@ -1794,6 +1985,10 @@ components:
         ide:
           type: string
           enum: [vscode, cursor, zed, sublime, intellij]
+        achDir:
+          type: string
+          description: Absolute path to the agentic-coding-harness checkout; omitted until the user sets it
+            (the server then falls back to ~/Documents/sources/_oss-study/agentic-coding-harness)
       additionalProperties: false
     UserSettingsPatch:
       type: object
@@ -1807,6 +2002,10 @@ components:
         ide:
           type: string
           enum: [vscode, cursor, zed, sublime, intellij]
+        achDir:
+          type: string
+          minLength: 1
+          description: Absolute path to the agentic-coding-harness checkout
       additionalProperties: false
     LabeledOption:
       type: array

@@ -38,6 +38,11 @@ export const API_ROUTE_PATHS = [
   "/api/tools/mcp-usage",
   "/api/recommendations",
   "/api/recommendations/mark",
+  "/api/evals/catalog",
+  "/api/evals",
+  "/api/evals/{id}/cancel",
+  "/api/evals/{id}/resume",
+  "/api/evals/{id}",
 ] as const;
 
 export type ApiRoutePath = (typeof API_ROUTE_PATHS)[number];
@@ -50,6 +55,7 @@ export const UI_ROUTE_PATHS = [
   "/search",
   "/analytics",
   "/compare",
+  "/evaluating",
   "/insights",
   "/tools",
   "/files",

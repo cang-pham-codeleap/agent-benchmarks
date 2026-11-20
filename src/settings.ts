@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
 export type AgentKey = "claude" | "codex";
 export type TerminalKey =
@@ -25,6 +25,8 @@ export interface UserSettings {
   agent: AgentKey;
   terminal: TerminalKey;
   ide: IdeKey;
+  /** Added for evaluation; older persisted settings and fixtures may omit it. */
+  achDir?: string;
 }
 
 export interface SettingsOptions {
@@ -120,6 +122,10 @@ export function getSettings(options: SettingsOptions = {}): UserSettings {
   return { ...detectedSettings(options), ...values };
 }
 
+export function getAchDir(options: SettingsOptions = {}): string {
+  return getSettings(options).achDir ?? join((options.homeDir ?? homedir()) || ".", "Documents", "sources", "_oss-study", "agentic-coding-harness");
+}
+
 export function saveSettings(
   attrs: Record<string, unknown>,
   options: SettingsOptions = {},
@@ -165,6 +171,9 @@ function sanitize(attrs: unknown): Partial<UserSettings> {
   }
   if (typeof raw.ide === "string" && validIdes.has(raw.ide as IdeKey)) {
     out.ide = raw.ide as IdeKey;
+  }
+  if (typeof raw.achDir === "string" && raw.achDir.trim() !== "" && isAbsolute(raw.achDir)) {
+    out.achDir = resolve(raw.achDir);
   }
   return out;
 }
