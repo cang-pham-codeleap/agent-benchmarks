@@ -58,7 +58,7 @@ export function readOutputResponse(output: ReadOpOutput): Response {
   });
 }
 
-function reportHtmlResponse(value: string, filename: string): Response {
+export function reportHtmlResponse(value: string, filename: string): Response {
   return new Response(value, {
     headers: {
       "content-disposition": `attachment; filename="${filename}"`,

@@ -40,6 +40,9 @@ export const API_ROUTE_PATHS = [
   "/api/recommendations/mark",
   "/api/evals/catalog",
   "/api/evals",
+  "/api/evals/repo",
+  "/api/evals/{id}/cells/{cellId}",
+  "/api/evals/{id}/report.html",
   "/api/evals/{id}/cancel",
   "/api/evals/{id}/resume",
   "/api/evals/{id}",
@@ -71,7 +74,7 @@ export interface RouteMatcher {
 
 export function compileRoutePath(template: string): RouteMatcher {
   const source = template
-    .split("{id}")
+    .split(/\{[A-Za-z]+\}/)
     .map((part) => part.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("([^/]+)");
   return { template, pattern: new RegExp(`^${source}$`) };

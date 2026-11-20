@@ -861,6 +861,36 @@ re-derive: rows derived while a model had a rate store no recorded figure, so
 removing a rate requires bumping `MODEL_USAGE_FORMAT_VERSION`, which rebuilds
 the rows from the stored messages without the source database.
 
+## Evaluation runs
+
+Evaluation runs live next to the archive, in `evals/<run id>/` under the
+directory that holds `agent-benchmarks.db`. They are plain files, not archive
+rows. Delete a run's directory to remove it.
+
+| Path | Content |
+| --- | --- |
+| `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit) |
+| `plan.json`, `plan.default.json` | The `ach` matrix plan for the `current` and `default` configuration groups |
+| `ledger.jsonl`, `ledger.default.jsonl` | One `ach` record per cell and trial |
+| `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit |
+| `reference/` | Replays: the human change from the replayed commit |
+| `real-spec.json` | Real tasks: what the grader needs (base commit, hidden paths, profile) |
+| `cells/<config>/<cell>/` | Real tasks: each cell's `diff.patch`, `result.json`, and `checks/` and `hidden/` logs |
+| `ach-state/` | `ach` state; real-task cell worktrees are created under it |
+| `home/codex/` | The clean Codex home of a `default` group, holding only a copy of `~/.codex/auth.json` at mode `0600` |
+
+A real-task run never writes to your repository. Each cell works in its own
+git worktree of the private clone, and `ach trial --cleanup` removes the
+worktree once the cell's diff and logs are saved; its branch stays in the
+clone. The clone stays until you delete the run.
+
+`evals/repo-profiles.json` remembers the setup command, checks, and
+hidden-test command last used for each repository, keyed by its real path.
+
+Agent sessions from a run are ordinary harness sessions and are synced into
+the archive like any other. Sessions of a `default` group are read from the
+run's own `ach-state/claude-runs` and `home/codex` after the run.
+
 ## API visibility
 
 Default lists, full-text search, command-palette search, statistics, tools,

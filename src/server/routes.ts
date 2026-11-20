@@ -1,4 +1,3 @@
-import { readdirSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import {
   SEARCH_INDEX_PAGE_MAX,
@@ -10,20 +9,20 @@ import type { Config } from "../config.ts";
 import type { dateFilterFromSearch } from "../date-filter.ts";
 import { parseFileOperation } from "../distill.ts";
 import { readCatalog } from "../eval/catalog.ts";
-import { readEvalCells } from "../eval/ledger.ts";
+import { EvalRequestError } from "../eval/errors.ts";
+import { repoProfilesPath } from "../eval/paths.ts";
+import { inspectRepo, readCellArtifacts } from "../eval/real.ts";
+import { renderReport } from "../eval/report.ts";
 import {
   activeRunId,
   cancelEvalRun,
-  EvalRequestError,
-  evalProgress,
   listRunManifests,
+  readEvalResults,
   readRunManifest,
   resumeEvalRun,
   runDirFor,
   startEvalRun,
 } from "../eval/runner.ts";
-import { pairedComparisons, summarizeSetups } from "../eval/stats.ts";
-import type { EvalResults, EvalRunManifest } from "../eval/types.ts";
 import {
   canLaunch,
   isSafeRecommendationKey,
@@ -85,7 +84,7 @@ import { type Db, type RequestContext, withDb } from "./context.ts";
 import { type ApiErrorCode, errorResponse, isJsonObject, json } from "./http.ts";
 import { integerParam, isNonNegativeInteger, isValidSessionId, usageLimit } from "./params.ts";
 import { isLoopbackPeer } from "./peers.ts";
-import { readOutputResponse, runRead } from "./read.ts";
+import { readOutputResponse, reportHtmlResponse, runRead } from "./read.ts";
 import type { ReadOpArgs, ReadOpName } from "./read-ops.ts";
 import { eventStream, publishServerEvent } from "./sse.ts";
 import { syncNow, syncStatus, syncStatusBody } from "./sync.ts";
@@ -98,7 +97,7 @@ export interface RouteContext {
   config: Config;
   context: RequestContext;
   dateFilter: DateFilter;
-  params: { id: string };
+  params: { id: string; cellId: string };
 }
 
 export type RouteResult = Response | Promise<Response>;
@@ -311,11 +310,13 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
     }),
   },
   "/api/analytics/compare": {
-    GET: sourceScoped((ctx, source) => read(ctx, "compare", {
-      ...statsFilter(ctx, source),
-      workType: ctx.url.searchParams.get("work_type"),
-      outcome: ctx.url.searchParams.get("outcome"),
-    })),
+    GET: sourceScoped((ctx, source) =>
+      read(ctx, "compare", {
+        ...statsFilter(ctx, source),
+        workType: ctx.url.searchParams.get("work_type"),
+        outcome: ctx.url.searchParams.get("outcome"),
+      }),
+    ),
   },
   "/api/analytics/activity": {
     GET: sourceScoped((ctx, source) => read(ctx, "activity", { ...ctx.dateFilter, source })),
@@ -385,14 +386,26 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
   },
   "/api/recommendations/mark": { POST: { body: "object", handle: markRecommendationRoute } },
   "/api/evals/catalog": {
-    GET: ({ config, context }) => withDb(config, context, async (db) => json(await readCatalog(db, activeRunId(config.dbPath)))),
+    GET: ({ config, context }) =>
+      withDb(config, context, async (db) =>
+        json(await readCatalog(db, activeRunId(config.dbPath))),
+      ),
   },
   "/api/evals": {
     GET: ({ config }) => json(listRunManifests(config.dbPath)),
     POST: { body: "json", handle: evalStartRoute },
   },
+  "/api/evals/repo": {
+    GET: evalRepoRoute,
+  },
   "/api/evals/{id}": {
     GET: evalResultsRoute,
+  },
+  "/api/evals/{id}/cells/{cellId}": {
+    GET: evalCellRoute,
+  },
+  "/api/evals/{id}/report.html": {
+    GET: evalReportRoute,
   },
   "/api/evals/{id}/cancel": {
     POST: { body: "object", handle: evalCancelRoute },
@@ -709,8 +722,12 @@ async function evalStartRoute(ctx: RouteContext, body: unknown): Promise<Respons
   }
 }
 
-async function evalCancelRoute(ctx: RouteContext, body: Record<string, unknown>): Promise<Response> {
-  if (Object.keys(body).length !== 0) return errorResponse("invalid_request", "cancel body must be an empty object", {}, 400);
+async function evalCancelRoute(
+  ctx: RouteContext,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  if (Object.keys(body).length !== 0)
+    return errorResponse("invalid_request", "cancel body must be an empty object", {}, 400);
   try {
     return json(await cancelEvalRun(ctx.config.dbPath, ctx.params.id));
   } catch (error) {
@@ -719,8 +736,16 @@ async function evalCancelRoute(ctx: RouteContext, body: Record<string, unknown>)
 }
 
 function evalResumeRoute(ctx: RouteContext, body: Record<string, unknown>): Response {
-  if (Object.keys(body).some((key) => key !== "retryFailed") || (body.retryFailed != null && typeof body.retryFailed !== "boolean")) {
-    return errorResponse("invalid_request", "resume body accepts only { retryFailed?: boolean }", {}, 400);
+  if (
+    Object.keys(body).some((key) => key !== "retryFailed") ||
+    (body.retryFailed != null && typeof body.retryFailed !== "boolean")
+  ) {
+    return errorResponse(
+      "invalid_request",
+      "resume body accepts only { retryFailed?: boolean }",
+      {},
+      400,
+    );
   }
   try {
     return json(resumeEvalRun(ctx.config, ctx.context, ctx.params.id, body.retryFailed === true));
@@ -733,39 +758,76 @@ function evalResultsRoute(ctx: RouteContext): Response {
   try {
     const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
     if (manifest == null) return errorResponse("not_found", "evaluation run not found", {}, 404);
-    return withDb(ctx.config, ctx.context, (db) => {
-      const runDir = runDirFor(ctx.config.dbPath, manifest.id);
-      const { cells, interrupted } = readEvalCells(db, runDir, manifest.input);
-      const setups = summarizeSetups(cells, manifest.input.setups, manifest.input.taskIds, manifest.input.trials);
-      const paired = pairedComparisons(cells, manifest.input.setups);
-      const repairedTornLedger = readdirSync(runDir).some((name) => name.startsWith("ledger.torn-"));
-      const warnings = evalWarnings(manifest, setups, interrupted.length, repairedTornLedger);
-      const result: EvalResults = { manifest, cells, interrupted, setups, paired, warnings, progress: evalProgress(ctx.config.dbPath, manifest) };
-      return json(result);
-    });
+    return withDb(ctx.config, ctx.context, (db) =>
+      json(readEvalResults(db, ctx.config.dbPath, manifest)),
+    );
   } catch (error) {
     return evalError(error);
   }
 }
 
-function evalWarnings(
-  manifest: EvalRunManifest,
-  setups: EvalResults["setups"],
-  interrupted: number,
-  repairedTornLedger: boolean,
-): string[] {
-  const warnings = ["Public tasks; verifier and reference files are readable by the agent.", "Setups ran sequentially; provider load and cache state may differ."];
-  if (manifest.input.taskIds.length < 20) warnings.push("Descriptive only: fewer than 20 tasks.");
-  if (setups.some((setup) => setup.priced.priced < setup.priced.total)) warnings.push("Some cells are unpriced; cost ratios are withheld unless coverage is complete.");
-  if (interrupted > 0) warnings.push("Interrupted attempts with partial spend are excluded from cell results.");
-  if (repairedTornLedger) warnings.push("A torn ledger tail was preserved in a ledger.torn-* file and excluded from results.");
-  return warnings;
+function evalRepoRoute({ config, url }: RouteContext): Response {
+  try {
+    return json(
+      inspectRepo(
+        url.searchParams.get("path") ?? "",
+        url.searchParams.get("sha"),
+        repoProfilesPath(config.dbPath),
+      ),
+    );
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+function evalCellRoute(ctx: RouteContext): Response {
+  try {
+    const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
+    const cellId = decodeURIComponent(ctx.params.cellId);
+    const artifacts =
+      manifest == null
+        ? null
+        : readCellArtifacts(runDirFor(ctx.config.dbPath, manifest.id), cellId);
+    return artifacts == null
+      ? errorResponse("not_found", "evaluation cell not found", {}, 404)
+      : json(artifacts);
+  } catch (error) {
+    if (error instanceof URIError)
+      return errorResponse("not_found", "evaluation cell not found", {}, 404);
+    return evalError(error);
+  }
+}
+
+function evalReportRoute(ctx: RouteContext): Response {
+  try {
+    const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
+    if (manifest == null) return errorResponse("not_found", "evaluation run not found", {}, 404);
+    if (manifest.status === "running")
+      return errorResponse("eval_active", "evaluation is still running", {}, 409);
+    const runDir = runDirFor(ctx.config.dbPath, manifest.id);
+    return withDb(ctx.config, ctx.context, (db) =>
+      reportHtmlResponse(
+        renderReport(readEvalResults(db, ctx.config.dbPath, manifest), (cellId) =>
+          readCellArtifacts(runDir, cellId),
+        ),
+        `report-${manifest.id}.html`,
+      ),
+    );
+  } catch (error) {
+    return evalError(error);
+  }
 }
 
 function evalError(error: unknown): Response {
-  if (error instanceof EvalRequestError) return errorResponse(error.code as ApiErrorCode, error.message, {}, error.status);
+  if (error instanceof EvalRequestError)
+    return errorResponse(error.code as ApiErrorCode, error.message, {}, error.status);
   console.error("[eval/routes] evaluation request failed", error);
-  return errorResponse("internal_error", "Agent Benchmarks could not complete the evaluation request.", {}, 500);
+  return errorResponse(
+    "internal_error",
+    "Agent Benchmarks could not complete the evaluation request.",
+    {},
+    500,
+  );
 }
 
 function settingsResponse(settings = getSettings()): Record<string, unknown> {

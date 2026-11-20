@@ -8,7 +8,7 @@ import {
 } from "./types.ts";
 
 export function setupKey(setup: EvalSetup): string {
-  return `${setup.harness}:${setup.model}`;
+  return `${setup.harness}:${setup.model}:${setup.config}`;
 }
 
 export function summarizeSetups(
@@ -18,8 +18,11 @@ export function summarizeSetups(
   trials: number,
 ): SetupSummary[] {
   const bySetup = new Map(setups.map((setup) => [setupKey(setup), setup]));
-  const eligible = taskIds.filter((taskId) =>
-    setups.every((setup) =>
+  const ran = setups.filter((setup) =>
+    cells.some((cell) => cell.setupKey === setupKey(setup) && cell.outcome !== "unavailable"),
+  );
+  const common = taskIds.filter((taskId) =>
+    ran.every((setup) =>
       cells.some(
         (cell) =>
           cell.taskId === taskId &&
@@ -30,6 +33,7 @@ export function summarizeSetups(
   );
   return setups.map((setup) => {
     const key = setupKey(setup);
+    const eligible = ran.includes(setup) ? common : [];
     const own = cells.filter((cell) => cell.setupKey === key);
     const graded = own.filter((cell) => GRADED_OUTCOME[cell.outcome]);
     const passed = graded.filter((cell) => cell.outcome === "passed").length;

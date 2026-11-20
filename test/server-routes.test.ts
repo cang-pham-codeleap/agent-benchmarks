@@ -38,6 +38,11 @@ describe("route table", () => {
     expect(routeTemplate("/api/reports/session/7.html")).toBe("/api/reports/session/{id}.html");
     expect(routeTemplate("/api/reports/analytics.html")).toBe("/api/reports/analytics.html");
     expect(routeTemplate("/api/reportsXanalytics.html")).toBe("/api/reportsXanalytics.html");
+    expect(routeTemplate("/api/evals/repo")).toBe("/api/evals/repo");
+    expect(routeTemplate("/api/evals/run-0001/cells/current%2Fclaude%3At%3Am%3Atrial1")).toBe(
+      "/api/evals/{id}/cells/{cellId}",
+    );
+    expect(routeTemplate("/api/evals/run-0001/report.html")).toBe("/api/evals/{id}/report.html");
     expect(routeTemplate("/sessions/7")).toBe("/sessions/{id}");
     expect(routeTemplate("/reports/session/7")).toBe("/reports/session/{id}");
     expect(routeTemplate("/src/ui/main.js")).toBe("/src/ui/*");

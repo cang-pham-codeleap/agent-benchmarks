@@ -1,19 +1,120 @@
 export type EvalHarness = "claude" | "codex" | "copilot" | "opencode" | "omp" | "droid";
 
+export type EvalConfigMode = "current" | "default";
+
 export interface EvalSetup {
   harness: EvalHarness;
   model: string;
+  config: EvalConfigMode;
 }
 
 export type EvalPresetId = "smoke" | "quick" | "reliability" | "custom";
 
-export interface EvalRunInput {
+export interface BenchmarkRunInput {
+  kind: "benchmark";
   name: string;
   setups: EvalSetup[];
   taskIds: string[];
   trials: number;
   wallMs: number;
   preset: EvalPresetId;
+}
+
+export interface RepoProfile {
+  setupCommand: string | null;
+  checks: string[];
+  hiddenTestCommand: string | null;
+}
+
+export type RealTask =
+  | { type: "prompt"; prompt: string; baseRef: string }
+  | { type: "replay"; sha: string; prompt: string; hiddenPaths: string[] };
+
+export interface RealRunInput {
+  kind: "real";
+  name: string;
+  setups: EvalSetup[];
+  trials: number;
+  wallMs: number;
+  repoPath: string;
+  task: RealTask;
+  profile: RepoProfile;
+}
+
+export type EvalRunInput = BenchmarkRunInput | RealRunInput;
+
+export interface DiffStat {
+  files: string[];
+  added: number;
+  removed: number;
+}
+
+export interface CheckResult {
+  command: string;
+  exitCode: number | null;
+  timedOut: boolean;
+  durationMs: number;
+  /** Path relative to the run directory. */
+  log: string;
+}
+
+export interface RealCellSummary {
+  diffStat: DiffStat;
+  checks: CheckResult[];
+  hidden: { passed: number; total: number; files: { path: string; passed: boolean }[] } | null;
+  /** Replay: share of the human's non-hidden files the agent also changed. */
+  fileOverlap: number | null;
+  /** Replay: agent (added + removed) over the human's non-hidden (added + removed). */
+  sizeRatio: number | null;
+  turns: number | null;
+  toolCalls: number | null;
+}
+
+export interface RealReference {
+  baseSha: string;
+  sha: string;
+  diffStat: DiffStat;
+  nonHidden: DiffStat;
+}
+
+export interface RealResults {
+  task: RealTask;
+  repoPath: string;
+  baseSha: string;
+  profile: RepoProfile;
+  reference: RealReference | null;
+  /** Keyed by EvalCell.cellId; cells without artifacts are absent. */
+  cells: Record<string, RealCellSummary>;
+}
+
+export interface RepoCommit {
+  sha: string;
+  subject: string;
+  date: string;
+}
+
+export interface RepoInspection {
+  path: string;
+  head: string;
+  branch: string | null;
+  dirty: boolean;
+  profile: RepoProfile;
+  profileSource: "remembered" | "detected";
+  recentCommits: RepoCommit[];
+  commit: {
+    sha: string;
+    subject: string;
+    body: string;
+    files: string[];
+    suggestedHidden: string[];
+    isMerge: boolean;
+  } | null;
+}
+
+export interface CellArtifacts {
+  patch: string;
+  checks: { command: string; logTail: string }[];
+  hidden: { path: string; logTail: string }[];
 }
 
 export type EvalRunStatus =
@@ -31,7 +132,8 @@ export interface EvalProvenance {
   harnessVersions: Partial<Record<EvalHarness, string>>;
   taskHashes: Record<string, string>;
   executionOrder: string[];
-  hermeticRoot: string;
+  /** Null for real-task runs, which isolate with git worktrees instead. */
+  hermeticRoot: string | null;
   globalConfigNote: string;
 }
 
@@ -102,7 +204,7 @@ export interface EvalCell {
   tokens: CellTokens | null;
   cost: CellCost;
   observedModel: string | null;
-  session: { tool: string; sourceSessionId: string } | null;
+  session: { id: number; tool: string; sourceSessionId: string } | null;
   raw: {
     status: string;
     exitStatus: string | null;
@@ -169,6 +271,8 @@ export interface EvalResults {
   paired: PairedComparison[];
   warnings: string[];
   progress: { done: number; total: number; currentCell: string | null };
+  /** Null for benchmark runs. */
+  real: RealResults | null;
 }
 
 export interface EvalTask {
@@ -185,6 +289,8 @@ export interface EvalHarnessInfo {
   version: string | null;
   knownModels: string[];
   metered: boolean;
+  /** Null when the harness can run with default configuration; otherwise why not. */
+  defaultConfigProblem: string | null;
 }
 
 export interface EvalPreset {
@@ -200,7 +306,13 @@ export interface EvalCatalog {
   harnesses: EvalHarnessInfo[];
   tasks: EvalTask[];
   presets: EvalPreset[];
-  limits: { maxTrials: number; maxSetups: number; defaultWallMs: number; maxWallMs: number };
+  limits: {
+    maxTrials: number;
+    maxSetups: number;
+    defaultWallMs: number;
+    maxWallMs: number;
+    realDefaultWallMs: number;
+  };
   activeRunId: string | null;
 }
 

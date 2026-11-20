@@ -303,6 +303,43 @@ local slash-command output or Codex threads that were created but never received
 a prompt). The search index is the command palette's local fuzzy-search haystack
 and intentionally omits transcript content.
 
+### Evaluations
+
+`/api/evals*` routes start, follow, and read evaluation runs. One run
+is active at a time; a second `POST /api/evals` gets `409 eval_active`.
+
+`POST /api/evals` takes a benchmark body (no `kind`, or `kind: "benchmark"`)
+or a real-task body (`kind: "real"`) that runs one free prompt or one
+replayed commit on a private clone of a local repository. Each setup carries
+`config`: `current` uses the harness as you run it daily, `default` runs it
+without your global instructions, skills, tool servers, and settings. A
+real-task body is fully validated before anything is written: `repo_invalid`,
+`commit_invalid`, `hidden_invalid`, `hidden_command_invalid`, and
+`config_unsupported` are `400`s.
+
+`GET /api/evals/repo?path=<abs>[&sha=<rev>]` reads a repository with git and
+never changes it. It returns the remembered profile (setup command, checks,
+hidden-test command) or one detected from the repository, the last 30
+non-merge commits, whether the work tree is dirty (uncommitted work never
+enters a run), and, with `sha`, the commit's message, changed files, and
+suggested hidden test files.
+
+`GET /api/evals/{id}` adds `real` for real-task runs: the task, the human
+reference diff stat for replays, and per-cell diff stat, checks, hidden-test
+results, overlap with the human change, turns, and tool calls. Benchmark runs
+return `real: null`.
+
+`GET /api/evals/{id}/cells/{cellId}` returns one cell's patch and the last
+64 KiB of each check and hidden-test log. `cellId` is the URL-encoded
+`EvalCell.cellId` (`<config>/<ach cell id>`), or `reference` for the human
+change of a replay.
+
+`GET /api/evals/{id}/report.html` downloads a zero-JavaScript report with
+inline styles: run metadata, the summary table with the human reference,
+each combo's diff, check and hidden-test results, and a transcript summary
+(turns, tool calls, errors) without transcript text. It answers
+`409 eval_active` while the run is still running.
+
 ## Server-Sent Events
 
 `GET /api/events` returns `text/event-stream`. The current event names are:

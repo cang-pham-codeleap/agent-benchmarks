@@ -26,7 +26,7 @@ async function dispatch(ctx: Omit<RouteContext, "params">): Promise<Response> {
     if (endpoint == null) {
       continue;
     }
-    const routeCtx = { ...ctx, params: { id } };
+    const routeCtx = { ...ctx, params: { id, cellId: match[2] ?? "" } };
     if (typeof endpoint === "function") {
       return await endpoint(routeCtx);
     }

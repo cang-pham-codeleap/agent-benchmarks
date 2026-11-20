@@ -15,7 +15,7 @@ export interface EvalRegistryRun {
 export interface JoinedSessionCost {
   cost: CellCost;
   tokens: CellTokens | null;
-  session: { tool: string; sourceSessionId: string } | null;
+  session: { id: number; tool: string; sourceSessionId: string } | null;
   observedModel: string | null;
 }
 
@@ -67,7 +67,7 @@ export function joinSessionCost(
     return {
       cost: { kind: "unavailable", reason: "unpriced-model" },
       tokens: null,
-      session: { tool, sourceSessionId: root.source_session_id },
+      session: { id: root.id, tool, sourceSessionId: root.source_session_id },
       observedModel: root.model,
     };
   }
@@ -86,7 +86,7 @@ export function joinSessionCost(
       }),
       { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     ),
-    session: { tool, sourceSessionId: root.source_session_id },
+    session: { id: root.id, tool, sourceSessionId: root.source_session_id },
     observedModel: root.model,
   };
 }
@@ -111,7 +111,7 @@ function findByCwdAndTime(db: Database, tool: string, registry: EvalRegistryRun)
     realCwd = realpathSync(cwd);
   } catch (error) {
     console.error(
-      `[eval/cost] hermetic cwd no longer exists for ${registry.runId}; matching its path text`,
+      `[eval/cost] run cwd no longer exists for ${registry.runId}; matching its path text`,
       error,
     );
     realCwd = cwd;

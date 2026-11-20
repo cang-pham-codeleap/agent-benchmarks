@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAchDir } from "../settings.ts";
-import { EVAL_HARNESSES, EVAL_LIMITS, EVAL_PRESETS } from "./registry.ts";
+import { defaultConfigProblem, EVAL_HARNESSES, EVAL_LIMITS, EVAL_PRESETS } from "./registry.ts";
 import type { EvalCatalog, EvalHarnessInfo, EvalTask } from "./types.ts";
 
 export async function readCatalog(db: Database, activeRunId: string | null): Promise<EvalCatalog> {
@@ -28,6 +28,7 @@ export async function readCatalog(db: Database, activeRunId: string | null): Pro
           version,
           knownModels: knownModels(db, definition.sessionTool, definition.qualifiedModels),
           metered: definition.metered,
+          defaultConfigProblem: defaultConfigProblem(harness, process.env),
         } as EvalHarnessInfo;
       }),
     ),

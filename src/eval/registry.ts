@@ -1,4 +1,16 @@
-import type { EvalHarness, EvalPreset, EvalPresetId } from "./types.ts";
+import { chmodSync, copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, join } from "node:path";
+import type { EvalConfigMode, EvalHarness, EvalPreset, EvalPresetId } from "./types.ts";
+
+export interface DefaultConfigSupport {
+  /** At least one must be set: a per-run config dir cannot see a keychain login. */
+  requiresAnyEnv?: string[];
+  /** Env var that relocates the harness home to a clean per-run directory. */
+  homeEnv?: string;
+  /** Files relative to the user's home copied into that directory (credentials only). */
+  copyFromHome?: string[];
+}
 
 export interface EvalHarnessDefinition {
   label: string;
@@ -9,6 +21,7 @@ export interface EvalHarnessDefinition {
   sessionTool: string;
   /** The CLI's --model needs `provider/model` for an exact match (omp, opencode). */
   qualifiedModels: boolean;
+  defaultConfig: DefaultConfigSupport | null;
 }
 
 export const EVAL_LIMITS = {
@@ -16,6 +29,7 @@ export const EVAL_LIMITS = {
   maxSetups: 8,
   defaultWallMs: 15 * 60_000,
   maxWallMs: 60 * 60_000,
+  realDefaultWallMs: 30 * 60_000,
 } as const;
 
 const CORE_TASKS = [
@@ -66,6 +80,7 @@ const baseHarnesses: Record<EvalHarness, EvalHarnessDefinition> = {
     metered: true,
     sessionTool: "claude_code",
     qualifiedModels: false,
+    defaultConfig: { requiresAnyEnv: ["CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"] },
   },
   codex: {
     label: "Codex CLI",
@@ -75,6 +90,7 @@ const baseHarnesses: Record<EvalHarness, EvalHarnessDefinition> = {
     metered: true,
     sessionTool: "codex",
     qualifiedModels: false,
+    defaultConfig: { homeEnv: "CODEX_HOME", copyFromHome: [".codex/auth.json"] },
   },
   copilot: {
     label: "GitHub Copilot",
@@ -84,6 +100,7 @@ const baseHarnesses: Record<EvalHarness, EvalHarnessDefinition> = {
     metered: true,
     sessionTool: "copilot",
     qualifiedModels: false,
+    defaultConfig: null,
   },
   opencode: {
     label: "OpenCode",
@@ -93,6 +110,7 @@ const baseHarnesses: Record<EvalHarness, EvalHarnessDefinition> = {
     metered: true,
     sessionTool: "opencode",
     qualifiedModels: true,
+    defaultConfig: null,
   },
   omp: {
     label: "OMP",
@@ -102,6 +120,7 @@ const baseHarnesses: Record<EvalHarness, EvalHarnessDefinition> = {
     metered: false,
     sessionTool: "omp",
     qualifiedModels: true,
+    defaultConfig: null,
   },
   droid: {
     label: "Droid",
@@ -114,6 +133,7 @@ const baseHarnesses: Record<EvalHarness, EvalHarnessDefinition> = {
     metered: false,
     sessionTool: "droid",
     qualifiedModels: false,
+    defaultConfig: null,
   },
 };
 
@@ -130,7 +150,48 @@ export const EVAL_HARNESSES: Record<string, EvalHarnessDefinition> = {
           metered: false,
           sessionTool: "null",
           qualifiedModels: false,
+          defaultConfig: {},
         },
       }
     : {}),
 };
+
+export function defaultConfigProblem(harness: string, env: NodeJS.ProcessEnv): string | null {
+  const definition = EVAL_HARNESSES[harness];
+  if (definition == null) return `unknown harness: ${harness}`;
+  const support = definition.defaultConfig;
+  if (support == null) return `default config is not supported for ${definition.label}`;
+  if (support.requiresAnyEnv?.length && !support.requiresAnyEnv.some((name) => env[name]))
+    return `default config needs ${support.requiresAnyEnv.join(" or ")}`;
+  const home = env.HOME || homedir();
+  const missing = support.copyFromHome?.find((file) => !existsSync(join(home, file)));
+  return missing == null ? null : `default config needs ~/${missing}`;
+}
+
+export function configGroupEnv(
+  config: EvalConfigMode,
+  runDir: string,
+  harnesses: string[],
+  home = homedir(),
+): Record<string, string | undefined> {
+  if (config === "current") return { AGENTIC_CODING_HARNESS_DEFAULT_CLAUDE_CONFIG: "1" };
+  const env: Record<string, string | undefined> = {
+    AGENTIC_CODING_HARNESS_DEFAULT_CLAUDE_CONFIG: undefined,
+  };
+  for (const [harness, definition] of Object.entries(EVAL_HARNESSES)) {
+    const support = definition.defaultConfig;
+    if (support?.homeEnv == null) continue;
+    const dir = join(runDir, "home", harness);
+    env[support.homeEnv] = dir;
+    if (!harnesses.includes(harness)) continue;
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    for (const file of support.copyFromHome ?? []) {
+      const source = join(home, file);
+      if (!existsSync(source)) continue;
+      const target = join(dir, basename(file));
+      copyFileSync(source, target);
+      chmodSync(target, 0o600);
+    }
+  }
+  return env;
+}

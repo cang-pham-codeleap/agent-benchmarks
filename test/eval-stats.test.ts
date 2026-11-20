@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { toCellOutcome } from "../src/eval/ledger.ts";
-import { pairedComparisons, summarizeSetups } from "../src/eval/stats.ts";
+import { pairedComparisons, setupKey, summarizeSetups } from "../src/eval/stats.ts";
 import type { EvalCell, EvalSetup } from "../src/eval/types.ts";
 
 function cell(
@@ -29,10 +29,9 @@ function cell(
 }
 
 const setups: EvalSetup[] = [
-  { harness: "claude", model: "a" },
-  { harness: "codex", model: "b" },
+  { harness: "claude", model: "a", config: "current" },
+  { harness: "codex", model: "b", config: "current" },
 ];
-const setupKey = (setup: EvalSetup) => `${setup.harness}:${setup.model}`;
 
 describe("evaluation statistics", () => {
   test("uses only tasks graded for every setup", () => {
@@ -95,6 +94,22 @@ describe("evaluation statistics", () => {
       "inconclusive",
     );
   });
+
+  test("keeps a setup that never ran out of everyone else's pass rate", () => {
+    const current: EvalSetup = { harness: "claude", model: "a", config: "current" };
+    const defaults: EvalSetup = { ...current, config: "default" };
+    const cells = [
+      cell(setupKey(current), "t1", 1, "passed"),
+      cell(setupKey(defaults), "t1", 1, "unavailable"),
+    ];
+    const [ran, skipped] = summarizeSetups(cells, [current, defaults], ["t1"], 1);
+    expect(ran?.setupKey).not.toBe(skipped?.setupKey);
+    expect(ran?.passRate).toBe(1);
+    expect(ran?.eligibleTasks).toBe(1);
+    expect(skipped?.passRate).toBeNull();
+    expect(skipped?.graded).toBe(0);
+    expect(skipped?.outcomes.unavailable).toBe(1);
+  });
 });
 
 describe("ledger outcome mapping", () => {
@@ -106,5 +121,12 @@ describe("ledger outcome mapping", () => {
     expect(toCellOutcome("error", null, "error")).toBe("verifier-error");
     expect(toCellOutcome("skipped-provider-limit", "error", null)).toBe("provider-limit");
     expect(toCellOutcome("skipped-unavailable", null, null)).toBe("unavailable");
+  });
+
+  test("passes only when the agent also finished successfully", () => {
+    expect(toCellOutcome("passed", null, "pass")).toBe("passed");
+    expect(toCellOutcome("error", "error", "pass")).toBe("agent-error");
+    expect(toCellOutcome("error", "timeout", "pass")).toBe("timeout");
+    expect(toCellOutcome("verify-failed", "budget_exceeded", "pass")).toBe("budget-stop");
   });
 });

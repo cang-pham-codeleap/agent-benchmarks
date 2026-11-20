@@ -112,6 +112,25 @@ describe("local API OpenAPI contract", () => {
       if (recommendationKey == null) {
         throw new Error("fixture archive must expose a recommendation");
       }
+      const repo = join(root, "repo");
+      mkdirSync(repo);
+      const git = (...args: string[]) =>
+        Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", ...args], {
+          cwd: repo,
+        })
+          .stdout.toString()
+          .trim();
+      git("init", "-q");
+      await Bun.write(
+        join(repo, "add.ts"),
+        "export const add = (a: number, b: number) => a + b;\n",
+      );
+      git("add", "-A");
+      git("commit", "-qm", "add");
+      await Bun.write(join(repo, "add.test.ts"), "import { add } from './add';\nadd(1, 2);\n");
+      git("add", "-A");
+      git("commit", "-qm", "test add");
+      const replaySha = git("rev-parse", "HEAD");
 
       const cases: ContractCase[] = [
         { path: "/api/health", method: "get", url: "/api/health" },
@@ -355,6 +374,25 @@ describe("local API OpenAPI contract", () => {
           status: 400,
           expectedCode: "invalid_request",
         },
+        {
+          path: "/api/evals/repo",
+          method: "get",
+          url: `/api/evals/repo?path=${encodeURIComponent(repo)}&sha=${replaySha}`,
+        },
+        {
+          path: "/api/evals/{id}/cells/{cellId}",
+          method: "get",
+          url: "/api/evals/00000000-0000-4000-8000-000000000000/cells/current%2Fclaude%3Aprompt%3Asonnet%3Atrial1",
+          status: 404,
+          expectedCode: "not_found",
+        },
+        {
+          path: "/api/evals/{id}/report.html",
+          method: "get",
+          url: "/api/evals/00000000-0000-4000-8000-000000000000/report.html",
+          status: 404,
+          expectedCode: "not_found",
+        },
       ];
       const errorCases: ContractCase[] = [
         {
@@ -440,6 +478,13 @@ describe("local API OpenAPI contract", () => {
           headers: { "content-type": "text/plain" },
           status: 415,
           expectedCode: "unsupported_media_type",
+        },
+        {
+          path: "/api/evals/repo",
+          method: "get",
+          url: "/api/evals/repo?path=relative/repo",
+          status: 400,
+          expectedCode: "repo_invalid",
         },
       ];
 
@@ -852,7 +897,8 @@ function compileResponseValidator(
   if (documentedResponse?.$ref != null) {
     return ajv.compile({
       $ref:
-        `agent-benchmarks-openapi${documentedResponse.$ref}/content/` + `${jsonPointer(mediaType)}/schema`,
+        `agent-benchmarks-openapi${documentedResponse.$ref}/content/` +
+        `${jsonPointer(mediaType)}/schema`,
     });
   }
   return ajv.compile({
