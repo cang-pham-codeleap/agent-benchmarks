@@ -281,7 +281,7 @@ describe("UI interaction contracts", () => {
     expect(dialog).toContain("useBackdropDismiss(open && !pending, backdropRef, requestClose)");
     expect(dialog).toContain("DELETE_SESSION_EXPLANATION");
     expect(dialog).toContain("DELETE_SESSION_EYEBROW");
-    expect(dialog).toContain("Delete from Decant");
+    expect(dialog).toContain("Delete from Agent Benchmarks");
     expect(main).toContain("dialog.focus()");
   });
 });

@@ -14,10 +14,10 @@ export function costSourceLabel(source: CostSource): string | null {
 
 export function costSourceTooltip(source: CostSource): string {
   if (source === "reported") {
-    return "Cost reported by OpenCode: Decant has no rate for this model, so the per-request cost OpenCode recorded is shown.";
+    return "Cost reported by OpenCode: Agent Benchmarks has no rate for this model, so the per-request cost OpenCode recorded is shown.";
   }
   if (source === "mixed") {
-    return "Part of this cost was reported by OpenCode for a model Decant cannot price; the rest is estimated at Decant's list rates.";
+    return "Part of this cost was reported by OpenCode for a model Agent Benchmarks cannot price; the rest is estimated at list rates.";
   }
-  return "Estimated at Decant's list rates from the recorded token usage.";
+  return "Estimated at list rates from the recorded token usage.";
 }

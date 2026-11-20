@@ -596,7 +596,7 @@ function formatCompact(value: number): string {
 }
 
 const NO_USAGE_NOTE =
-  "Cursor CLI records no token usage, so Decant cannot estimate cost for its sessions.";
+  "Cursor CLI records no token usage, so Agent Benchmarks cannot estimate cost for its sessions.";
 
 function reportCost(
   cost: number,

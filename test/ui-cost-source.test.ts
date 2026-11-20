@@ -9,7 +9,7 @@ describe("cost source copy", () => {
   });
 
   test("explains each source in the tooltip", () => {
-    expect(costSourceTooltip("decant")).toContain("Decant's list rates");
+    expect(costSourceTooltip("decant")).toContain("list rates");
     expect(costSourceTooltip("reported")).toContain("OpenCode recorded");
     expect(costSourceTooltip("reported")).toContain("no rate for this model");
     expect(costSourceTooltip("mixed")).toContain("rest is estimated");

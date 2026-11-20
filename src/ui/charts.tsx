@@ -34,8 +34,8 @@ export function ChartUnavailable() {
       <span aria-hidden="true">!</span>
       <div className="space-y-2">
         <h3 className="font-semibold">This chart could not load</h3>
-        <p className="text-sm text-muted-foreground">Decant may have been updated or stopped since this page opened.</p>
-        <Button variant="outline" onClick={() => window.location.reload()} type="button">Reload Decant</Button>
+        <p className="text-sm text-muted-foreground">Agent Benchmarks may have been updated or stopped since this page opened.</p>
+        <Button variant="outline" onClick={() => window.location.reload()} type="button">Reload Agent Benchmarks</Button>
       </div>
     </div>
   );

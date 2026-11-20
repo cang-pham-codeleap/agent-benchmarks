@@ -1,7 +1,7 @@
 import { normalizeReasoningEffort } from "../model.ts";
 
 export const UNRECORDED_EFFORT_TOOLTIP =
-  "The source transcript did not record an effort level, so Decant cannot recover it reliably.";
+  "The source transcript did not record an effort level, so Agent Benchmarks cannot recover it reliably.";
 
 export function effortDisplayLabel(effort: string | null | undefined, labeled = false): string {
   const label = effort == null ? null : normalizeReasoningEffort(effort);

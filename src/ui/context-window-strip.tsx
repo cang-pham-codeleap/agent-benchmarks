@@ -79,7 +79,7 @@ export function ContextWindowUnavailable({ timeline }: { timeline: ContextWindow
           </strong>
           <p>
             {hasUsage
-              ? "The transcript includes token usage, but Decant has no explicit context-window value and no model-based capacity for this source, so a trustworthy percentage is unavailable."
+              ? "The transcript includes token usage, but Agent Benchmarks has no explicit context-window value and no model-based capacity for this source, so a trustworthy percentage is unavailable."
               : "This source session does not include the per-call token readings needed to reconstruct context usage."}
           </p>
         </div>

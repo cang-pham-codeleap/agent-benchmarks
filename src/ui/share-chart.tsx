@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import dosuDecantUrl from "./assets/dosu-decant.png";
-import dosuOfficialUrl from "./assets/dosu-official.svg";
 import {
   type AnalyticsChartMetric,
   type AnalyticsChartVariant,
@@ -255,11 +253,7 @@ export async function renderShareCardPng(
     chartNode.remove();
   }
 
-  const [chartImage, decantImage, dosuImage] = await Promise.all([
-    loadCanvasImage(chartUrl),
-    loadCanvasImage(dosuDecantUrl),
-    loadCanvasImage(dosuOfficialUrl),
-  ]);
+  const chartImage = await loadCanvasImage(chartUrl);
   const canvas = document.createElement("canvas");
   canvas.width = SHARE_CARD_WIDTH * scale;
   canvas.height = SHARE_CARD_HEIGHT * scale;
@@ -273,10 +267,9 @@ export async function renderShareCardPng(
   context.fillStyle = SHARE_CARD_PANEL;
   context.fillRect(42, 34, SHARE_CARD_WIDTH - 84, SHARE_CARD_HEIGHT - 68);
 
-  context.drawImage(decantImage, 68, 58, 34, 34);
   context.fillStyle = "#e7eaf0";
   context.font = "650 22px Inter, ui-sans-serif, system-ui, sans-serif";
-  context.fillText("Decant", 114, 83);
+  context.fillText("Agent Benchmarks", 68, 83);
   context.fillStyle = "#9aa6b8";
   context.font = "500 17px Inter, ui-sans-serif, system-ui, sans-serif";
   context.textAlign = "right";
@@ -294,10 +287,6 @@ export async function renderShareCardPng(
   context.fillStyle = "#6b7689";
   context.font = "500 16px Inter, ui-sans-serif, system-ui, sans-serif";
   context.fillText(shareCardQualifier(input), 68, 557);
-  context.drawImage(dosuImage, SHARE_CARD_WIDTH - 244, 537, 24, 25);
-  context.fillStyle = "#9aa6b8";
-  context.font = "600 16px Inter, ui-sans-serif, system-ui, sans-serif";
-  context.fillText("Decant · by Dosu", SHARE_CARD_WIDTH - 210, 557);
 
   return await canvasPngBlob(canvas);
 }

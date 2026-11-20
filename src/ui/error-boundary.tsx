@@ -26,11 +26,11 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
         <Alert variant="destructive">
           <AlertTitle>Something went wrong</AlertTitle>
           <AlertDescription>
-            Decant hit an unexpected error while drawing this page. Your archive is untouched;
+            Agent Benchmarks hit an unexpected error while drawing this page. Your archive is untouched;
             reloading usually clears it.
           </AlertDescription>
           <Button className="mt-4" onClick={() => window.location.reload()} type="button">
-            Reload Decant
+            Reload Agent Benchmarks
           </Button>
         </Alert>
       </div>

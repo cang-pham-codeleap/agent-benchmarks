@@ -66,7 +66,7 @@ export function SettingsView({
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          How Decant opens things on your machine. We start from what we detect and remember your
+          How Agent Benchmarks opens things on your machine. We start from what we detect and remember your
           choices.
         </p>
       </header>
@@ -217,7 +217,7 @@ function BackgroundSetting() {
       <SettingSwitch
         checked={phase === "handoff" || (status?.installed ?? false)}
         disabled={busy || status == null || !status.supported}
-        help="Start Decant when you log in and keep syncing sessions with no terminal open. The UI stays at this address."
+        help="Start Agent Benchmarks when you log in and keep syncing sessions with no terminal open. The UI stays at this address."
         label="Run in the background"
         onChange={toggle}
         status={backgroundNote(status, phase)}

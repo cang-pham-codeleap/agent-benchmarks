@@ -21,8 +21,8 @@ describe("root error boundary", () => {
     const html = renderToStaticMarkup(boundary.render());
     expect(html).toContain('role="alert"');
     expect(html).toContain("Something went wrong");
-    expect(html).toContain("Reload Decant");
-    expect(html).toMatch(/<button[^>]*>[\s\S]*?Reload Decant<\/button>/);
+    expect(html).toContain("Reload Agent Benchmarks");
+    expect(html).toMatch(/<button[^>]*>[\s\S]*?Reload Agent Benchmarks<\/button>/);
     expect(html).not.toContain("child-content");
   });
 

@@ -143,7 +143,7 @@ export function DeleteSessionDialog({
           </Button>
           <Button variant="destructive" disabled={pending} onClick={onConfirm} type="button">
             <Icon name="trash" />
-            {pending ? "Deleting…" : "Delete from Decant"}
+            {pending ? "Deleting…" : "Delete from Agent Benchmarks"}
           </Button>
         </footer>
       </section>
@@ -833,7 +833,7 @@ export function SessionDetailView({
               title={
                 detail.summary.usage_available
                   ? costSourceTooltip(detail.summary.cost_source)
-                  : "This source records no token usage, so Decant cannot estimate its cost."
+                  : "This source records no token usage, so Agent Benchmarks cannot estimate its cost."
               }
             >
               <strong>
@@ -1114,7 +1114,7 @@ export function IngestIssuesPanel({
             {unknownSummary.count > 0 ? (
               <div className="rounded-md border bg-muted/50 p-3">
                 <div className="text-muted-foreground">
-                  Decant safely preserved or ignored {formatInt(unknownSummary.count)} unknown
+                  Agent Benchmarks safely preserved or ignored {formatInt(unknownSummary.count)} unknown
                   source {unknownSummary.count === 1 ? "record type" : "record types"}
                   {unknownSummary.types.length > 0
                     ? `: ${unknownSummary.types.map((type) => `“${type}”`).join(", ")}`
@@ -1125,7 +1125,7 @@ export function IngestIssuesPanel({
                     rel="noopener"
                     target="_blank"
                   >
-                    Check for a Decant update
+                    Check for an Agent Benchmarks update
                   </a>{" "}
                   before re-syncing.
                 </div>

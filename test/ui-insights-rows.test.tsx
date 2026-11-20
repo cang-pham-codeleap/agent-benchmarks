@@ -287,7 +287,7 @@ describe("Insights page sections", () => {
     const catalog = html.slice(catalogStart);
     expect(catalog).toContain("Setup ideas");
     expect(catalog).toContain("General suggestions that apply to any project.");
-    expect(catalog).toContain("Decant did not derive them from your archive.");
+    expect(catalog).toContain("Agent Benchmarks did not derive them from your archive.");
     expect(catalog).toContain("Skills");
     expect(catalog).not.toContain("Agents re-read");
   });

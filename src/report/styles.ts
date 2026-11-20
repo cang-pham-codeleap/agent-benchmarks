@@ -183,7 +183,7 @@ th:last-child, td:last-child { padding-right: 0; }
 @page {
   size: letter;
   margin: 16mm 14mm;
-  @bottom-left { content: "Decant report"; color: #6d766f; font-size: 8pt; }
+  @bottom-left { content: "Agent Benchmarks report"; color: #6d766f; font-size: 8pt; }
   @bottom-right { content: counter(page) " / " counter(pages); color: #6d766f; font-size: 8pt; }
 }
 

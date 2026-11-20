@@ -8,7 +8,7 @@ export interface SessionArchiveView {
 export const DELETE_SESSION_EYEBROW = "Removes the archive copy";
 
 export const DELETE_SESSION_EXPLANATION =
-  "This removes this session and its subagent transcripts from the Decant archive. " +
+  "This removes this session and its subagent transcripts from the Agent Benchmarks archive. " +
   "The source JSONL files on disk are not changed. A deletion tombstone prevents future syncs " +
   "from restoring these sessions. SQLite may leave deleted text recoverable in freed pages; " +
   "run `decant db vacuum` to rewrite the archive after deleting sensitive content.";

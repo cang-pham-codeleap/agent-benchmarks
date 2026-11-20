@@ -24,7 +24,7 @@ describe("session state UI", () => {
   });
 
   test("delete confirmation distinguishes archive data from source files and sync behavior", () => {
-    expect(DELETE_SESSION_EXPLANATION).toContain("Decant archive");
+    expect(DELETE_SESSION_EXPLANATION).toContain("Agent Benchmarks archive");
     expect(DELETE_SESSION_EXPLANATION).toContain("source JSONL files on disk are not changed");
     expect(DELETE_SESSION_EXPLANATION).toContain("future syncs from restoring");
   });

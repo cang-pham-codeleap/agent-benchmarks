@@ -87,16 +87,6 @@ function isCostKind(kind: ShareCardKind): boolean {
   return kind === "estimated_cost_per_day" || kind === "estimated_cost_per_week";
 }
 
-export function shareCardUrl(kind: ShareCardKind): string {
-  const params = new URLSearchParams({
-    utm_source: "decant",
-    utm_medium: "social_share",
-    utm_campaign: "analytics_cards",
-    utm_content: kind,
-  });
-  return `https://dosu.dev/for-agents?${params.toString()}`;
-}
-
 export function shareCardFilename(kind: ShareCardKind, start: string, end: string): string {
   return `decant-${kind.replaceAll("_", "-")}-${safeDate(start)}-${safeDate(end)}.png`;
 }
@@ -127,10 +117,9 @@ export function shareCardTakeaway(input: ShareCardCopyInput): string {
 
 export function shareCardCaption(input: ShareCardCopyInput): string {
   const takeaway = shareCardTakeaway(input);
-  const link = shareCardUrl(input.kind);
   return input.kind === "sessions_per_day" || input.kind === "sessions_per_week"
-    ? `${takeaway}. Decant shows the pattern. Dosu can help the next agent use it. ${link}`
-    : `${takeaway}. Shared from Decant. ${link}`;
+    ? `${takeaway}. Agent Benchmarks shows the pattern.`
+    : `${takeaway}. Shared from Agent Benchmarks.`;
 }
 
 export function shareCardAltText(input: ShareCardCopyInput): string {
@@ -142,17 +131,17 @@ export function shareCardAltText(input: ShareCardCopyInput): string {
   const total = formatMoney(knownValues(values).reduce((sum, value) => sum + value, 0));
   switch (kind) {
     case "sessions_per_day":
-      return `Decant analytics bar chart of daily sessions from ${start} to ${end}, peaking at ${formatInteger(peakValue)} on ${peakLabel}.`;
+      return `Agent Benchmarks analytics bar chart of daily sessions from ${start} to ${end}, peaking at ${formatInteger(peakValue)} on ${peakLabel}.`;
     case "sessions_per_week":
-      return `Decant analytics bar chart of weekly sessions from ${start} to ${end}, peaking at ${formatInteger(peakValue)} in the week of ${peakLabel}.`;
+      return `Agent Benchmarks analytics bar chart of weekly sessions from ${start} to ${end}, peaking at ${formatInteger(peakValue)} in the week of ${peakLabel}.`;
     case "estimated_cost_per_day":
-      return `Decant analytics line chart of estimated daily model cost from ${start} to ${end}; selected-range total is ${total}.`;
+      return `Agent Benchmarks analytics line chart of estimated daily model cost from ${start} to ${end}; selected-range total is ${total}.`;
     case "estimated_cost_per_week":
-      return `Decant analytics line chart of estimated weekly model cost from ${start} to ${end}; selected-range total is ${total}.`;
+      return `Agent Benchmarks analytics line chart of estimated weekly model cost from ${start} to ${end}; selected-range total is ${total}.`;
     case "busiest_hours":
-      return `Decant analytics hourly activity chart in ${timezone}, with the highest activity at ${peakLabel}.`;
+      return `Agent Benchmarks analytics hourly activity chart in ${timezone}, with the highest activity at ${peakLabel}.`;
     case "busiest_days":
-      return `Decant analytics weekday activity chart, highest on ${peakLabel} and lowest on ${low == null ? "no day" : (labels[low] ?? "an unknown day")}.`;
+      return `Agent Benchmarks analytics weekday activity chart, highest on ${peakLabel} and lowest on ${low == null ? "no day" : (labels[low] ?? "an unknown day")}.`;
   }
 }
 

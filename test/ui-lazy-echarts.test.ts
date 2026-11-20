@@ -67,7 +67,7 @@ test("a chart runtime that cannot be fetched is reported, not thrown", async () 
 test("a chart that cannot load says so and offers a reload", () => {
   const html = renderToStaticMarkup(createElement(ChartUnavailable));
   expect(html).toContain("This chart could not load");
-  expect(html).toContain("Reload Decant");
+  expect(html).toContain("Reload Agent Benchmarks");
   const chart = sourceFrom(readUiFile("charts.tsx"), "function AnalyticsChart");
   expect(chart).toMatch(/if \(echarts == null\) \{\s*setUnavailable\(true\);/);
   expect(chart).toMatch(/if \(unavailable\) \{\s*return <ChartUnavailable \/>;/);

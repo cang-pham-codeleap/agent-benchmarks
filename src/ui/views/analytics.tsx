@@ -103,7 +103,7 @@ export function FirstRunPanel({
           </span>
           <h2>First sync in progress</h2>
           <p>
-            Decant is reading your session logs for the first time. Analytics appear here when the
+            Agent Benchmarks is reading your session logs for the first time. Analytics appear here when the
             sync finishes. Nothing leaves this machine.
           </p>
         </div>
@@ -118,7 +118,7 @@ export function FirstRunPanel({
         </span>
         <h2>No sessions yet</h2>
         <p>
-          Decant reads the session logs Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub
+          Agent Benchmarks reads the session logs Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub
           Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write, plus any ATIF
           trajectories you import, and turns them into a searchable session-log index with token,
           cost, and context-window analytics wherever the source records usage. Nothing leaves this
@@ -625,7 +625,7 @@ function FailedState() {
   return (
     <EmptyState
       icon="chart"
-      message="Decant could not read this chart. Reload the page or run Sync."
+      message="Agent Benchmarks could not read this chart. Reload the page or run Sync."
       title="Not loaded"
     />
   );

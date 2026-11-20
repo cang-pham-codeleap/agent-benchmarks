@@ -88,7 +88,7 @@ export function usageMetric(sessions: number, usageSessions: number, value: stri
 }
 
 export const NO_USAGE_TITLE =
-  "Cursor CLI records no token usage, so Decant cannot estimate cost for its sessions.";
+  "Cursor CLI records no token usage, so Agent Benchmarks cannot estimate cost for its sessions.";
 
 export function costDisplay(
   cost: number,

@@ -993,8 +993,8 @@ function FramedNotice() {
   return (
     <EmptyState
       icon="shield"
-      message="Open Decant directly in its own browser tab or window to use it."
-      title="Decant cannot be displayed in a frame"
+      message="Open Agent Benchmarks directly in its own browser tab or window to use it."
+      title="Agent Benchmarks cannot be displayed in a frame"
     />
   );
 }

@@ -22,7 +22,7 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
   if (!(error instanceof ApiError)) {
     return {
       detail:
-        "Decant could not reach the local server. Restart `decant serve` if needed, then retry.",
+        "Agent Benchmarks could not reach the local server. Restart `decant serve` if needed, then retry.",
       icon: "info",
       retry: true,
       title: "Request failed",
@@ -52,12 +52,12 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
     case "schema_too_new":
       return {
         actionHref: "https://github.com/dosu-ai/decant/releases",
-        actionLabel: "Update Decant",
+        actionLabel: "Update Agent Benchmarks",
         detail:
-          "These session logs were indexed by a newer Decant build. Update Decant, then retry.",
+          "These session logs were indexed by a newer Agent Benchmarks build. Update Agent Benchmarks, then retry.",
         icon: "info",
         retry: true,
-        title: "Decant is out of date",
+        title: "Agent Benchmarks is out of date",
       };
     case "schema_too_old":
       return {
@@ -84,7 +84,7 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
         actionHref: "/settings",
         actionLabel: "Check launcher settings",
         detail:
-          "Decant could not open the selected app. Check the launcher setting, then try again.",
+          "Agent Benchmarks could not open the selected app. Check the launcher setting, then try again.",
         icon: "info",
         retry: true,
         title: "Launch failed",
@@ -92,38 +92,38 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
     case "archive_locked":
       return {
         detail:
-          "Another Decant operation is using the session log index. Wait a moment, then retry.",
+          "Another Agent Benchmarks operation is using the session log index. Wait a moment, then retry.",
         icon: "clock",
         retry: true,
         title: "Session logs are busy",
       };
     case "service_starting":
       return {
-        detail: "Decant is finishing local startup. Try again in a moment.",
+        detail: "Agent Benchmarks is finishing local startup. Try again in a moment.",
         icon: "clock",
         retry: true,
-        title: "Decant is starting",
+        title: "Agent Benchmarks is starting",
       };
     case "internal_error":
       return {
         detail:
-          "Decant hit an unexpected local error. Restart `decant serve`, then retry. If it continues, check the server log for the private diagnostic.",
+          "Agent Benchmarks hit an unexpected local error. Restart `decant serve`, then retry. If it continues, check the server log for the private diagnostic.",
         icon: "info",
         retry: true,
-        title: "Decant could not complete the request",
+        title: "Agent Benchmarks could not complete the request",
       };
     default:
       if (error.status >= 500) {
         return {
           detail:
-            "Decant hit an unexpected local error. Restart `decant serve`, then retry. If it continues, check the server log.",
+            "Agent Benchmarks hit an unexpected local error. Restart `decant serve`, then retry. If it continues, check the server log.",
           icon: "info",
           retry: true,
-          title: "Decant could not complete the request",
+          title: "Agent Benchmarks could not complete the request",
         };
       }
       return {
-        detail: "Decant could not complete this request. Check the input and try again.",
+        detail: "Agent Benchmarks could not complete this request. Check the input and try again.",
         icon: "info",
         retry: true,
         title: "Request failed",

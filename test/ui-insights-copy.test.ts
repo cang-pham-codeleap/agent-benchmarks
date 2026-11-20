@@ -6,7 +6,7 @@ const insightsView = sourceBetween(main, "function InsightsView(", "function Dos
 
 describe("Insights information hierarchy", () => {
   test("explains how archive evidence becomes future-agent improvements", () => {
-    expect(main).toContain("Decant finds recurring patterns in your local sessions");
+    expect(main).toContain("Agent Benchmarks finds recurring patterns in your local sessions");
     expect(main).toContain("Detected in your session logs");
     expect(main).toContain("Patterns worth acting on");
     expect(main).toContain("Not from your session logs");

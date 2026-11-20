@@ -522,7 +522,7 @@ export function InsightsView({
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
         <p className="text-sm text-muted-foreground">
-          Decant finds recurring patterns in your local sessions, ranks the ones worth acting on,
+          Agent Benchmarks finds recurring patterns in your local sessions, ranks the ones worth acting on,
           and suggests durable improvements for future agent runs.
         </p>
       </header>
@@ -561,7 +561,7 @@ export function InsightsView({
             icon="lightbulb"
             message={
               firstSync
-                ? "Decant looks for patterns once the first sync has read your session logs."
+                ? "Agent Benchmarks looks for patterns once the first sync has read your session logs."
                 : "More session history will surface patterns."
             }
             title={firstSync ? "Signals appear when the first sync finishes" : "No signals yet"}
@@ -585,7 +585,7 @@ export function InsightsView({
             <span className="text-sm text-muted-foreground">Not from your session logs</span>
             <h2>Setup ideas</h2>
             <p>
-              General suggestions that apply to any project. Decant did not derive them from your
+              General suggestions that apply to any project. Agent Benchmarks did not derive them from your
               archive.
             </p>
           </div>

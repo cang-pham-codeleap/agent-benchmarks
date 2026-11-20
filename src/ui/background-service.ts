@@ -7,10 +7,10 @@ export const HANDOFF_TIMEOUT_MS = 30_000;
 
 export function backgroundNote(status: BackgroundStatus | null, phase: BackgroundPhase): string {
   if (phase === "handoff") {
-    return "Moving Decant to the background. This page reloads when it is ready.";
+    return "Moving Agent Benchmarks to the background. This page reloads when it is ready.";
   }
   if (phase === "stopped") {
-    return "Decant stopped. Run decant in a terminal to start it again.";
+    return "Agent Benchmarks stopped. Run decant in a terminal to start it again.";
   }
   if (phase === "saving") {
     return "Saving...";
@@ -22,13 +22,13 @@ export function backgroundNote(status: BackgroundStatus | null, phase: Backgroun
     return status.reason ?? "Running in the background is not available on this machine.";
   }
   if (!status.installed) {
-    return "Off. Decant runs only while a terminal keeps it open.";
+    return "Off. Agent Benchmarks runs only while a terminal keeps it open.";
   }
   if (status.current) {
     return "On. This page is served by the background service, which starts when you log in.";
   }
   if (status.running) {
-    return `On. Decant is running in the background at ${status.url ?? "its own port"}.`;
+    return `On. Agent Benchmarks is running in the background at ${status.url ?? "its own port"}.`;
   }
   return "On, but the service is not running. Run decant service status for details.";
 }

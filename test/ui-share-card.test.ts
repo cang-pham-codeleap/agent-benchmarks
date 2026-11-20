@@ -10,7 +10,6 @@ import {
   shareCardButtonLabel,
   shareCardCaption,
   shareCardFilename,
-  shareCardUrl,
 } from "../src/ui/share-card.ts";
 
 const DAILY = {
@@ -35,18 +34,15 @@ describe("local analytics share cards", () => {
     expect(SHARE_CARD_HEIGHT * SHARE_CARD_SCALE).toBe(1260);
   });
 
-  test("builds deterministic copy, filenames, and placement-specific UTM links", () => {
+  test("builds deterministic copy and filenames without promotional links", () => {
     expect(shareCardFilename(DAILY.kind, DAILY.start, DAILY.end)).toBe(
       "decant-sessions-per-day-2026-07-17-2026-07-23.png",
     );
     expect(shareCardButtonLabel(DAILY.kind)).toBe("Share Sessions per day");
-    expect(shareCardUrl(DAILY.kind)).toBe(
-      "https://dosu.dev/for-agents?utm_source=decant&utm_medium=social_share&utm_campaign=analytics_cards&utm_content=sessions_per_day",
-    );
+    expect(shareCardCaption(DAILY)).not.toContain("http");
     expect(shareCardCaption(DAILY)).toContain("7 coding-agent sessions");
-    expect(shareCardCaption(DAILY)).toContain("Decant shows the pattern");
-    expect(shareCardCaption(DAILY)).toContain(shareCardUrl(DAILY.kind));
-    expect(shareCardAltText(DAILY)).toContain("Decant analytics");
+    expect(shareCardCaption(DAILY)).toContain("Agent Benchmarks shows the pattern");
+    expect(shareCardAltText(DAILY)).toContain("Agent Benchmarks analytics");
     expect(shareCardAltText(DAILY)).toContain("peaking at 5 on 2026-07-18");
   });
 
