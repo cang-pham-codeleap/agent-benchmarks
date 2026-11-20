@@ -15,19 +15,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { EvalCatalog, EvalHarnessInfo, EvalRunInput, EvalSetup } from "../../../eval/types.ts";
+import type {
+  BenchmarkRunInput,
+  EvalCatalog,
+  EvalHarnessInfo,
+  EvalSetup,
+} from "../../../eval/types.ts";
 import { evaluationRunCount, evaluationStartReason, presetAfterEdit } from "../evaluating-form.ts";
 
-function ModelPicker({
+export function ModelPicker({
   info,
   model,
   onChange,
   index,
+  label,
 }: {
   info: EvalHarnessInfo | undefined;
   model: string;
   onChange: (model: string) => void;
   index: number;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -49,7 +56,7 @@ function ModelPicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-label={`Model for setup ${index + 1}`}
+          aria-label={label ?? `Model for setup ${index + 1}`}
           className="w-full justify-between font-normal"
         >
           <span className="truncate">{model || "Choose or enter a model"}</span>
@@ -105,8 +112,8 @@ export function EvalForm({
   busy,
 }: {
   catalog: EvalCatalog;
-  input: EvalRunInput;
-  onChange: (input: EvalRunInput) => void;
+  input: BenchmarkRunInput;
+  onChange: (input: BenchmarkRunInput) => void;
   onStart: () => void;
   busy: boolean;
 }) {
@@ -206,7 +213,10 @@ export function EvalForm({
             onClick={() =>
               onChange({
                 ...input,
-                setups: [...input.setups, { harness: installed[0]!.harness, model: "" }],
+                setups: [
+                  ...input.setups,
+                  { harness: installed[0]!.harness, model: "", config: "current" },
+                ],
               })
             }
           >

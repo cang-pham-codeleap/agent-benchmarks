@@ -23,11 +23,11 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { type EvalResults, type EvalRunManifest, GRADED_OUTCOME } from "../../../eval/types.ts";
 import { durationPrecise, money } from "../../format.ts";
+import { setupText } from "./real-results.tsx";
 
 const percent = (value: number | null) =>
   value == null ? "Unavailable" : `${(value * 100).toFixed(1)}%`;
 const duration = (value: number | null) => (value == null ? "Unavailable" : durationPrecise(value));
-const setupLabel = (harness: string, model: string) => `${harness} / ${model}`;
 const verdict = {
   inconclusive: "Inconclusive on this sample",
   "consistently-better": "Consistently better on this sample",
@@ -67,7 +67,10 @@ export function EvalResultsView({
     : setups[0]?.setupKey;
   const pairs = results.paired.filter((pair) => pair.baseline === selectedBaseline);
   const byKey = new Map(setups.map((setup) => [setup.setupKey, setup]));
-  const tasks = manifest.input.taskIds;
+  const tasks =
+    manifest.input.kind === "real"
+      ? [...new Set(cells.map((cell) => cell.taskId))]
+      : manifest.input.taskIds;
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -118,6 +121,7 @@ export function EvalResultsView({
                         <div className="flex flex-wrap items-center gap-1">
                           <Badge variant="outline">{summary.setup.harness}</Badge>
                           <span>{summary.setup.model}</span>
+                          <Badge variant="secondary">{summary.setup.config}</Badge>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -214,7 +218,7 @@ export function EvalResultsView({
                     <SelectContent>
                       {setups.map((setup) => (
                         <SelectItem key={setup.setupKey} value={setup.setupKey}>
-                          {setupLabel(setup.setup.harness, setup.setup.model)}
+                          {setupText(setup.setup)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -238,10 +242,7 @@ export function EvalResultsView({
                         <TableRow key={pair.other}>
                           <TableCell>
                             {byKey.has(pair.other)
-                              ? setupLabel(
-                                  byKey.get(pair.other)!.setup.harness,
-                                  byKey.get(pair.other)!.setup.model,
-                                )
+                              ? setupText(byKey.get(pair.other)!.setup)
                               : pair.other}
                           </TableCell>
                           <TableCell>{pair.better}</TableCell>
@@ -277,9 +278,7 @@ export function EvalResultsView({
                     <TableRow>
                       <TableHead>Task</TableHead>
                       {setups.map((setup) => (
-                        <TableHead key={setup.setupKey}>
-                          {setupLabel(setup.setup.harness, setup.setup.model)}
-                        </TableHead>
+                        <TableHead key={setup.setupKey}>{setupText(setup.setup)}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>

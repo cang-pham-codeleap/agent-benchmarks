@@ -13,26 +13,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
+  BenchmarkRunInput,
   EvalCatalog,
   EvalProgressEvent,
   EvalResults,
-  EvalRunInput,
   EvalRunManifest,
+  RealRunInput,
 } from "../../eval/types.ts";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
 import { durationPrecise } from "../format.ts";
 import { Link, visit } from "../link.tsx";
 import { EvalForm } from "./evaluating/form.tsx";
+import { RealTaskForm } from "./evaluating/real-form.tsx";
+import { RealResultsView } from "./evaluating/real-results.tsx";
 import { EvalResultsView } from "./evaluating/results.tsx";
 
-function initialInput(catalog: EvalCatalog): EvalRunInput {
+function initialInput(catalog: EvalCatalog): BenchmarkRunInput {
   const preset = catalog.presets.find((item) => item.id === "smoke");
   const harness = catalog.harnesses.find((item) => item.installed);
   return {
+    kind: "benchmark",
     name: `Evaluation ${new Date().toLocaleDateString()}`,
-    setups: harness ? [{ harness: harness.harness, model: "" }] : [],
+    setups: harness ? [{ harness: harness.harness, model: "", config: "current" }] : [],
     taskIds: preset?.taskIds ?? [],
     trials: preset?.trials ?? 1,
     wallMs: catalog.limits.defaultWallMs,
@@ -143,7 +148,7 @@ export function EvaluatingView({
   const selectedId = new URLSearchParams(path.split("?", 2)[1] ?? "").get("run");
   const [catalog, setCatalog] = useState<EvalCatalog | null>(null);
   const [runs, setRuns] = useState<EvalRunManifest[] | null>(null);
-  const [input, setInput] = useState<EvalRunInput | null>(null);
+  const [input, setInput] = useState<BenchmarkRunInput | null>(null);
   const [selected, setSelected] = useState<EvalResults | null>(null);
   const [active, setActive] = useState<EvalResults | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -248,6 +253,21 @@ export function EvaluatingView({
       setBusy(false);
     }
   }
+  async function startReal(real: RealRunInput) {
+    setBusy(true);
+    try {
+      const manifest = await getJson<EvalRunManifest>("/api/evals", {
+        method: "POST",
+        body: JSON.stringify(real),
+      });
+      selectRun(manifest.id);
+      refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+  const [tab, setTab] = useState<"benchmark" | "real">("benchmark");
+  const tabRuns = (runs ?? []).filter((run) => (run.input.kind ?? "benchmark") === tab);
   const current = selected?.manifest.id === selectedId ? selected : null;
   const activeResult = active?.manifest.id === activeId ? active : null;
   return (
@@ -315,26 +335,40 @@ export function EvaluatingView({
                     )
                   }
                 />
+                <RealResultsView results={current} />
               </div>
             ) : (
               <Skeleton className="h-48 w-full" />
             ))}
-          <EvalForm
-            catalog={catalog}
-            input={input}
-            onChange={setInput}
-            busy={busy}
-            onStart={() => void mutate("/api/evals", input, true)}
-          />
+          <Tabs value={tab} onValueChange={(value) => setTab(value as "benchmark" | "real")}>
+            <TabsList>
+              <TabsTrigger value="benchmark">Benchmark</TabsTrigger>
+              <TabsTrigger value="real">Real tasks</TabsTrigger>
+            </TabsList>
+            <TabsContent value="benchmark">
+              <EvalForm
+                catalog={catalog}
+                input={input}
+                onChange={setInput}
+                busy={busy}
+                onStart={() => void mutate("/api/evals", input, true)}
+              />
+            </TabsContent>
+            <TabsContent value="real">
+              <RealTaskForm catalog={catalog} busy={busy} onStart={startReal} />
+            </TabsContent>
+          </Tabs>
           <Card>
             <CardHeader>
               <CardTitle>Past runs</CardTitle>
               <CardDescription>Select a run to inspect its results and manifest.</CardDescription>
             </CardHeader>
             <CardContent>
-              {runs.length === 0 ? (
+              {tabRuns.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No evaluations yet. Try the Smoke preset to check your setup.
+                  {tab === "real"
+                    ? "No real-task evaluations yet."
+                    : "No evaluations yet. Try the Smoke preset to check your setup."}
                 </p>
               ) : (
                 <div
@@ -354,7 +388,7 @@ export function EvaluatingView({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {runs.map((run) => (
+                      {tabRuns.map((run) => (
                         <TableRow
                           key={run.id}
                           data-state={selectedId === run.id ? "selected" : undefined}
@@ -375,11 +409,13 @@ export function EvaluatingView({
                           <TableCell>{new Date(run.createdAt).toLocaleString()}</TableCell>
                           <TableCell>
                             {run.input.setups
-                              .map((setup) => `${setup.harness} / ${setup.model}`)
+                              .map((setup) => `${setup.harness} / ${setup.model} / ${setup.config}`)
                               .join(", ")}
                           </TableCell>
                           <TableCell>
-                            {run.input.setups.length * run.input.taskIds.length * run.input.trials}
+                            {run.input.setups.length *
+                              (run.input.kind === "real" ? 1 : run.input.taskIds.length) *
+                              run.input.trials}
                           </TableCell>
                         </TableRow>
                       ))}
