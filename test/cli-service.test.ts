@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { runCli } from "../src/cli.ts";
 import type { CommandResult, ServiceOptions } from "../src/service.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-cli-service-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cli-service-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 function cliOptions(service: Partial<ServiceOptions>) {
@@ -22,20 +22,20 @@ function cliOptions(service: Partial<ServiceOptions>) {
     return { code: 0, stdout: "", stderr: "" };
   };
   return {
-    env: { DECANT_NO_SYNC: "1", DECANT_DB: join(workDir, "decant.db") },
+    env: { AGENT_BENCHMARKS_NO_SYNC: "1", AGENT_BENCHMARKS_DB: join(workDir, "agent-benchmarks.db") },
     homeDir: home,
     service: {
       platform: "darwin" as const,
       uid: 501,
       run,
-      install: { channel: "installer" as const, binaryPath: "/opt/test/decant" },
-      execPath: "/opt/test/decant",
+      install: { channel: "standalone" as const, binaryPath: "/opt/test/agent-benchmarks" },
+      execPath: "/opt/test/agent-benchmarks",
       ...service,
     },
   };
 }
 
-describe("decant service", () => {
+describe("agent-benchmarks service", () => {
   test("installs, reports, and uninstalls the background service", async () => {
     const options = cliOptions({});
     const install = await runCli(["service", "install", "--port", "4100"], options);
@@ -48,9 +48,9 @@ describe("decant service", () => {
       running: true,
       url: "http://127.0.0.1:4100",
       command: [
-        "/opt/test/decant",
+        "/opt/test/agent-benchmarks",
         "--db",
-        join(workDir, "decant.db"),
+        join(workDir, "agent-benchmarks.db"),
         "serve",
         "--no-open",
         "--port",
@@ -74,7 +74,7 @@ describe("decant service", () => {
     );
     expect(install.code).toBe(0);
     expect(JSON.parse(install.stdout).command).toEqual([
-      "/opt/test/decant",
+      "/opt/test/agent-benchmarks",
       "--db",
       resolve("relative-archive.db"),
       "serve",
@@ -86,7 +86,7 @@ describe("decant service", () => {
   });
 
   test("refuses an archive or executable path with a control character", async () => {
-    const plist = join(workDir, "home", "Library", "LaunchAgents", "dev.dosu.decant.plist");
+    const plist = join(workDir, "home", "Library", "LaunchAgents", "dev.dosu.agentBenchmarks.plist");
     const db = await runCli(
       ["--db", join(workDir, "a.db\nRunAtLoad"), "service", "install", "--port", "4102"],
       cliOptions({}),
@@ -97,10 +97,10 @@ describe("decant service", () => {
     expect(db.stdout).toBe("");
     expect(existsSync(plist)).toBe(false);
 
-    const binary = "/opt/test/decant\r";
+    const binary = "/opt/test/agent-benchmarks\r";
     const exec = await runCli(
       ["service", "install", "--port", "4102"],
-      cliOptions({ install: { channel: "installer", binaryPath: binary }, execPath: binary }),
+      cliOptions({ install: { channel: "standalone", binaryPath: binary }, execPath: binary }),
     );
     expect(exec.code).toBe(1);
     expect(exec.stderr).toContain("executable path");

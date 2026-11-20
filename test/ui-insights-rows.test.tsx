@@ -83,7 +83,7 @@ const handlers: RecommendationHandlers = {
 };
 
 const settingsInfo: SettingsInfo = {
-  settings: { agent: "claude", terminal: "terminal", ide: "vscode", updateCheck: false },
+  settings: { agent: "claude", terminal: "terminal", ide: "vscode" },
   path: "/synthetic/settings.json",
   can_launch: true,
   options: { agents: [["claude", "Claude"]], terminals: [], ides: [] },
@@ -198,7 +198,7 @@ describe("Insights prompt preview", () => {
     const shortHtml = renderToStaticMarkup(<PromptPreview agentLabel="Claude" canLaunch row={short} />);
     expect(shortHtml).toContain('data-state="open"');
     expect(shortHtml).toContain(prompt);
-    expect(shortHtml).toContain("decant recommendations mark");
+    expect(shortHtml).toContain("agent-benchmarks recommendations mark");
     expect(isLongPrompt("x".repeat(400))).toBe(true);
   });
 
@@ -207,7 +207,7 @@ describe("Insights prompt preview", () => {
       <PromptPreview agentLabel={null} canLaunch={false} row={signal()} />,
     );
     expect(html).toContain("Copy setup prompt puts this text on your clipboard.");
-    expect(html).not.toContain("decant recommendations mark");
+    expect(html).not.toContain("agent-benchmarks recommendations mark");
   });
 
   test("renders nothing for a row without a prompt", () => {

@@ -27,7 +27,7 @@ import { refreshPlannerStatistics, withImmediateTransaction } from "./db.ts";
 import { facets, fileRefs } from "./enrich.ts";
 import { FILE_LIMIT_MESSAGE, readSourceFile } from "./ingest-limits.ts";
 import { asBoolean, asInteger, asString, byteLength, canonicalJson, get } from "./json.ts";
-import { getDecantLogger } from "./logging.ts";
+import { getAgentBenchmarksLogger } from "./logging.ts";
 import {
   backfillCopilotCompactionMetadata,
   encodeMessageRaw,
@@ -97,7 +97,7 @@ import {
 import { classifyTool, previewHeadTail } from "./tools.ts";
 import { basename, resolveWorktreeRoots } from "./worktree.ts";
 
-const logger = getDecantLogger("ingest");
+const logger = getAgentBenchmarksLogger("ingest");
 
 export type DiscoveryWarn = (message: string, properties: Record<string, unknown>) => void;
 
@@ -126,7 +126,7 @@ export interface IngestConfig {
   sourcePaths?: string[];
 }
 
-export const INGEST_PIPELINE_REVISION = 24;
+export const INGEST_PIPELINE_REVISION = 25;
 
 export interface SyncReport {
   repriced?: number;
@@ -310,7 +310,7 @@ function discoverHermes(
   const unreadable = new Set<string>();
   if (unlistedProfiles != null) {
     warn("Hermes profiles could not be listed.", {
-      "event.name": "decant.ingest.hermes_profiles_unlisted",
+      "event.name": "agent-benchmarks.ingest.hermes_profiles_unlisted",
       "file.path": unlistedProfiles.path,
       "error.code": unlistedProfiles.errorCode,
     });
@@ -327,7 +327,7 @@ function discoverHermes(
       }
       unreadable.add(dbPath);
       warn("Hermes database could not be opened.", {
-        "event.name": "decant.ingest.hermes_open_failed",
+        "event.name": "agent-benchmarks.ingest.hermes_open_failed",
         "file.path": dbPath,
         "error.message": `Hermes database could not be read (${code})`,
       });
@@ -338,7 +338,7 @@ function discoverHermes(
     } catch (error) {
       unreadable.add(dbPath);
       warn("Hermes database could not be opened.", {
-        "event.name": "decant.ingest.hermes_open_failed",
+        "event.name": "agent-benchmarks.ingest.hermes_open_failed",
         "file.path": dbPath,
         "error.message": hermesErrorMessage(error),
       });
@@ -360,7 +360,7 @@ function discoverHermes(
     } catch (error) {
       unreadable.add(dbPath);
       warn("Hermes database could not be listed.", {
-        "event.name": "decant.ingest.hermes_list_failed",
+        "event.name": "agent-benchmarks.ingest.hermes_list_failed",
         "file.path": dbPath,
         "error.message": hermesErrorMessage(error),
       });
@@ -429,7 +429,7 @@ function discoverOpenCode(dbPaths: string[], warn: DiscoveryWarn): SourceFile[] 
       store = OpenCodeStore.open(dbPath);
     } catch (error) {
       warn("OpenCode database could not be opened.", {
-        "event.name": "decant.ingest.opencode_open_failed",
+        "event.name": "agent-benchmarks.ingest.opencode_open_failed",
         "file.path": dbPath,
         "error.message": error instanceof Error ? error.message : String(error),
       });
@@ -440,7 +440,7 @@ function discoverOpenCode(dbPaths: string[], warn: DiscoveryWarn): SourceFile[] 
         // Its `session` rows are 2.x-shaped, so the 1.x reader would misread
         // them; OpenCode converts the file the next time a 2.x release opens it.
         warn("OpenCode database uses a pre-release layout and was skipped.", {
-          "event.name": "decant.ingest.opencode_unsupported_layout",
+          "event.name": "agent-benchmarks.ingest.opencode_unsupported_layout",
           "file.path": dbPath,
         });
         continue;
@@ -465,7 +465,7 @@ function discoverOpenCode(dbPaths: string[], warn: DiscoveryWarn): SourceFile[] 
       }
     } catch (error) {
       warn("OpenCode database could not be listed.", {
-        "event.name": "decant.ingest.opencode_list_failed",
+        "event.name": "agent-benchmarks.ingest.opencode_list_failed",
         "file.path": dbPath,
         "error.message": error instanceof Error ? error.message : String(error),
       });
@@ -651,7 +651,7 @@ export function sync(
           if (limited === null) {
             report.failed += 1;
             logger.warning("Source file could not be read.", {
-              "event.name": "decant.ingest.source_read_failed",
+              "event.name": "agent-benchmarks.ingest.source_read_failed",
               "file.path": file.path,
               "error.message": FILE_LIMIT_MESSAGE,
             });
@@ -661,7 +661,7 @@ export function sync(
         } catch (error) {
           report.failed += 1;
           logger.warning("Source file could not be read.", {
-            "event.name": "decant.ingest.source_read_failed",
+            "event.name": "agent-benchmarks.ingest.source_read_failed",
             "file.path": file.path,
             "error.type": (error as { code?: string }).code ?? "unknown",
             "error.message": error instanceof Error ? error.message : String(error),
@@ -835,7 +835,7 @@ class OpenCodeRun {
         store = OpenCodeStore.open(dbPath);
       } catch (error) {
         logger.warning("OpenCode database could not be opened.", {
-          "event.name": "decant.ingest.opencode_open_failed",
+          "event.name": "agent-benchmarks.ingest.opencode_open_failed",
           "file.path": dbPath,
           "error.message": error instanceof Error ? error.message : String(error),
         });
@@ -857,7 +857,7 @@ class OpenCodeRun {
         }
       } catch (error) {
         logger.warning("OpenCode model catalog could not be read.", {
-          "event.name": "decant.ingest.opencode_catalog_failed",
+          "event.name": "agent-benchmarks.ingest.opencode_catalog_failed",
           "file.path": store.path,
           "error.message": error instanceof Error ? error.message : String(error),
         });
@@ -876,12 +876,12 @@ class OpenCodeRun {
       } else {
         if (cache.status === "missing") {
           logger.info("OpenCode model cache was not found; context windows stay unknown.", {
-            "event.name": "decant.ingest.opencode_models_cache_missing",
+            "event.name": "agent-benchmarks.ingest.opencode_models_cache_missing",
             "file.path": path,
           });
         } else {
           logger.warning("OpenCode model cache could not be read.", {
-            "event.name": "decant.ingest.opencode_models_cache_failed",
+            "event.name": "agent-benchmarks.ingest.opencode_models_cache_failed",
             "file.path": path,
             "error.message": cache.error,
           });
@@ -1008,7 +1008,7 @@ class HermesRun {
         store = HermesStore.open(dbPath);
       } catch (error) {
         logger.warning("Hermes database could not be opened.", {
-          "event.name": "decant.ingest.hermes_open_failed",
+          "event.name": "agent-benchmarks.ingest.hermes_open_failed",
           "file.path": dbPath,
           "error.message": hermesErrorMessage(error),
         });
@@ -1052,7 +1052,7 @@ function syncHermesSession(
   const holder = unreadableArchivedCopy(db, file, ref, hermes);
   if (holder != null) {
     logger.warning("Hermes session kept from a profile database that could not be read.", {
-      "event.name": "decant.ingest.hermes_copy_unreadable",
+      "event.name": "agent-benchmarks.ingest.hermes_copy_unreadable",
       "file.path": file.path,
       "source.path": holder,
     });
@@ -1067,7 +1067,7 @@ function syncHermesSession(
     loaded = store.loadSession(ref.sessionId);
   } catch (error) {
     logger.warning("Source file could not be read.", {
-      "event.name": "decant.ingest.source_read_failed",
+      "event.name": "agent-benchmarks.ingest.source_read_failed",
       "file.path": file.path,
       "error.type": "hermes_read",
       "error.message":
@@ -1151,7 +1151,7 @@ function syncCursorStore(db: Database, file: SourceFile): SessionSyncOutcome {
     source = readCursorSource(file.path);
   } catch (error) {
     logger.warning("Source file could not be read.", {
-      "event.name": "decant.ingest.source_read_failed",
+      "event.name": "agent-benchmarks.ingest.source_read_failed",
       "file.path": file.path,
       "error.type": "cursor_read",
       "error.message":
@@ -1214,7 +1214,7 @@ function syncAtifFile(db: Database, file: SourceFile): SessionSyncOutcome {
     const limited = readSourceFile(fd);
     if (limited === null) {
       logger.warning("Source file could not be read.", {
-        "event.name": "decant.ingest.source_read_failed",
+        "event.name": "agent-benchmarks.ingest.source_read_failed",
         "file.path": file.path,
         "error.message": FILE_LIMIT_MESSAGE,
       });
@@ -1223,7 +1223,7 @@ function syncAtifFile(db: Database, file: SourceFile): SessionSyncOutcome {
     content = limited;
   } catch (error) {
     logger.warning("Source file could not be read.", {
-      "event.name": "decant.ingest.source_read_failed",
+      "event.name": "agent-benchmarks.ingest.source_read_failed",
       "file.path": file.path,
       "error.type": (error as { code?: string }).code ?? "unknown",
       "error.message": error instanceof Error ? error.message : String(error),
@@ -1454,7 +1454,7 @@ function readOpenCodeSession(
     return loaded == null ? null : { format: "v2", ...loaded };
   } catch (error) {
     logger.warning("Source file could not be read.", {
-      "event.name": "decant.ingest.source_read_failed",
+      "event.name": "agent-benchmarks.ingest.source_read_failed",
       "file.path": sourcePath,
       "error.type": "opencode_read",
       "error.message": error instanceof Error ? error.message : String(error),

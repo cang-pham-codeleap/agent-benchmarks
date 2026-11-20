@@ -7,7 +7,7 @@
 INSERT INTO `session` (`id`, `project_id`, `slug`, `directory`, `title`, `version`, `cost`,
   `tokens_input`, `tokens_output`, `tokens_reasoning`, `tokens_cache_read`, `tokens_cache_write`,
   `agent`, `model`, `time_created`, `time_updated`)
-VALUES ('ses_v1_compact', 'prj_v1', 'v1-compact', '/decant-fixture/example', 'Compaction example', '1.18.35',
+VALUES ('ses_v1_compact', 'prj_v1', 'v1-compact', '/agent-benchmarks-fixture/example', 'Compaction example', '1.18.35',
   0.0001, 400, 80, 0, 0, 0, 'build',
   '{"id":"glm-5.3-flash","providerID":"opencode-go","variant":"max"}',
   1791791000000, 1791791060000);
@@ -16,11 +16,11 @@ INSERT INTO `message` (`id`, `session_id`, `time_created`, `time_updated`, `data
 ('msg_v1c_1', 'ses_v1_compact', 1791791000000, 1791791000000,
  '{"role":"user","time":{"created":1791791000000},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash","variant":"max"}}'),
 ('msg_v1c_2', 'ses_v1_compact', 1791791001000, 1791791004000,
- '{"role":"assistant","time":{"created":1791791001000,"completed":1791791004000},"parentID":"msg_v1c_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/decant-fixture/example","root":"/decant-fixture/example"},"cost":0.000035,"tokens":{"total":140,"input":100,"output":40,"reasoning":0,"cache":{"read":0,"write":0}},"variant":"max","finish":"stop"}'),
+ '{"role":"assistant","time":{"created":1791791001000,"completed":1791791004000},"parentID":"msg_v1c_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/agent-benchmarks-fixture/example","root":"/agent-benchmarks-fixture/example"},"cost":0.000035,"tokens":{"total":140,"input":100,"output":40,"reasoning":0,"cache":{"read":0,"write":0}},"variant":"max","finish":"stop"}'),
 ('msg_v1c_3', 'ses_v1_compact', 1791791010000, 1791791010000,
  '{"role":"user","time":{"created":1791791010000},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash","variant":"max"}}'),
 ('msg_v1c_4', 'ses_v1_compact', 1791791011000, 1791791015000,
- '{"role":"assistant","time":{"created":1791791011000,"completed":1791791015000},"parentID":"msg_v1c_3","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"compaction","agent":"compaction","summary":true,"path":{"cwd":"/decant-fixture/example","root":"/decant-fixture/example"},"cost":0.000065,"tokens":{"total":340,"input":300,"output":40,"reasoning":0,"cache":{"read":0,"write":0}},"variant":"max","finish":"stop"}'),
+ '{"role":"assistant","time":{"created":1791791011000,"completed":1791791015000},"parentID":"msg_v1c_3","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"compaction","agent":"compaction","summary":true,"path":{"cwd":"/agent-benchmarks-fixture/example","root":"/agent-benchmarks-fixture/example"},"cost":0.000065,"tokens":{"total":340,"input":300,"output":40,"reasoning":0,"cache":{"read":0,"write":0}},"variant":"max","finish":"stop"}'),
 ('msg_v1c_5', 'ses_v1_compact', 1791791020000, 1791791020000,
  '{"role":"user","time":{"created":1791791020000},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash","variant":"max"}}');
 

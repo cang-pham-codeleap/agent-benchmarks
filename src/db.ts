@@ -8,7 +8,7 @@ import {
   openSync,
   type Stats,
 } from "node:fs";
-import { getDecantLogger } from "./logging.ts";
+import { getAgentBenchmarksLogger } from "./logging.ts";
 import schemaSql from "./schema.sql" with { type: "text" };
 import {
   buildSchemaManifest,
@@ -40,7 +40,7 @@ const PROVIDER_SCHEMA_MIGRATION = `
   CREATE UNIQUE INDEX idx_session_model_usage_provider ON session_model_usage
     (session_id, COALESCE(provider, ''), model, tier);
 `;
-const logger = getDecantLogger("db");
+const logger = getAgentBenchmarksLogger("db");
 let expectedSchemaManifest: SchemaManifest | null = null;
 const SQLITE_BUSY_RETRY_SIGNAL = new Int32Array(
   new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT),
@@ -66,7 +66,7 @@ export class SchemaTooNewError extends Error {
   constructor(readonly version: number) {
     super(
       `archive schema version ${version} is newer than this build supports ` +
-        `(${LATEST_SCHEMA_VERSION}); upgrade Decant`,
+        `(${LATEST_SCHEMA_VERSION}); upgrade Agent Benchmarks`,
     );
     this.name = "SchemaTooNewError";
   }
@@ -166,7 +166,7 @@ function createArchiveFile(path: string): void {
  * fails with ELOOP instead of redirecting the chmod), that type and ownership
  * are re-read with `fstat` on that descriptor, and that `O_NONBLOCK` keeps a
  * planted FIFO from parking the open. Silent by design: sidecars are absent on
- * a fresh archive, and a path owned by someone else is not decant's to touch.
+ * a fresh archive, and a path owned by someone else is not agent-benchmarks's to touch.
  */
 export function restrictArchiveFile(path: string): void {
   // Windows has neither POSIX mode bits nor O_NOFOLLOW; there is nothing safe
@@ -587,7 +587,7 @@ function migrate(db: Database, current: number): void {
       if (hasTable(db, "block_fts") && hasTable(db, "block")) {
         const blockCount = (db.query("SELECT COUNT(*) AS n FROM block").get() as { n: number }).n;
         logger.info("Rebuilding the full-text index for prefix search.", {
-          "event.name": "decant.schema.fts_rebuild",
+          "event.name": "agent-benchmarks.schema.fts_rebuild",
           "schema.version": 18,
           "block.count": blockCount,
         });
@@ -817,8 +817,8 @@ function migrate(db: Database, current: number): void {
 
     if (current < 26) {
       // OpenCode records a cost per request. It is kept on the usage row for
-      // models Decant cannot price, so the archive shows the recorded figure
-      // instead of zero. Existing rows stay NULL: they were priced by Decant.
+      // models Agent Benchmarks cannot price, so the archive shows the recorded figure
+      // instead of zero. Existing rows stay NULL: they were priced by Agent Benchmarks.
       if (!hasColumn(db, "session_model_usage", "reported_cost_usd")) {
         db.exec("ALTER TABLE session_model_usage ADD COLUMN reported_cost_usd REAL");
       }
@@ -989,7 +989,7 @@ function assertSchemaMatchesBaseline(db: Database): void {
     differences.unexpectedColumns.length > 0;
   if (!hasFatalDifference && differences.unexpectedObjects.length > 0) {
     logger.warning("Archive includes additive operator-owned schema objects.", {
-      "event.name": "decant.schema.additive_drift",
+      "event.name": "agent-benchmarks.schema.additive_drift",
       "schema.version": LATEST_SCHEMA_VERSION,
       "schema.fingerprint.expected": expected.fingerprint,
       "schema.fingerprint.actual": actual.fingerprint,
@@ -1048,7 +1048,7 @@ function throwSchemaDrift(
     differences,
   );
   logger.error("Archive schema does not match this build.", {
-    "event.name": "decant.schema.drift",
+    "event.name": "agent-benchmarks.schema.drift",
     "schema.version": LATEST_SCHEMA_VERSION,
     "schema.fingerprint.expected": expected.fingerprint,
     "schema.fingerprint.actual": actual.fingerprint,

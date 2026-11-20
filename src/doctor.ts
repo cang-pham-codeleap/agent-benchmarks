@@ -6,18 +6,17 @@ import type { Config } from "./config.ts";
 import { LATEST_SCHEMA_VERSION } from "./db.ts";
 import { discover, INGEST_PIPELINE_REVISION } from "./ingest.ts";
 import { TOOLS, type Tool } from "./model.ts";
-import { detectInstall, type InstallChannel, updateCheckEnabled } from "./update.ts";
-import { DECANT_VERSION } from "./version.ts";
+import { detectInstall, type InstallChannel } from "./install.ts";
+import { AGENT_BENCHMARKS_VERSION } from "./version.ts";
 
 export interface DoctorReport {
-  decant_version: string;
+  agentBenchmarks_version: string;
   install_channel: InstallChannel;
   platform: string;
   os_release: string;
   bun_version: string;
   supported_schema_version: number;
   ingest_pipeline_revision: number;
-  update_check: boolean;
   archive: DoctorArchive;
   sources: DoctorSource[];
   discovery_error: string | null;
@@ -50,7 +49,7 @@ export interface DoctorOptions {
 
 export const CUSTOM_PATH = "(custom path)";
 
-const ENV_PREFIXES = ["DECANT_", "OPENCODE_"];
+const ENV_PREFIXES = ["AGENT_BENCHMARKS_", "OPENCODE_"];
 const ENV_NAMES = new Set(["XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME"]);
 
 export function collectDoctorReport(config: Config, options: DoctorOptions = {}): DoctorReport {
@@ -72,14 +71,13 @@ export function collectDoctorReport(config: Config, options: DoctorOptions = {})
   }
 
   return {
-    decant_version: DECANT_VERSION,
+    agentBenchmarks_version: AGENT_BENCHMARKS_VERSION,
     install_channel: (options.install ?? detectInstall({ env })).channel,
     platform: `${process.platform} ${process.arch}`,
     os_release: release(),
     bun_version: typeof Bun === "undefined" ? "unknown" : Bun.version,
     supported_schema_version: LATEST_SCHEMA_VERSION,
     ingest_pipeline_revision: INGEST_PIPELINE_REVISION,
-    update_check: updateCheckEnabled({ env, homeDir: options.homeDir }),
     archive: inspectArchive(config.dbPath, display),
     sources: TOOLS.map((tool) => {
       const roots = sourceRoots(config, tool);

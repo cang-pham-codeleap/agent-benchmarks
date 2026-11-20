@@ -33,7 +33,7 @@ import {
 } from "./opencode-fixture.ts";
 import { makeFifo, runProbeChild } from "./stalled-directory.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-opencode-store-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-opencode-store-test-"));
 const ownTempDirs: string[] = [];
 afterAll(() => {
   for (const dir of [workDir, ...ownTempDirs]) {
@@ -63,7 +63,7 @@ describe("OpenCodeStore", () => {
           format: "v2",
           fingerprint: "1791789660000:4:4:1791789607000",
           timeUpdated: 1791789660000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
         {
           dbPath: path,
@@ -71,13 +71,13 @@ describe("OpenCodeStore", () => {
           format: "v2",
           fingerprint: "1791786060000:4:4:1791786008000",
           timeUpdated: 1791786060000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
       ]);
       const loaded = store.loadSession("ses_sample");
       expect(loaded?.session).toMatchObject({
         id: "ses_sample",
-        directory: "/decant-fixture/example",
+        directory: "/agent-benchmarks-fixture/example",
         title: "Summarize the example file",
         version: "2.0.27",
         cost: 0.0000794,
@@ -142,7 +142,7 @@ describe("OpenCodeStore", () => {
       expect(() => store.loadSession("x")).not.toThrow();
       const writer = new Database(path, { strict: true });
       writer.exec(`INSERT INTO session_v2 (id, project_id, slug, directory, version, time_created, time_updated)
-                   VALUES ('ses_live', 'prj', 'live', '/decant-fixture/example', '2.0.27', 5, 9)`);
+                   VALUES ('ses_live', 'prj', 'live', '/agent-benchmarks-fixture/example', '2.0.27', 5, 9)`);
       writer.close();
       expect(store.listSessions()).toEqual([
         {
@@ -151,7 +151,7 @@ describe("OpenCodeStore", () => {
           format: "v2",
           fingerprint: "9:0:-1:-1",
           timeUpdated: 9,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
       ]);
     } finally {
@@ -167,7 +167,7 @@ describe("OpenCodeStore", () => {
       writer.exec("PRAGMA journal_mode = WAL;");
       writer.exec("PRAGMA wal_autocheckpoint = 0;");
       writer.exec(`INSERT INTO session_v2 (id, project_id, slug, directory, version, time_created, time_updated)
-                   VALUES ('ses_wal', 'prj', 'wal', '/decant-fixture/example', '2.0.27', 5, 9)`);
+                   VALUES ('ses_wal', 'prj', 'wal', '/agent-benchmarks-fixture/example', '2.0.27', 5, 9)`);
       writer.exec(`INSERT INTO session_message (id, session_id, type, seq, time_created, time_updated, data)
                    VALUES ('msg_wal_1', 'ses_wal', 'user', 1, 6, 7, '{"text":"hello"}')`);
       expect(existsSync(`${path}-wal`)).toBe(true);
@@ -243,7 +243,7 @@ describe("OpenCodeStore 1.x tables", () => {
           format: "v1",
           fingerprint: SAMPLE_FINGERPRINT,
           timeUpdated: 1791790060000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
       ]);
     } finally {
@@ -267,7 +267,7 @@ describe("OpenCodeStore 1.x tables", () => {
           format: "v2",
           fingerprint: `1791797060000:5:4:1791797060000|${migratedV1}`,
           timeUpdated: 1791797060000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
         {
           dbPath: path,
@@ -275,7 +275,7 @@ describe("OpenCodeStore 1.x tables", () => {
           format: "v2",
           fingerprint: `1791796000000:1:0:1791796000000|${sharedV1}`,
           timeUpdated: 1791796000000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
       ]);
       expect(store.listSessions([])[1]?.fingerprint).toBe("1791796000000:1:0:1791796000000");
@@ -286,7 +286,7 @@ describe("OpenCodeStore 1.x tables", () => {
           format: "v1",
           fingerprint: migratedV1,
           timeUpdated: 1791797030000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
         {
           dbPath: path,
@@ -294,7 +294,7 @@ describe("OpenCodeStore 1.x tables", () => {
           format: "v1",
           fingerprint: sharedV1,
           timeUpdated: 1791799999999,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
         {
           dbPath: path,
@@ -303,7 +303,7 @@ describe("OpenCodeStore 1.x tables", () => {
           fingerprint:
             "v1:1791796160000:2:4:1791796103000:1791796103000:3583592203000:7167184406500:30b8dab1ca3f",
           timeUpdated: 1791796160000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
       ]);
       expect(store.loadLegacySession("ses_shared")?.session.title).toBe("Legacy copy");
@@ -326,7 +326,7 @@ describe("OpenCodeStore 1.x tables", () => {
     const path = freshPath();
     buildOpenCodeV1Db(path, [
       `INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated)
-       VALUES ('ses_v1_empty', 'prj', 'empty', '/decant-fixture/example', 'Empty', '1.18.35', 5, 9)`,
+       VALUES ('ses_v1_empty', 'prj', 'empty', '/agent-benchmarks-fixture/example', 'Empty', '1.18.35', 5, 9)`,
     ]);
     const store = OpenCodeStore.open(path);
     try {
@@ -445,7 +445,7 @@ describe("OpenCodeStore 1.x tables", () => {
         project_id: "prj_v1",
         parent_id: null,
         slug: "v1-sample",
-        directory: "/decant-fixture/example",
+        directory: "/agent-benchmarks-fixture/example",
         title: "Read the example notes",
         version: "1.18.35",
         cost: 0.0000894,
@@ -471,7 +471,7 @@ describe("OpenCodeStore 1.x tables", () => {
     const path = freshPath();
     buildOpenCodeV1Db(path, [
       `INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated)
-       VALUES ('ses_o', 'prj', 'o', '/decant-fixture/example', 'Order', '1.18.35', 1, 9);
+       VALUES ('ses_o', 'prj', 'o', '/agent-benchmarks-fixture/example', 'Order', '1.18.35', 1, 9);
        INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES
          ('msg_c', 'ses_o', 3, 3, '{}'),
          ('msg_b', 'ses_o', 2, 2, '{}'),
@@ -507,7 +507,7 @@ describe("OpenCodeStore 1.x tables", () => {
           fingerprint:
             "v1:1791798060000:2:2:1791798003000:1791798002500:3583596003000:3583596002500:5bafa15f1cd7",
           timeUpdated: 1791798060000,
-          directory: "/decant-fixture/example",
+          directory: "/agent-benchmarks-fixture/example",
         },
       ]);
       const loaded = store.loadLegacySession("ses_v1_12");
@@ -723,7 +723,7 @@ describe("OpenCode config lookup", () => {
     expect(readOpenCodeMcpServers(path)).toEqual(["exa"]);
   });
 
-  test("reads the global directory's two files, or Decant's override, plus OPENCODE_CONFIG", () => {
+  test("reads the global directory's two files, or Agent Benchmarks's override, plus OPENCODE_CONFIG", () => {
     expect(openCodeGlobalConfigPaths({ globalDir: "/g" })).toEqual([
       "/g/opencode.json",
       "/g/opencode.jsonc",
@@ -868,7 +868,7 @@ describe("OpenCode config lookup", () => {
   });
 
   function ownTempDir(): string {
-    const dir = realpathSync(mkdtempSync(join(tmpdir(), "decant-opencode-stalled-")));
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-opencode-stalled-")));
     ownTempDirs.push(dir);
     return dir;
   }

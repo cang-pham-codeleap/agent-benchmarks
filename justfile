@@ -1,12 +1,11 @@
-# decant developer tasks. `just` lists recipes; `just check` is the local
-# TypeScript plus native distribution definition of done.
+# agent-benchmarks developer tasks. `just` lists recipes; `just check` is the local definition of done.
 
 default:
     @just --list --unsorted
 
 # Quality gates
 [group('gates')]
-check: ts-check dist-check
+check: ts-check
 
 [group('gates')]
 ts-check:
@@ -15,9 +14,6 @@ ts-check:
     bunx biome check .
     bun run scripts/pr-policy.ts
 
-[group('gates')]
-dist-check:
-    bun run scripts/dist-check.ts
 
 # TypeScript
 [group('ts')]
@@ -41,36 +37,12 @@ fmt:
 build-binary *ARGS:
     bun run scripts/build-binaries.ts {{ARGS}}
 
-# Stage publishable npm launcher + platform packages under dist/npm
-[group('dist')]
-build-npm *ARGS:
-    bun run scripts/build-npm.ts {{ARGS}}
 
 # Build a local Docker image
 [group('dist')]
 docker-build *ARGS:
-    docker build --platform linux/amd64 -t decant:local {{ARGS}} .
+    docker build --platform linux/amd64 -t agent-benchmarks:local {{ARGS}} .
 
-# Validate both Linux Docker release platforms without loading an image locally
-[group('dist')]
-docker-buildx *ARGS:
-    docker buildx build --platform linux/amd64,linux/arm64 --output=type=cacheonly {{ARGS}} .
-
-# Cut and push a signed release tag. VERSION is semver without a leading "v"; suffixes like -beta.1 run the same pipeline.
-[group('dist')]
-release VERSION:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    [ -z "$(git status --porcelain)" ] || { echo "working tree is dirty"; exit 1; }
-    branch="$(git rev-parse --abbrev-ref HEAD)"
-    case "$branch" in
-      main | release/*) ;;
-      *) echo "release from main or a release/* branch, not $branch"; exit 1 ;;
-    esac
-    git fetch origin "$branch"
-    [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$branch")" ] || { echo "$branch is not up to date with origin/$branch"; exit 1; }
-    git tag -s "v{{VERSION}}" -m "v{{VERSION}}"
-    git push origin "v{{VERSION}}"
 
 # CLI
 [group('cli')]
@@ -103,9 +75,9 @@ db-info *ARGS:
 
 # Data / maintenance
 [group('data')]
-[confirm("Delete ~/.decant/decant.db and re-ingest every source directory?")]
+[confirm("Delete ~/.agent-benchmarks/agent-benchmarks.db and re-ingest every source directory?")]
 db-rebuild:
-    rm -f ~/.decant/decant.db ~/.decant/decant.db-wal ~/.decant/decant.db-shm
+    rm -f ~/.agent-benchmarks/agent-benchmarks.db ~/.agent-benchmarks/agent-benchmarks.db-wal ~/.agent-benchmarks/agent-benchmarks.db-shm
     bun run src/cli.ts sync
 
 [group('data')]

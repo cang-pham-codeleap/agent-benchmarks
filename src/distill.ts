@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import type { Operation } from "./enrich.ts";
 import { compareCodePoints } from "./order.ts";
 import { sessionUserStatePredicateForDatabase } from "./session-user-state.ts";
-import { DECANT_VERSION } from "./version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "./version.ts";
 
 const OP_KINDS = ["command", "file_write", "file_edit", "file_delete", "patch"] as const;
 export type OpKind = (typeof OP_KINDS)[number];
@@ -341,7 +341,7 @@ export function timeline(db: Database, scope: Scope = {}): Distillation {
     session_count: count.session_count,
     date_from: count.date_from,
     date_to: count.date_to,
-    generated_with: DECANT_VERSION,
+    generated_with: AGENT_BENCHMARKS_VERSION,
   };
 }
 
@@ -421,7 +421,7 @@ export function renderReplay(
   const ops = replayOps(db, sessionId);
   let out = "#!/usr/bin/env bash\n";
   out += `# Replay of ${commentSafe(meta.tool)} session ${sessionId}: ${commentSafe(meta.title ?? "(untitled)")}\n`;
-  out += `# Distilled by Decant ${DECANT_VERSION}. Best-effort, REVIEW before running.\n`;
+  out += `# Distilled by Agent Benchmarks ${AGENT_BENCHMARKS_VERSION}. Best-effort, REVIEW before running.\n`;
   out += "# Assumes the same starting file state; secrets are best-effort redacted.\n";
   out += "set -euo pipefail\n";
   out += `PROJECT_ROOT="\${PROJECT_ROOT:-$(git rev-parse --show-toplevel)}"\ncd "$PROJECT_ROOT"\n\n`;
@@ -500,7 +500,7 @@ description: Distilled workflow for ${project} — proven commands and the files
 
 # ${project} workflow
 
-_Distilled by Decant ${distillation.generated_with} from ${distillation.session_count} session(s). Review and edit before use._
+_Distilled by Agent Benchmarks ${distillation.generated_with} from ${distillation.session_count} session(s). Review and edit before use._
 
 ## When to use
 
@@ -515,7 +515,7 @@ ${commands}`;
     case "agents":
       return `## ${project} — distilled workflow
 
-_Decant ${distillation.generated_with}, from ${distillation.session_count} session(s). Review before committing._
+_Agent Benchmarks ${distillation.generated_with}, from ${distillation.session_count} session(s). Review before committing._
 
 ### Commands
 
@@ -528,7 +528,7 @@ ${files}`;
 description: Run the distilled ${project} workflow
 ---
 
-Proven commands for ${project} (Decant, ${distillation.session_count} session(s)):
+Proven commands for ${project} (Agent Benchmarks, ${distillation.session_count} session(s)):
 
 ${commands}`;
   }
@@ -653,7 +653,7 @@ function headerLines(distillation: Distillation, options: ScriptOpts): string[] 
       ? "faithful single-session order"
       : "ranked by frequency × success";
   return [
-    `Distilled by Decant ${distillation.generated_with} from ${distillation.scope_label}`,
+    `Distilled by Agent Benchmarks ${distillation.generated_with} from ${distillation.scope_label}`,
     `${distillation.session_count} session(s) (${day(distillation.date_from)}..${day(
       distillation.date_to,
     )}). Commands you actually ran, ${mode}.`,
@@ -843,7 +843,7 @@ function relToRoot(path: string, cwd: string | null): string {
   return path;
 }
 
-const REPLAY_EOF = "DECANT_EOF";
+const REPLAY_EOF = "AGENT_BENCHMARKS_EOF";
 const COMMENT_UNSAFE = /[\p{Cc}\u2028\u2029]/gu;
 
 export function commentSafe(value: string): string {

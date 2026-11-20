@@ -36,7 +36,7 @@ export interface SessionUserStateMutationOptions {
   afterApply?: () => void;
 }
 
-const CLAUDE_SPAWN_TOMBSTONE_TOOL = "__decant_internal_claude_spawn__";
+const CLAUDE_SPAWN_TOMBSTONE_TOOL = "__agentBenchmarks_internal_claude_spawn__";
 
 function stateLineageIds(states: string): string {
   return `WITH RECURSIVE state_lineage(id) AS (

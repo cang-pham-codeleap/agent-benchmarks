@@ -96,7 +96,7 @@ export const READ_OPS = {
       const { assembleAnalyticsReport, renderAnalyticsReport } = await import("../report/index.ts");
       return {
         html: renderAnalyticsReport(assembleAnalyticsReport(db, { filter: args.filter })),
-        filename: "decant-analytics-report.html",
+        filename: "agent-benchmarks-analytics-report.html",
       };
     },
   },
@@ -110,7 +110,7 @@ export const READ_OPS = {
       }
       return {
         html: renderSessionReport(report),
-        filename: `decant-session-${report.summary.id}-${reportFilenamePart(report.summary.title)}.html`,
+        filename: `agent-benchmarks-session-${report.summary.id}-${reportFilenamePart(report.summary.title)}.html`,
       };
     },
   },

@@ -1,10 +1,10 @@
 # Architecture
 
-Decant is one local Bun and TypeScript application. The CLI process discovers
+Agent Benchmarks is one local Bun and TypeScript application. The CLI process discovers
 coding-agent logs, normalizes and enriches them, owns the SQLite archive, and
 optionally serves the React UI and local API. There is no hosted service, bearer
 token, or second application process. The optional background service is
-launchd or systemd running that same `decant serve` at login, not a separate
+launchd or systemd running that same `agent-benchmarks serve` at login, not a separate
 daemon.
 
 ## Data flow
@@ -14,7 +14,7 @@ daemon.
   + ~/.cursor/chats/<workspace>/<chat>/store.db
   + ~/.copilot/session-state/<session>/events.jsonl
   + <VS Code User>/workspaceStorage/<id>/chatSessions/<session>.jsonl
-  + ~/.decant/atif/**/*.json (ATIF trajectories, such as Harbor jobs)
+  + ~/.agent-benchmarks/atif/**/*.json (ATIF trajectories, such as Harbor jobs)
   + ~/.hermes/state.db + ~/.hermes/profiles/<name>/state.db
         |
         v
@@ -37,7 +37,7 @@ index plus local user state such as recommendations and session tombstones.
 
 | Area | Primary modules | Responsibility |
 | --- | --- | --- |
-| Composition | `src/cli.ts`, `src/cli/`, `src/config.ts`, `src/settings.ts`, `src/update.ts`, `src/doctor.ts` | Commands, global flags, output policy, configuration, saved UI settings, the opt-in release check and `decant update`, the redacted `decant doctor` report, and process lifecycle. |
+| Composition | `src/cli.ts`, `src/cli/`, `src/config.ts`, `src/settings.ts`, `src/install.ts`, `src/doctor.ts` | Commands, global flags, output policy, local configuration, saved UI settings, install-channel diagnostics, the redacted `agent-benchmarks doctor` report, and process lifecycle. |
 | Sources | `src/sources/`, `src/model.ts` | Pure, print-free parsers and the normalized wire model. |
 | Ingest | `src/ingest.ts`, `src/enrich.ts`, `src/diagnostics.ts` | Discovery, change detection, normalization writes, derived facets, and ingest issues. |
 | Economics | `src/cost.ts`, `src/model-usage.ts`, `src/billed-requests.ts`, `src/buckets.ts`, `src/token-economics.ts`, `src/context-window.ts` | Pricing, per-model usage splits, one billing session per copied Claude Code request, activity attribution, persisted vectors, and occupancy timelines. |
@@ -96,10 +96,10 @@ update time and its message (and, for 1.x, part) counts and update times, and
 Hermes's from the session row's changing columns and its message rows' counts;
 see
 [data lifecycle](data-lifecycle.md). A changed session is replaced
-transactionally, then Decant materializes context-window rollups and versioned
+transactionally, then Agent Benchmarks materializes context-window rollups and versioned
 per-session economics vectors. Costs are also stored at ingest and reconciled
 with current rates on every sync while transcripts and user state remain
-intact. Reading a foreign database does not change Decant's own rule that one
+intact. Reading a foreign database does not change Agent Benchmarks's own rule that one
 process owns the archive; the OpenCode database stays OpenCode's.
 
 The supported extension point is a new parser under `src/sources/`. Follow
@@ -109,7 +109,7 @@ fixture, ingest, and golden requirements.
 ## SQLite ownership and schema
 
 The active CLI process opens the archive directly. WAL mode permits concurrent
-reads and the worker-owned ingest connection, but Decant does not put another
+reads and the worker-owned ingest connection, but Agent Benchmarks does not put another
 daemon or API process in front of SQLite.
 
 `src/schema.sql` is the effective baseline, and `LATEST_SCHEMA_VERSION` in
@@ -117,7 +117,7 @@ daemon or API process in front of SQLite.
 forward; older archives are rebuild-only. A migration is immutable once
 committed because someone may already have opened an archive with that branch.
 Schema manifests detect missing, unexpected, or structurally different owned
-objects before Decant continues on a drifted archive.
+objects before Agent Benchmarks continues on a drifted archive.
 
 Archive files and sidecars are created or narrowed to owner-only permissions
 where the platform supports POSIX modes.
@@ -159,7 +159,7 @@ merged segment, and every later merge would read the whole index. After each
 
 ## Serve, workers, and caches
 
-`decant serve` binds the HTTP listener before opening the archive. This makes a
+`agent-benchmarks serve` binds the HTTP listener before opening the archive. This makes a
 second server fail with a truthful port-in-use message instead of first
 becoming another database owner.
 
@@ -207,7 +207,7 @@ block row, which holds transcript text. Messages and snippets are read for the
 page's rows only.
 
 The worker files are also standalone-binary entrypoints and must remain in the
-compile entrypoint list in `scripts/distribution.ts`.
+compile entrypoint list in `scripts/build-binaries.ts`.
 
 ## Local API and UI
 
@@ -219,9 +219,7 @@ not fit the schema lives in [Local Serve API](api/routes.md).
 The default loopback listener is unauthenticated. A broad bind must pass the
 trusted-peer source-address guard; `Host` and browser-origin checks are defense
 in depth, not credentials. The app never adds an outbound runtime dependency.
-The opt-in release check and the downloads `decant update` makes when you run
-it, both in `src/update.ts`, are the only outbound requests. Neither sends
-archive data.
+The local UI, API, and source-control workflow have no outbound runtime dependency.
 
 Dashboard requests publish their results independently, so available data can
 render while another slice is still loading. Tools aggregates scan a covering

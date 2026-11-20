@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { compareCells } from "../src/compare.ts";
 import { closeDb, openDb } from "../src/db.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-compare-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-compare-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 test("comparison rolls up descendant usage and excludes unpriced tasks from costs", () => {

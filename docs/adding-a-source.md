@@ -1,6 +1,6 @@
 # Add a source parser
 
-Decant's source parsers turn coding-agent session files into one normalized
+Agent Benchmarks's source parsers turn coding-agent session files into one normalized
 archive. A new source must preserve privacy, tolerate format drift, and report
 which analytics its native format can support.
 
@@ -15,7 +15,7 @@ Use this checklist when adding support for another coding-agent CLI.
   `/tmp/example`, and `example-model`. A redacted or edited real transcript is
   not a synthetic fixture. When ingest reads files near a session's directory,
   as OpenCode config lookup does, use a directory no user can create, such as
-  `/decant-fixture/example`, so golden runs never read the machine's own files.
+  `/agent-benchmarks-fixture/example`, so golden runs never read the machine's own files.
 - Parity checks against a private session store must report counts and shape
   mismatches only, never content.
 
@@ -39,7 +39,7 @@ Use this checklist when adding support for another coding-agent CLI.
    on malformed input or writing to stdout or stderr.
 3. **Tool ID** adds a lowercase snake-case wire value to `TOOLS` in
    `src/model.ts`. It is persisted in SQLite, so choose a stable value.
-4. **Watch root** extends `watchDirs()` in `src/watch.ts` so `decant serve`
+4. **Watch root** extends `watchDirs()` in `src/watch.ts` so `agent-benchmarks serve`
    notices new sessions.
 5. **Analytics and exports** add the source to `SESSION_SOURCES`,
    `sessionSourceLabel`, and `sessionSourcePredicate` in `src/source-filter.ts`.
@@ -48,7 +48,7 @@ Use this checklist when adding support for another coding-agent CLI.
    `docs/api/openapi.yaml` and `docs/api/routes.md`. Give it labels in the
    source maps in `src/export.ts` and `ATIF_AGENT_NAMES` in
    `src/sources/atif.ts`, which both the ATIF export and import read, and a row
-   in the source directories `decant doctor` reports from `src/doctor.ts`.
+   in the source directories `agent-benchmarks doctor` reports from `src/doctor.ts`.
 6. **Capability report** includes the table below in the pull-request
    description.
 
@@ -63,7 +63,7 @@ Use this checklist when adding support for another coding-agent CLI.
 | Timestamps | per record / per session / absent |
 | Tool call/result linkage | by ID / by adjacency / absent |
 
-Decant can only report economics where usage data exists. Costs are calculated
+Agent Benchmarks can only report economics where usage data exists. Costs are calculated
 with `estimateCost` in `src/cost.ts` and stored at ingest. Every sync
 reconciles stored costs with current rates, so a pricing change reprices
 historical rows without a rebuild. If a source has no usage data, cost must be
@@ -74,7 +74,7 @@ unavailable rather than zero.
 - For a malformed line, append an `unparsed_line` issue and continue parsing
   the file.
 - Count unrecognized record types and emit one `unknown_record_type` issue per
-  distinct type. This is Decant's format-drift signal, so do not silently
+  distinct type. This is Agent Benchmarks's format-drift signal, so do not silently
   ignore unknown records.
 - Call `linkageIssues(session)` from `src/diagnostics.ts` before returning.
 - Normalize roles to `user | assistant | system | tool | other` and blocks to

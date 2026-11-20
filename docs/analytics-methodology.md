@@ -1,6 +1,6 @@
-# How Decant analytics work
+# How Agent Benchmarks analytics work
 
-Decant derives analytics from the normalized session records already stored in
+Agent Benchmarks derives analytics from the normalized session records already stored in
 the local archive. It does not call a model or upload transcripts. This page
 defines the units behind the CLI, API, UI, and reports so their numbers can be
 interpreted consistently.
@@ -110,22 +110,22 @@ Codex `developer` messages and the AGENTS.md or environment context Codex
 injects as a user message are system rows, so they are neither the first prompt
 nor a turn. The same holds for the `<user_info>` environment block and
 `<system_reminder>` text the Cursor CLI sends as a user message. Cursor runs a
-subagent, and an MCP tool, through `CallDynamicTool`. Decant records the call
+subagent, and an MCP tool, through `CallDynamicTool`. Agent Benchmarks records the call
 under the tool it ran, `Task` or `mcp__<server>__<tool>`, so subagent spawns
 and MCP calls count the same way as in other sources. Copilot CLI writes a
 subagent's events into its parent's journal and marks them with the
-subagent's `agentId`. Decant counts them as sidechain rows, like Claude Code's
+subagent's `agentId`. Agent Benchmarks counts them as sidechain rows, like Claude Code's
 `isSidechain` rows in a parent transcript, so the subagent's prompt is not a
 turn and its calls stay off the parent's context-window curve.
 The summary Hermes Agent writes when it compacts a conversation in place can
-be stored under the user role. Decant files it as a system row that marks the
+be stored under the user role. Agent Benchmarks files it as a system row that marks the
 compaction, so it is not a turn.
 Outcome looks at how the main transcript ended: a normal assistant completion,
 an interruption, a trailing user/tool turn, or an error result.
 
 Use these labels to organize follow-up analysis. Do not treat `completed` as a
 merged change, a passing test suite, or a successful business outcome without
-joining Decant data to evidence from the system where the work landed.
+joining Agent Benchmarks data to evidence from the system where the work landed.
 
 The `outcome` dimension groups runs by the label of their top-level session.
 A subagent's own label is usually empty, so its tokens and cost count under the
@@ -143,7 +143,7 @@ included. It is not a cost per shipped change, for the reason above.
 
 ## Token and cost totals
 
-Decant preserves provider-reported input, output, cache-read, cache-creation,
+Agent Benchmarks preserves provider-reported input, output, cache-read, cache-creation,
 and reasoning usage when the source exposes it. Claude reasoning can be
 estimated by subtraction when the source does not report it directly; the API
 keeps reported and estimated reasoning separate.
@@ -161,7 +161,7 @@ Estimated cost prices recorded usage at current API list prices (see
 rate, or a free tier bills differently.
 
 Claude journal records can split one API message across content blocks and
-repeat its usage on each record. Decant counts that usage once, grouping by
+repeat its usage on each record. Agent Benchmarks counts that usage once, grouping by
 `requestId` or `request_id`, with `message.id` as the fallback. It retains the
 usage snapshot with the largest output count and uses the same grouping for
 reasoning estimates. Records with neither identifier are counted separately.
@@ -170,13 +170,13 @@ present, takes precedence for session totals.
 
 Claude Code's `/branch` and `claude --resume <id> --fork-session` start a new
 transcript with a copy of the conversation so far. Each copied reply keeps its
-`message.id` and usage. Decant bills an API message in one session and stores
+`message.id` and usage. Agent Benchmarks bills an API message in one session and stores
 the copy in the other session's transcript without usage. When the archive
 holds the original of every copied reply, the branch's totals and cost cover
 only the turns made after it was created. The session that made the request
-keeps it, whichever transcript Decant reads first. A copied reply whose
+keeps it, whichever transcript Agent Benchmarks reads first. A copied reply whose
 original session is not in the archive stays billed, because nothing else
-counts it. When only copies of a reply are archived, Decant ranks every
+counts it. When only copies of a reply are archived, Agent Benchmarks ranks every
 session that holds one. The copy nearest the root of the chain of `/branch`
 copies among them keeps it, then the one that started first, then the one with
 the lowest session ID. When a session loses or regains copied replies, its
@@ -184,30 +184,30 @@ reasoning estimate is recomputed from the replies it still bills. `result`
 totals are reduced only when they cover every reply the transcript billed. A
 `result` record for the new run alone is kept as recorded.
 
-Gemini CLI reports usage per model turn in the Gemini API's shape, which Decant
+Gemini CLI reports usage per model turn in the Gemini API's shape, which Agent Benchmarks
 normalizes at ingest: the reported prompt count already includes cached
 content, so input is stored net of cache reads, and thought tokens are
 reported outside the candidate count, so they are folded into output and also
 recorded as reported reasoning.
 
 OpenCode records `input`, `output`, `reasoning`, `cache.read`, and
-`cache.write` counts on each assistant step. Decant stores input as reported,
+`cache.write` counts on each assistant step. Agent Benchmarks stores input as reported,
 output with reasoning included (reasoning is also recorded as reported), cache
 reads as cache reads, and cache writes as cache creation. OpenCode 2.x, and
-1.x from v1.3.16 on, record output without reasoning, so Decant stores
+1.x from v1.3.16 on, record output without reasoning, so Agent Benchmarks stores
 `output + reasoning`. Releases up to v1.3.15 recorded output that already
-included reasoning, so Decant does not add reasoning again; OpenCode's recorded
-cost for those steps charges reasoning twice, which matters only where Decant
+included reasoning, so Agent Benchmarks does not add reasoning again; OpenCode's recorded
+cost for those steps charges reasoning twice, which matters only where Agent Benchmarks
 falls back to the reported cost. A step's recorded `total` decides which
 convention it follows. Without one, the OpenCode version recorded on the
 session decides. OpenCode writes that version once, when the session is
 created, so a session created before v1.3.16 and resumed on a later release
 can be misclassified for steps that carry no `total`. Preview builds record a
-version of the form `0.0.0-<channel>-<YYYYMMDDHHmm>`; Decant compares that
+version of the form `0.0.0-<channel>-<YYYYMMDDHHmm>`; Agent Benchmarks compares that
 build time with the v1.3.16 release (2026-04-06).
 
 OpenCode 1.x keeps steps as parts of a message, and the message's own token
-counts hold only its last step. Decant sums the message's per-step
+counts hold only its last step. Agent Benchmarks sums the message's per-step
 (`step-finish`) usage instead, and counts one step per message, as 2.x does
 per row. A 1.x message with no per-step records uses its own counts, and one
 that recorded neither tokens nor cost (an unfinished request) has no usage.
@@ -217,22 +217,22 @@ request, so a long-prompt price tier and context occupancy see its summed
 input.
 
 Compaction steps carry their own usage and are counted; `opencode stats` does
-not count them on a local install, so Decant can read slightly higher. In 1.x a
-compaction is a request message plus the summary that answers it; Decant
+not count them on a local install, so Agent Benchmarks can read slightly higher. In 1.x a
+compaction is a request message plus the summary that answers it; Agent Benchmarks
 stores the pair as one compaction record carrying the summary's usage, as it
 does for a 2.x compaction row. OpenCode 2.x session totals also include title
-generation, which never appears in a message row, so Decant's per-session
+generation, which never appears in a message row, so Agent Benchmarks's per-session
 totals can read slightly lower than OpenCode's.
 
 A fork copies its parent's messages with their original creation time.
-Decant skips a fork's messages that are older than its session, so forked
+Agent Benchmarks skips a fork's messages that are older than its session, so forked
 history is counted once, in the parent. 2.x records the fork link, but 1.x
 records none, and sessions OpenCode migrated from 1.x keep none, so for 1.x
 sessions and sessions migrated from 1.x the timestamp is the only signal and
-Decant skips by time. A native 2.x session without a fork link keeps every
+Agent Benchmarks skips by time. A native 2.x session without a fork link keeps every
 message, so a clock change cannot drop its usage. `opencode stats` skips inherited rows only for sessions
 with a fork link, so for a fork migrated from 1.x it counts the parent's
-history again and reads higher than Decant. Decant differs from it here on
+history again and reads higher than Agent Benchmarks. Agent Benchmarks differs from it here on
 purpose. Messages past a revert point stay counted until OpenCode deletes them
 at the next prompt; OpenCode's own migration keeps them too. A 1.x message
 that holds only a subtask (a `/command` run as a subagent) is kept as a system
@@ -242,18 +242,18 @@ When OpenCode upgrades from 1.x it migrates sessions into its 2.x tables and
 keeps the 1.x tables. The migration keeps message IDs but copies only each
 message's last-step token counts, drops `total`, and folds a compaction request
 and its summary into one compaction row with no usage. So when a 2.x session's
-ID is also in the same database's 1.x tables, Decant reads its usage from the
+ID is also in the same database's 1.x tables, Agent Benchmarks reads its usage from the
 1.x copy: each migrated assistant row takes the sum of its 1.x per-step
 records, under the 1.x reasoning rules above, and a migrated compaction row
 takes its summary's usage, model, and recorded cost. Rows the 1.x copy does not
 hold were written by OpenCode 2.x after the migration and are read as 2.x rows.
-If the 1.x copy is gone, Decant reads every row of the session by the
+If the 1.x copy is gone, Agent Benchmarks reads every row of the session by the
 session's version, with last-step counts only, and a 2.x row added to a
 session created before v1.3.16 can then be misread as already holding its
 reasoning. Migrated rows keep their 1.x tool names and inputs: `read`, `edit`,
 `write`, and `multiedit` calls give their `filePath` input as a file reference
 (as for 1.x sessions), and `task` calls link subagents. When a 1.x binary
-keeps writing a session after the migration, its 1.x copy is newer, and Decant
+keeps writing a session after the migration, its 1.x copy is newer, and Agent Benchmarks
 reads that copy instead.
 
 File references preserve the original tool path. For Windows workspaces,
@@ -273,7 +273,7 @@ totals, for example when a stream `result` record disagrees with the journal,
 the whole session is priced at its model.
 
 GitHub Copilot CLI 1.0.105 and later write each model call's usage as a
-`session.usage_record` event, and Decant puts it on the assistant message with
+`session.usage_record` event, and Agent Benchmarks puts it on the assistant message with
 the same `apiCallId`. Split assistant messages share one call, so its usage
 is counted once on the first message. Replayed usage records with the same
 `apiCallId` also count once. Reasoning text is deduplicated within a call,
@@ -283,7 +283,7 @@ per-model usage snapshots, the `modelMetrics` of each `session.shutdown` and
 the `providerModelMetrics` of each `session.usage_checkpoint`. Current Copilot
 builds carry usage across a resume, so the last snapshot is the session total.
 Older builds restarted usage at zero after a resume, so a snapshot that falls
-below the one before it starts a new run, and Decant adds the earlier run's
+below the one before it starts a new run, and Agent Benchmarks adds the earlier run's
 usage. A restarted run that grows past the earlier run cannot be told apart
 from a carried-over one, so such a session undercounts. When the usage records
 summed per model are at least the snapshot total for every model, they are the
@@ -295,7 +295,7 @@ they have no summary, so their recorded occupancy and compaction count stay
 available. Failed compaction attempts do not create a context boundary and
 are excluded from the compaction count.
 
-Copilot's `inputTokens` counts every prompt token, so Decant stores input net
+Copilot's `inputTokens` counts every prompt token, so Agent Benchmarks stores input net
 of `cacheReadTokens` and `cacheWriteTokens`, records `cacheWriteTokens` as
 cache creation, and reports reasoning tokens when Copilot records them. Each
 model's totals are priced at that model's rate, so a session that switches
@@ -308,9 +308,9 @@ session model when it is known. They remain unpriced when no model is known.
 
 Copilot Chat in VS Code records usage on each request, and only in builds from
 April 2026 on. `completionTokens` sums the output of every model call the
-request made, and Decant stores it as the turn's output. `promptTokens`, added
+request made, and Agent Benchmarks stores it as the turn's output. `promptTokens`, added
 in June 2026 builds, is the prompt size of the request's last model call only,
-with cache reads counted in and no cache split. Decant stores it as the turn's
+with cache reads counted in and no cache split. Agent Benchmarks stores it as the turn's
 input. That figure is also the context the turn ended with, so context-window
 analytics read it directly. A turn with many tool calls sends many prompts, and
 only the last is recorded, so the earlier prompts go uncounted. The last
@@ -323,10 +323,10 @@ recorded.
 
 An imported ATIF trajectory carries the usage its producer wrote in each agent
 step's `metrics`. ATIF counts cache reads and writes inside `prompt_tokens`, so
-Decant subtracts `cached_tokens` and the cache writes in `metrics.extra` to get
+Agent Benchmarks subtracts `cached_tokens` and the cache writes in `metrics.extra` to get
 input, and reads reasoning from `metrics.extra.reasoning_tokens`. Session
 totals are the sum of the steps, not `final_metrics`, which can also count the
-trajectory's subagents. Decant's own exports are the exception: their
+trajectory's subagents. Agent Benchmarks's own exports are the exception: their
 `final_metrics`, or the `session_metrics` share when subagents are rolled in,
 are the session's totals. Steps marked `is_copied_context` repeat another
 trajectory's turns and count nothing. See
@@ -334,7 +334,7 @@ trajectory's turns and count nothing. See
 
 Hermes Agent records usage only per session and per model, in its `sessions`
 row and `session_model_usage` table, never per message. Hermes already stores
-input net of cache reads and writes, so Decant reads its input, output,
+input net of cache reads and writes, so Agent Benchmarks reads its input, output,
 cache-read, cache-write, and reasoning counts as written and prices each
 model's share at that model's rate. A route Hermes ran for an auxiliary task,
 such as title generation, counts as its own model row. Usage in the session
@@ -342,13 +342,13 @@ row that the per-model rows do not cover, as in a database from before Hermes
 kept them, is charged to the session's model. If the per-model rows add up to
 more than the session row, the rows are the totals. Hermes messages carry no
 usage, so Hermes sessions have no per-message usage or context-window
-occupancy. Decant does not use the cost Hermes estimated or the cost a
+occupancy. Agent Benchmarks does not use the cost Hermes estimated or the cost a
 provider reported. A Hermes session with no recorded API call, no per-model
 usage row, and no tokens reports reasoning, tokens, and cost as unavailable.
 
 Pi records usage on each assistant reply and on cache-warming `usage` entries,
 each naming its model. Its `input` already excludes cache reads and writes, and
-its `reasoning` is part of `output`, so Decant reads them as written, with
+its `reasoning` is part of `output`, so Agent Benchmarks reads them as written, with
 `cacheWrite1h` as the one-hour share of cache writes. Usage a tool's own model
 work recorded on its result names no model and is charged to the session's
 model. Compaction and branch summaries are charged to the model selected when
@@ -366,16 +366,16 @@ usage row. Session summaries mark such sessions
 `usage_available: false`, and the UI shows their tokens and cost as
 unavailable instead of $0. Stats totals,
 per-model, per-project, and per-day rows, and project rollups count only the
-sessions with usage in `usage_sessions`. Wherever Decant shows cost, a total or
+sessions with usage in `usage_sessions`. Wherever Agent Benchmarks shows cost, a total or
 row made up only of sessions without usage reads "Unavailable" (or "-" in dense
 tables) rather than free, and a mixed one shows the cost of the sessions that
 recorded usage with an asterisk whose tooltip or footnote counts the rest. The
-cost-per-day charts leave out days with no usage data. `decant tokens`
+cost-per-day charts leave out days with no usage data. `agent-benchmarks tokens`
 prints "-" for cost, with a note on stderr, when no session in scope records
-usage, and `decant project ls` prints "-" for such a project and an asterisk
+usage, and `agent-benchmarks project ls` prints "-" for such a project and an asterisk
 after a cost that leaves sessions out.
 
-When Decant has no rate for a model, the cost OpenCode recorded for those
+When Agent Benchmarks has no rate for a model, the cost OpenCode recorded for those
 requests, an ATIF step's `metrics.cost_usd`, or Pi's `usage.cost.total` is used instead and the session's `cost_source` is `reported` (or
 `mixed` when only some of its model rows fell back). A recorded cost of zero
 is never used: subscription routes such as the GLM Coding Plan record zero,
@@ -414,7 +414,7 @@ estimated cost, and active time to four buckets:
 
 Shell classification is deliberately conservative. Read-only commands such as
 `rg`, `cat`, `sed -n`, and `git diff` are context; mutating or unrecognized
-shell commands are code. Decant judges a compound command by every part, not by
+shell commands are code. Agent Benchmarks judges a compound command by every part, not by
 its first word:
 
 - It splits on `;`, `&&`, `||`, a backgrounding `&`, newlines, and pipes,
@@ -466,7 +466,7 @@ quality judgment.
 
 Recent Codex CLI versions run most actions through one `exec` tool. Its input
 is a JavaScript program that calls `tools.exec_command`, `tools.apply_patch`,
-`tools.update_plan`, MCP tools, and similar. Decant classifies each inner call
+`tools.update_plan`, MCP tools, and similar. Agent Benchmarks classifies each inner call
 like the tool it names:
 
 - The whole call takes the strongest inner bucket (code, then planning, then
@@ -480,13 +480,13 @@ like the tool it names:
 - `write_stdin`, which polls or answers a running `exec_command`, is code:
   the commands agents leave running are nearly always builds and test runs.
 
-Acorn parses these programs for static tool-call inspection. Decant does not
+Acorn parses these programs for static tool-call inspection. Agent Benchmarks does not
 execute the JavaScript or resolve variables, branches, or tool aliases.
 Raw programs and JSON-encoded programs or `{input: ...}` objects follow the
 same attribution rules.
 
 OpenCode 2.x runs MCP tools from a JavaScript program passed to its `execute`
-tool, and records each call the program made. Decant keeps `execute` as the
+tool, and records each call the program made. Agent Benchmarks keeps `execute` as the
 model's tool call and adds one tool call per recorded inner call. An inner
 call to `<server>.<tool>` is an MCP call named `mcp__<server>__<tool>`, exactly
 as a direct call to that server is. OpenCode writes `<server>` with the same
@@ -496,15 +496,15 @@ both forms of a call share one `mcp_server`. Inner calls with no namespace
 their recorded name. Any other namespace is treated as an MCP server, so a
 plugin that adds its own namespace to code mode would count as MCP. OpenCode
 1.x has no `execute` tool and calls MCP tools directly as `<server>_<tool>`,
-which Decant names `mcp__<server>__<tool>` like a 2.x direct call.
+which Agent Benchmarks names `mcp__<server>__<tool>` like a 2.x direct call.
 
 Inner calls are tool-call rows, so these numbers count both the `execute`
 call and each inner call:
 
-- `decant tool stats` and `decant mcp stats`, and `GET /api/tools/usage` and
+- `agent-benchmarks tool stats` and `agent-benchmarks mcp stats`, and `GET /api/tools/usage` and
   `GET /api/tools/mcp-usage`.
 - The Dosu MCP call counters on sessions.
-- `tool_calls` in `decant stats` and in token-economics buckets.
+- `tool_calls` in `agent-benchmarks stats` and in token-economics buckets.
 - The activity report's "Tool calls" figure and its tool table.
 - A session report's tool table, so it can sum to more than that session's
   "Tool calls" total below.
@@ -702,7 +702,7 @@ values remain unavailable rather than being invented.
 
 ## Distilled command success
 
-`decant distill` reports `success_rate` per normalized command across the
+`agent-benchmarks distill` reports `success_rate` per normalized command across the
 sessions in scope. It counts only calls with a recorded result. Codex does not
 record per-call results, so those calls stay out of the rate, and a command no
 call recorded a result for has a `null` rate. Script comments floor the
@@ -759,8 +759,8 @@ per session show at most two rows each. Usage signals (heavy server, busy
 tool) score lowest, so they are the first to drop.
 
 The abandoned rate is archive-wide. Its detail names the two repositories
-with the most abandoned sessions. Decant has no per-session outcome filter, so
-the row points at `decant stats --by outcome` for the mix.
+with the most abandoned sessions. Agent Benchmarks has no per-session outcome filter, so
+the row points at `agent-benchmarks stats --by outcome` for the mix.
 
 An open signal that stops meeting its threshold is marked implemented with
 the source `activity`, and reopens if it qualifies again. A signal that still
@@ -777,7 +777,7 @@ removed.
 
 ## Data quality signals
 
-`unparsed_line` means Decant could not normalize a source line and is treated
+`unparsed_line` means Agent Benchmarks could not normalize a source line and is treated
 as a substantive ingest issue. Other diagnostics, such as an unknown record
 type or imperfect tool linkage, are informational format-drift sensors. Both
 are preserved, but informational notices should not be described as data loss

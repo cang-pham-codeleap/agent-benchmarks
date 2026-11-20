@@ -16,12 +16,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { detectedSettings, getSettings, saveSettings, settingsPath } from "../src/settings.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-settings-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-settings-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 describe("settings", () => {
-  test("path honors DECANT_CONFIG_DIR and detected defaults use the environment", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "cfg"), TERM_PROGRAM: "iTerm.app" };
+  test("path honors AGENT_BENCHMARKS_CONFIG_DIR and detected defaults use the environment", () => {
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "cfg"), TERM_PROGRAM: "iTerm.app" };
     expect(settingsPath({ env })).toBe(join(workDir, "cfg", "settings.json"));
     expect(
       detectedSettings({
@@ -32,18 +32,17 @@ describe("settings", () => {
       agent: "claude",
       terminal: "iterm",
       ide: "cursor",
-      updateCheck: false,
     });
   });
 
   test("detects Warp and exposes it as a persisted terminal option", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "warp"), TERM_PROGRAM: "WarpTerminal" };
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "warp"), TERM_PROGRAM: "WarpTerminal" };
     expect(detectedSettings({ env, appExists: () => false }).terminal).toBe("warp");
     expect(saveSettings({ terminal: "warp" }, { env }).terminal).toBe("warp");
   });
 
   test("an unrelated save prunes a stale Dosu suggestions preference", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "stale") };
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "stale") };
     const path = settingsPath({ env });
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(
@@ -55,7 +54,6 @@ describe("settings", () => {
       agent: "codex",
       terminal: "wezterm",
       ide: "vscode",
-      updateCheck: false,
     });
     expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
       agent: "codex",
@@ -64,7 +62,7 @@ describe("settings", () => {
   });
 
   test("creates the settings file owner-only, even over a looser existing file", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "mode") };
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "mode") };
     const path = settingsPath({ env });
     saveSettings({ agent: "codex" }, { env });
     expect(statSync(path).mode & 0o777).toBe(0o600);
@@ -76,7 +74,7 @@ describe("settings", () => {
   });
 
   test("a missing or empty file means defaults and saves without a backup", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "empty") };
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "empty") };
     const path = settingsPath({ env });
     expect(getSettings({ env, appExists: () => false }).agent).toBe("claude");
 
@@ -93,7 +91,7 @@ describe("settings", () => {
       ["array", '["codex"]'],
       ["null", "null"],
     ] as const) {
-      const env = { DECANT_CONFIG_DIR: join(workDir, `corrupt-${name}`) };
+      const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, `corrupt-${name}`) };
       const path = settingsPath({ env });
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, body);
@@ -112,9 +110,9 @@ describe("settings", () => {
   });
 
   test("a symlinked settings file is written through to its target", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "linked") };
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "linked") };
     const path = settingsPath({ env });
-    const target = join(workDir, "dotfiles", "decant-settings.json");
+    const target = join(workDir, "dotfiles", "agent-benchmarks-settings.json");
     mkdirSync(dirname(path), { recursive: true });
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, '{"agent": "codex"}\n');
@@ -127,7 +125,7 @@ describe("settings", () => {
   });
 
   test("an unreadable file is neither replaced nor backed up", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "unreadable") };
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "unreadable") };
     const path = settingsPath({ env });
     mkdirSync(path, { recursive: true });
 
@@ -138,7 +136,7 @@ describe("settings", () => {
   });
 
   test("saveSettings persists sanitized values over detected defaults", () => {
-    const env = { DECANT_CONFIG_DIR: join(workDir, "save"), TERM: "xterm-kitty" };
+    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "save"), TERM: "xterm-kitty" };
     const saved = saveSettings(
       {
         agent: "codex",
@@ -153,7 +151,6 @@ describe("settings", () => {
       agent: "codex",
       terminal: "ghostty",
       ide: "zed",
-      updateCheck: false,
     });
     expect(JSON.parse(readFileSync(settingsPath({ env }), "utf8"))).toEqual({
       agent: "codex",

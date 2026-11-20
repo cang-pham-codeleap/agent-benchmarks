@@ -399,7 +399,7 @@ export function parseCopilotSession(fallbackId: string, content: string): Parsed
         if (apiCallId == null) {
           break;
         }
-        const converted = toDecantUsage(recordUsage);
+        const converted = toAgentBenchmarksUsage(recordUsage);
         callUsage.set(apiCallId, converted);
         const message = callMessages.get(apiCallId);
         if (message != null) {
@@ -612,7 +612,7 @@ export function recordsUnlessShortOfSnapshots(
   return ledger.size > 0 && coversEveryModel(ledger, merged) ? ledger : merged;
 }
 
-function toDecantUsage(usage: CopilotModelUsage): TokenUsage {
+function toAgentBenchmarksUsage(usage: CopilotModelUsage): TokenUsage {
   return {
     input: Math.max(0, usage.input - usage.cacheRead - usage.cacheWrite),
     output: usage.output,
@@ -626,7 +626,7 @@ function toDecantUsage(usage: CopilotModelUsage): TokenUsage {
 function toModelUsageRows(snapshot: UsageSnapshot): CopilotModelUsageRow[] {
   const rows: CopilotModelUsageRow[] = [];
   for (const [model, usage] of snapshot) {
-    const converted = toDecantUsage(usage);
+    const converted = toAgentBenchmarksUsage(usage);
     if (
       usage.requests === 0 &&
       converted.input + converted.output + converted.cacheRead + converted.cacheCreation === 0

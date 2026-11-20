@@ -13,7 +13,7 @@ import { parseClaudeSession } from "../src/sources/claude.ts";
 import { parseCodexSession } from "../src/sources/codex.ts";
 import { computeSessionEconomicsVectors, tokenEconomics } from "../src/token-economics.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-economics-cache-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-economics-cache-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -244,7 +244,7 @@ describe("economics cache", () => {
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0] ?? "")).toMatchObject({
       level: "WARN",
-      "event.name": "decant.economics.rebuild_failed",
+      "event.name": "agent-benchmarks.economics.rebuild_failed",
       "exception.message": "worker exploded",
     });
     db.close();

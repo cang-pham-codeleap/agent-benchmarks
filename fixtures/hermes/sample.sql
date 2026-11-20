@@ -12,8 +12,8 @@ INSERT INTO sessions (id, source, model, model_config, system_prompt, started_at
   profile_name)
 VALUES ('20261101_090000_a1b2c3', 'cli', 'anthropic/claude-sonnet-5-5',
   '{"max_iterations":90}', 'You are an example assistant.', 1791786000.0, 1791786130.5,
-  'cli_close', 15, 5, 1020, 252, 3000, 400, 60, '/decant-fixture/example', 'main',
-  '/decant-fixture/example', 'openrouter', 'api', 0.0123, 'estimated',
+  'cli_close', 15, 5, 1020, 252, 3000, 400, 60, '/agent-benchmarks-fixture/example', 'main',
+  '/agent-benchmarks-fixture/example', 'openrouter', 'api', 0.0123, 'estimated',
   'Summarize the example notes', 1791786130.5, 4, 'default');
 
 INSERT INTO messages (id, session_id, role, content, tool_call_id, tool_calls, tool_name,
@@ -51,7 +51,7 @@ INSERT INTO messages (id, session_id, role, content, tool_call_id, tool_calls, t
   'call_delegate_1', NULL, 'delegate_task', 1791786100.0, NULL, NULL, NULL, 0, 1, 0,
   'uid-tool-11'),
 (12, '20261101_090000_a1b2c3', 'assistant', 'Updating the notes now.', NULL,
-  '[{"id":"call_patch_1","type":"function","function":{"name":"patch","arguments":"{\"path\":\"/decant-fixture/example/notes.txt\",\"old_string\":\"hello\",\"new_string\":\"hello, world\"}"}}]',
+  '[{"id":"call_patch_1","type":"function","function":{"name":"patch","arguments":"{\"path\":\"/agent-benchmarks-fixture/example/notes.txt\",\"old_string\":\"hello\",\"new_string\":\"hello, world\"}"}}]',
   NULL, 1791786110.0, 'tool_calls', NULL, NULL, 0, 1, 0, 'uid-assistant-12'),
 (13, '20261101_090000_a1b2c3', 'tool', '{"success":true}', 'call_patch_1', NULL, 'patch',
   1791786111.0, NULL, NULL, NULL, 0, 1, 0, 'uid-tool-13'),

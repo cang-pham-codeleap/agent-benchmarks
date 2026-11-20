@@ -17,9 +17,9 @@ import { closeDb, LATEST_SCHEMA_VERSION, openDb } from "../src/db.ts";
 import { upsertSession } from "../src/ingest.ts";
 import { setSessionUserState } from "../src/session-user-state.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
-import { DECANT_VERSION } from "../src/version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "../src/version.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-cli-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cli-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;
@@ -34,6 +34,8 @@ function freshCase(): {
   vscodeCopilotDir: string;
   hermesDir: string;
   piDir: string;
+  ompDir: string;
+  droidDir: string;
 } {
   caseCounter += 1;
   const dir = join(workDir, `case-${caseCounter}`);
@@ -46,6 +48,8 @@ function freshCase(): {
   const vscodeCopilotDir = join(dir, "sources", "vscode", "User");
   const hermesDir = join(dir, "sources", "hermes");
   const piDir = join(dir, "sources", "pi");
+  const ompDir = join(dir, "sources", "omp");
+  const droidDir = join(dir, "sources", "droid");
   mkdirSync(claudeDir, { recursive: true });
   mkdirSync(join(codexDir, "sessions"), { recursive: true });
   mkdirSync(geminiDir, { recursive: true });
@@ -73,6 +77,8 @@ function freshCase(): {
     vscodeCopilotDir,
     hermesDir,
     piDir,
+    ompDir,
+    droidDir,
   };
 }
 
@@ -113,6 +119,10 @@ async function syncedCase(): Promise<{ dbPath: string }> {
     fixtureCase.hermesDir,
     "--pi-dir",
     fixtureCase.piDir,
+    "--omp-dir",
+    fixtureCase.ompDir,
+    "--droid-dir",
+    fixtureCase.droidDir,
   ]);
   expect(result).toMatchObject({ code: 0, stderr: "" });
   expect(JSON.parse(result.stdout)).toMatchObject({ scanned: 7, ingested: 7, issues: 0 });
@@ -710,19 +720,19 @@ describe("runCli", () => {
     return path;
   }
 
-  test("sync issues hint names --db for an archive chosen by DECANT_DB", async () => {
+  test("sync issues hint names --db for an archive chosen by AGENT_BENCHMARKS_DB", async () => {
     const envCase = freshCase();
     const targetDir = mkdtempSync(join(workDir, "issues-hint-env-"));
     const informationalEnv = claudeSampleWithUnknownRecord(targetDir, "m3");
     const softEnv = await runCli(["--json", "sync", "--path", informationalEnv], {
-      env: { DECANT_DB: envCase.dbPath },
+      env: { AGENT_BENCHMARKS_DB: envCase.dbPath },
       homeDir: targetDir,
     });
     expect(softEnv.code).toBe(0);
     expect(JSON.parse(softEnv.stdout).issues_hint).toContain(`--db '${envCase.dbPath}' ls --json`);
   });
 
-  test("sync issues hint is the bare decant command when no archive override is set", async () => {
+  test("sync issues hint is the bare agent-benchmarks command when no archive override is set", async () => {
     const targetDir = mkdtempSync(join(workDir, "issues-hint-default-"));
     const informationalDefault = claudeSampleWithUnknownRecord(targetDir, "m4");
     const softDefault = await runCli(["--json", "sync", "--path", informationalDefault], {
@@ -730,7 +740,7 @@ describe("runCli", () => {
       homeDir: targetDir,
     });
     expect(softDefault.code).toBe(0);
-    expect(JSON.parse(softDefault.stdout).issues_hint).toContain("decant ls --json");
+    expect(JSON.parse(softDefault.stdout).issues_hint).toContain("agent-benchmarks ls --json");
   });
 
   test("sync --path ingests only the requested source files", async () => {
@@ -762,7 +772,7 @@ describe("runCli", () => {
 
   test("creates a missing archive directory owner-only", async () => {
     const fixtureCase = freshCase();
-    const dbPath = join(dirname(fixtureCase.dbPath), "archive", "decant.db");
+    const dbPath = join(dirname(fixtureCase.dbPath), "archive", "agent-benchmarks.db");
 
     const list = await runCli(["--db", dbPath, "--json", "--no-sync", "ls"]);
     expect(list).toMatchObject({ code: 1, stdout: "" });
@@ -851,7 +861,7 @@ describe("runCli", () => {
   test("version and live output mode", async () => {
     const version = await runCli(["--version"]);
     expect(version).toMatchObject({ code: 0, stderr: "" });
-    expect(version.stdout).toContain(DECANT_VERSION);
+    expect(version.stdout).toContain(AGENT_BENCHMARKS_VERSION);
 
     let streamed = "";
     const live = await runCli(["--version"], {
@@ -862,13 +872,13 @@ describe("runCli", () => {
       writeStderr: () => {},
     });
     expect(live).toMatchObject({ code: 0, stdout: "", stderr: "" });
-    expect(streamed).toContain(DECANT_VERSION);
+    expect(streamed).toContain(AGENT_BENCHMARKS_VERSION);
   });
 
   test("completion emits shell scripts and rejects unknown shells", async () => {
     const bash = await runCli(["completion", "bash"]);
     expect(bash).toMatchObject({ code: 0, stderr: "" });
-    expect(bash.stdout).toContain("complete -F _decant_complete decant");
+    expect(bash.stdout).toContain("complete -F _agent_benchmarks_complete agent-benchmarks");
     expect(bash.stdout).toContain("watch");
     expect(bash.stdout).toContain("serve");
     expect(bash.stdout).toContain("tokens");
@@ -914,7 +924,7 @@ describe("runCli", () => {
         "--trusted-peer",
         "10.0.0.0/33",
       ],
-      { env: { DECANT_NO_SYNC: "1" } },
+      { env: { AGENT_BENCHMARKS_NO_SYNC: "1" } },
     );
     expect(result.code).toBe(1);
     expect(result.stderr).toContain('invalid trusted peer "10.0.0.0/33"');
@@ -1179,7 +1189,7 @@ describe("session rm", () => {
     ]);
     expect(removed.code).toBe(0);
     expect(removed.stdout).toContain(`deleted session ${rootId} (1 descendant)`);
-    expect(removed.stdout).toContain("decant db vacuum");
+    expect(removed.stdout).toContain("agent-benchmarks db vacuum");
 
     expect(ftsMatches(dbPath, "ROOTCANARYTEXT")).toBe(0);
     expect(ftsMatches(dbPath, "CHILDCANARYTEXT")).toBe(0);
@@ -1388,7 +1398,7 @@ describe("session rm", () => {
   test("is offered by shell completion", async () => {
     const fish = await runCli(["completion", "fish"]);
     expect(fish.code).toBe(0);
-    expect(fish.stdout).toContain("complete -c decant -f -a 'rm'");
+    expect(fish.stdout).toContain("complete -c agent-benchmarks -f -a 'rm'");
     const zsh = await runCli(["completion", "zsh"]);
     expect(zsh.code).toBe(0);
     expect(zsh.stdout).toMatch(/\brm\b/);

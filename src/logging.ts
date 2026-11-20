@@ -40,7 +40,7 @@ export function configureLogging(options: ConfigureLoggingOptions = {}): void {
         parentSinks: "override",
       },
       {
-        category: ["decant"],
+        category: ["agent-benchmarks"],
         sinks: ["stderr"],
         lowestLevel: configuredLevel.level,
       },
@@ -48,29 +48,29 @@ export function configureLogging(options: ConfigureLoggingOptions = {}): void {
   });
 
   if (configuredLevel.invalid != null) {
-    getDecantLogger("logging").warning("Invalid log level; using info.", {
-      "event.name": "decant.logging.configuration.invalid",
+    getAgentBenchmarksLogger("logging").warning("Invalid log level; using info.", {
+      "event.name": "agent-benchmarks.logging.configuration.invalid",
       "log.level.requested": configuredLevel.invalid,
       "log.level.fallback": DEFAULT_LOG_LEVEL,
     });
   }
 }
 
-export function getDecantLogger(component: string): Logger {
-  return getLogger(["decant", component]).with({ "service.name": "decant" });
+export function getAgentBenchmarksLogger(component: string): Logger {
+  return getLogger(["agent-benchmarks", component]).with({ "service.name": "agent-benchmarks" });
 }
 
 export function logWatchEvent(logger: Logger, event: WatchEvent): void {
   switch (event.type) {
     case "ready":
       logger.info("Watcher ready.", {
-        "event.name": "decant.watch.ready",
+        "event.name": "agent-benchmarks.watch.ready",
         "source.directory.count": event.dirs.length,
       });
       break;
     case "sync":
       logger.info("Archive sync completed.", {
-        "event.name": "decant.sync.completed",
+        "event.name": "agent-benchmarks.sync.completed",
         "sync.reason": event.reason,
         "sync.files.scanned": event.report.scanned,
         "sync.files.ingested": event.report.ingested,
@@ -82,7 +82,7 @@ export function logWatchEvent(logger: Logger, event: WatchEvent): void {
       break;
     case "error":
       logger.error("Archive sync failed.", {
-        "event.name": "decant.sync.exception",
+        "event.name": "agent-benchmarks.sync.exception",
         "sync.reason": event.reason,
         "exception.type": "SyncError",
         "exception.message": event.error,
@@ -90,7 +90,7 @@ export function logWatchEvent(logger: Logger, event: WatchEvent): void {
       break;
     case "stopped":
       logger.info("Watcher stopped.", {
-        "event.name": "decant.watch.stopped",
+        "event.name": "agent-benchmarks.watch.stopped",
         "sync.run.count": event.status.runs,
       });
       break;

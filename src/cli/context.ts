@@ -6,7 +6,6 @@ import { ARCHIVE_DIR_MODE, closeDb, openDb } from "../db.ts";
 import { shellQuote } from "../distill.ts";
 import { sync as ingestSync } from "../ingest.ts";
 import type { ServiceOptions } from "../service.ts";
-import type { FetchLike, InstallInfo, UpdateStatus } from "../update.ts";
 import {
   CliError,
   EXIT_FAILURE,
@@ -32,20 +31,10 @@ export interface CliRunOptions {
   liveOutput?: boolean;
   writeStdout?: (value: string) => void;
   writeStderr?: (value: string) => void;
-  update?: UpdateDeps;
   service?: ServiceOptions;
   syncNoticeAfterMs?: number;
 }
 
-export interface UpdateDeps {
-  fetch?: FetchLike;
-  install?: InstallInfo;
-  current?: string;
-  now?: () => Date;
-  runCommand?: (argv: string[]) => number;
-  installedOnPath?: () => { path: string; version: string | null } | null;
-  stderrIsTTY?: boolean;
-}
 
 export interface GlobalOptions {
   db?: string;
@@ -82,7 +71,6 @@ export interface CliContext {
   io: Io;
   env: Record<string, string | undefined> | undefined;
   homeDir: string | null | undefined;
-  updateDeps: UpdateDeps;
   serviceOptions: ServiceOptions;
   globals(): GlobalOptions;
   isJson(): boolean;
@@ -92,7 +80,6 @@ export interface CliContext {
   output(value: unknown, renderHuman: () => string): void;
   run(action: CliAction): Promise<void>;
   fail(error: unknown, json?: boolean): number;
-  pendingUpdateNotice: Promise<UpdateStatus> | null;
   withArchive<T>(fn: (archive: Archive) => T, options?: WithArchiveOptions): T;
 }
 
@@ -104,7 +91,7 @@ export function shouldSyncOnRead(
   options: GlobalOptions,
   env: Record<string, string | undefined> | undefined,
 ): boolean {
-  return options.sync !== false && (env ?? process.env).DECANT_NO_SYNC == null;
+  return options.sync !== false && (env ?? process.env).AGENT_BENCHMARKS_NO_SYNC == null;
 }
 
 export function openArchive(config: Config): Archive {
@@ -143,11 +130,11 @@ export function createContext(
       }
     },
   };
-  const explicitArchive = (): "--db" | "DECANT_DB" | null => {
+  const explicitArchive = (): "--db" | "AGENT_BENCHMARKS_DB" | null => {
     if (globals().db != null) {
       return "--db";
     }
-    return environment().DECANT_DB != null ? "DECANT_DB" : null;
+    return environment().AGENT_BENCHMARKS_DB != null ? "AGENT_BENCHMARKS_DB" : null;
   };
   const syncBeforeRead = (archive: Archive): void => {
     if (globals().quiet === true) {
@@ -173,7 +160,6 @@ export function createContext(
     io,
     env: options.env,
     homeDir: options.homeDir,
-    updateDeps: options.update ?? {},
     serviceOptions: { env: options.env, homeDir: options.homeDir, ...options.service },
     globals,
     isJson: () => isJsonOutput(globals()),
@@ -196,7 +182,6 @@ export function createContext(
         io.writeOut(text === "" || text.endsWith("\n") ? text : `${text}\n`);
       }
     },
-    pendingUpdateNotice: null,
     fail: (error, json = ctx.isJson()) => {
       const failure = toCliError(error);
       reportedFailure = true;
@@ -240,8 +225,8 @@ export function createContext(
       if (source != null && archiveOptions.create !== true && !existsSync(config.dbPath)) {
         throw new CliError(
           "archive_not_found",
-          `no Decant archive at ${config.dbPath} (from ${source}). Check the path, or create ` +
-            `the archive with: decant --db ${shellQuote(config.dbPath)} sync`,
+          `no Agent Benchmarks archive at ${config.dbPath} (from ${source}). Check the path, or create ` +
+            `the archive with: agent-benchmarks --db ${shellQuote(config.dbPath)} sync`,
           1,
           { path: config.dbPath },
         );

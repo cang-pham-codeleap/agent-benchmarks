@@ -49,16 +49,16 @@ export function resolveConfig(overrides: ConfigOverrides = {}): Config {
   const xdgConfig = nonEmpty(env.XDG_CONFIG_HOME);
   const xdgCache = nonEmpty(env.XDG_CACHE_HOME);
   const opencodeDb = nonEmpty(env.OPENCODE_DB);
-  const opencodeConfigPath = nonEmpty(env.DECANT_OPENCODE_CONFIG);
+  const opencodeConfigPath = nonEmpty(env.AGENT_BENCHMARKS_OPENCODE_CONFIG);
   const opencodeExtraConfigPath = nonEmpty(env.OPENCODE_CONFIG);
   return {
-    dbPath: overrides.dbPath ?? env.DECANT_DB ?? join(home, ".decant", "decant.db"),
-    claudeDir: overrides.claudeDir ?? env.DECANT_CLAUDE_DIR ?? join(home, ".claude", "projects"),
-    codexDir: overrides.codexDir ?? env.DECANT_CODEX_DIR ?? join(home, ".codex"),
-    geminiDir: overrides.geminiDir ?? env.DECANT_GEMINI_DIR ?? join(home, ".gemini", "tmp"),
+    dbPath: overrides.dbPath ?? env.AGENT_BENCHMARKS_DB ?? join(home, ".agent-benchmarks", "agent-benchmarks.db"),
+    claudeDir: overrides.claudeDir ?? env.AGENT_BENCHMARKS_CLAUDE_DIR ?? join(home, ".claude", "projects"),
+    codexDir: overrides.codexDir ?? env.AGENT_BENCHMARKS_CODEX_DIR ?? join(home, ".codex"),
+    geminiDir: overrides.geminiDir ?? env.AGENT_BENCHMARKS_GEMINI_DIR ?? join(home, ".gemini", "tmp"),
     opencodeDir:
       overrides.opencodeDir ??
-      nonEmpty(env.DECANT_OPENCODE_DIR) ??
+      nonEmpty(env.AGENT_BENCHMARKS_OPENCODE_DIR) ??
       nonEmpty(env.OPENCODE_DATA_DIR) ??
       (xdgData == null ? join(home, ".local", "share", "opencode") : join(xdgData, "opencode")),
     ...(opencodeDb == null ? {} : { opencodeDb }),
@@ -71,30 +71,30 @@ export function resolveConfig(overrides: ConfigOverrides = {}): Config {
     opencodeModelsPath:
       nonEmpty(env.OPENCODE_MODELS_PATH) ??
       join(xdgCache ?? join(home, ".cache"), "opencode", "models.json"),
-    cursorDir: overrides.cursorDir ?? env.DECANT_CURSOR_DIR ?? join(home, ".cursor", "chats"),
+    cursorDir: overrides.cursorDir ?? env.AGENT_BENCHMARKS_CURSOR_DIR ?? join(home, ".cursor", "chats"),
     // COPILOT_HOME relocates all of Copilot CLI's data, session state included.
     copilotDir:
       overrides.copilotDir ??
-      nonEmpty(env.DECANT_COPILOT_DIR) ??
+      nonEmpty(env.AGENT_BENCHMARKS_COPILOT_DIR) ??
       join(nonEmpty(env.COPILOT_HOME) ?? join(home, ".copilot"), "session-state"),
     ...vscodeCopilotDirs(overrides, env, home),
-    atifDir: overrides.atifDir ?? nonEmpty(env.DECANT_ATIF_DIR) ?? join(home, ".decant", "atif"),
+    atifDir: overrides.atifDir ?? nonEmpty(env.AGENT_BENCHMARKS_ATIF_DIR) ?? join(home, ".agent-benchmarks", "atif"),
     // HERMES_HOME relocates all of Hermes's data, as it does for Hermes itself.
     hermesDir:
       overrides.hermesDir ??
-      nonEmpty(env.DECANT_HERMES_DIR) ??
+      nonEmpty(env.AGENT_BENCHMARKS_HERMES_DIR) ??
       nonEmpty(env.HERMES_HOME) ??
       hermesDefaultHome(overrides.platform ?? process.platform, env, home),
     // PI_CODING_AGENT_DIR relocates Pi's agent directory (getAgentDir in Pi's config.ts).
     piDir:
       overrides.piDir ??
-      nonEmpty(env.DECANT_PI_DIR) ??
+      nonEmpty(env.AGENT_BENCHMARKS_PI_DIR) ??
       join(
         expandHome(nonEmpty(env.PI_CODING_AGENT_DIR), home) ?? join(home, ".pi", "agent"),
         "sessions",
       ),
-    ompDir: overrides.ompDir ?? nonEmpty(env.DECANT_OMP_DIR) ?? join(home, ".omp", "agent", "sessions"),
-    droidDir: overrides.droidDir ?? nonEmpty(env.DECANT_DROID_DIR) ?? join(home, ".factory", "sessions"),
+    ompDir: overrides.ompDir ?? nonEmpty(env.AGENT_BENCHMARKS_OMP_DIR) ?? join(home, ".omp", "agent", "sessions"),
+    droidDir: overrides.droidDir ?? nonEmpty(env.AGENT_BENCHMARKS_DROID_DIR) ?? join(home, ".factory", "sessions"),
   };
 }
 
@@ -124,7 +124,7 @@ function vscodeCopilotDirs(
   env: Record<string, string | undefined>,
   home: string,
 ): Pick<Config, "vscodeCopilotDir" | "vscodeCopilotInsidersDir"> {
-  const override = overrides.vscodeCopilotDir ?? nonEmpty(env.DECANT_VSCODE_COPILOT_DIR);
+  const override = overrides.vscodeCopilotDir ?? nonEmpty(env.AGENT_BENCHMARKS_VSCODE_COPILOT_DIR);
   if (override != null) {
     return { vscodeCopilotDir: override };
   }

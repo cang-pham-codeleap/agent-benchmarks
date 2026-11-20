@@ -62,7 +62,7 @@ function captureLogs<T>(run: () => T): { result: T; lines: string[] } {
 }
 
 function cursorCase(): { root: string; cursorDir: string; chatDir: string; config: IngestConfig } {
-  const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+  const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
   const cursorDir = join(root, "cursor");
   const chatDir = join(cursorDir, "workspace", "chat");
   buildCursorChat(chatDir);
@@ -193,7 +193,7 @@ function writeCliShapedChats(workspaceDir: string): { parent: string; child: str
   return { parent, child };
 }
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-cursor-fixture-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-fixture-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 const sampleChat = join(workDir, "sample");
 buildCursorChat(sampleChat);
@@ -250,7 +250,7 @@ describe("Cursor source", () => {
   });
 
   test("a store locked by a writer fails and is retried, not read unlocked", () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
     const cursorDir = join(root, "cursor");
     const chatDir = join(cursorDir, "workspace", "chat");
     buildCursorChat(chatDir);
@@ -296,7 +296,7 @@ describe("Cursor source", () => {
       const { result, lines } = captureLogs(() => sync(db, config));
       expect(result).toMatchObject({ ingested: 0, failed: 1 });
       expect(JSON.parse(lines[0] ?? "")).toMatchObject({
-        "event.name": "decant.ingest.source_read_failed",
+        "event.name": "agent-benchmarks.ingest.source_read_failed",
         "error.message":
           "Cursor store has unread WAL data that a read-only open cannot see; " +
           "mount the chats directory read-write or close the chat in Cursor",
@@ -586,7 +586,7 @@ describe("Cursor source", () => {
   });
 
   test("discovers, ingests, queries, and then skips an unchanged Cursor store", () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
     const cursorDir = join(root, "cursor");
     const chatDir = join(cursorDir, "workspace", "chat");
     buildCursorChat(chatDir);
@@ -639,7 +639,7 @@ describe("Cursor source", () => {
   });
 
   test("only Cursor sessions without usage read as unavailable", () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
     const cursorDir = join(root, "cursor");
     buildCursorChat(join(cursorDir, "workspace", "chat"));
     const codexSessions = join(root, "codex", "sessions");
@@ -664,7 +664,7 @@ describe("Cursor source", () => {
   });
 
   test("an unreadable store fails alone and the rest of the sync continues", () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
     const cursorDir = join(root, "cursor");
     buildCursorChat(join(cursorDir, "workspace", "good"));
     const broken = join(cursorDir, "workspace", "broken");
@@ -686,7 +686,7 @@ describe("Cursor source", () => {
   });
 
   test("a changed meta.json re-ingests the chat even when store.db is untouched", () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
     const cursorDir = join(root, "cursor");
     const chatDir = join(cursorDir, "workspace", "chat");
     buildCursorChat(chatDir);
@@ -706,7 +706,7 @@ describe("Cursor source", () => {
   });
 
   test("reads the CLI's injected context, wrapped prompts, and dynamic tools", () => {
-    const dir = mkdtempSync(join(tmpdir(), "decant-cursor-cli-"));
+    const dir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-cli-"));
     try {
       const { parent, child } = writeCliShapedChats(dir);
       const { session } = parseCursorSession(
@@ -759,7 +759,7 @@ describe("Cursor source", () => {
   });
 
   test("ingests a subagent store without meta.json under its parent", () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
     const cursorDir = join(root, "cursor");
     writeCliShapedChats(join(cursorDir, "workspace"));
     const stray = join(cursorDir, "workspace", "stray");
@@ -819,7 +819,7 @@ describe("Cursor source", () => {
   });
 
   test("--path accepts a store.db file or a directory holding chats", () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-cursor-test-"));
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-test-"));
     try {
       const chatDir = join(root, "workspace", "chat");
       buildCursorChat(chatDir);

@@ -8,7 +8,7 @@ import { closeDb, openDb } from "../src/db.ts";
 import { resolveProjectPath, resolveRepoRoots } from "../src/project-scope.ts";
 import { listSessions, search } from "../src/query.ts";
 
-const base = realpathSync(mkdtempSync(join(tmpdir(), "decant-list-filters-")));
+const base = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-list-filters-")));
 afterAll(() => rmSync(base, { recursive: true, force: true }));
 
 const home = join(base, "home");
@@ -105,7 +105,7 @@ const SESSIONS: [project: number, day: string, prompt: string][] = [
 }
 
 const run = (...args: string[]) =>
-  runCli(["--db", dbPath, "--no-sync", ...args], { env: { DECANT_NO_SYNC: "1" }, homeDir: home });
+  runCli(["--db", dbPath, "--no-sync", ...args], { env: { AGENT_BENCHMARKS_NO_SYNC: "1" }, homeDir: home });
 
 async function titles(...args: string[]): Promise<string[]> {
   const result = await run("--json", "ls", ...args);
@@ -136,7 +136,7 @@ function runFrom(cwd: string, ...args: string[]): { code: number; stdout: string
       "--no-sync",
       ...args,
     ],
-    { cwd, env: { ...process.env, DECANT_NO_SYNC: "1", HOME: home, DECANT_DB: undefined } },
+    { cwd, env: { ...process.env, AGENT_BENCHMARKS_NO_SYNC: "1", HOME: home, AGENT_BENCHMARKS_DB: undefined } },
   );
   return {
     code: result.exitCode,
@@ -189,7 +189,7 @@ describe("ls --project", () => {
     expect(result.stdout).toBe("");
     const error = jsonError(result.stderr);
     expect(error.message).toContain(`no project matches --project ${JSON.stringify(missing)}`);
-    expect(error.message).toContain("decant project ls");
+    expect(error.message).toContain("agent-benchmarks project ls");
   });
 
   test("a known project with nothing in the date range is still an empty list", async () => {
@@ -660,7 +660,7 @@ describe("--since and --until across a UTC offset", () => {
   }
   const runTz = (...args: string[]) =>
     runCli(["--db", offsetDb, "--no-sync", "--json", ...args], {
-      env: { DECANT_NO_SYNC: "1" },
+      env: { AGENT_BENCHMARKS_NO_SYNC: "1" },
       homeDir: home,
     });
   const named = async (key: "title" | "session_title", ...args: string[]) => {

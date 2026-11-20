@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 function tempDir(): string {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "decant-remote-")));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-remote-")));
   tempRoots.push(dir);
   return dir;
 }

@@ -362,7 +362,7 @@ describe("parseGeminiSession", () => {
 
   test("nets cached tokens out of input and folds thoughts into output", () => {
     // Gemini's promptTokenCount already includes cachedContentTokenCount and
-    // thoughtsTokenCount sits outside candidatesTokenCount, whereas Decant
+    // thoughtsTokenCount sits outside candidatesTokenCount, whereas Agent Benchmarks
     // treats input as uncached and reasoning as a subset of output.
     const content = [
       JSON.stringify({ sessionId: "gemini-usage", startTime: "2026-06-13T10:00:00.000Z" }),

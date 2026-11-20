@@ -27,7 +27,7 @@ import {
 import { buildHermesFixtureDb } from "./hermes-fixture.ts";
 import { buildOpenCodeFixtureDb } from "./opencode-fixture.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-watch-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-watch-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;
@@ -318,7 +318,7 @@ describe("watch mode", () => {
 
   test("runSyncOnce creates the archive directory owner-only", () => {
     const base = freshConfig();
-    const config = { ...base, dbPath: join(dirname(base.dbPath), "archive", "decant.db") };
+    const config = { ...base, dbPath: join(dirname(base.dbPath), "archive", "agent-benchmarks.db") };
 
     runSyncOnce(config);
 

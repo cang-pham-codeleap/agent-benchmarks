@@ -34,7 +34,7 @@ import {
 import { visibleSessionPredicate } from "../src/session-visibility.ts";
 import schemaV8Sql from "./fixtures/schema-v8.sql" with { type: "text" };
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-db-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-db-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -144,7 +144,7 @@ function inventory(db: Database, type: string): string[] {
 
 describe("openDb", () => {
   test("generated schema header agrees with LATEST_SCHEMA_VERSION", () => {
-    const match = /^-- decant:schema_version=(\d+)$/m.exec(schemaSql);
+    const match = /^-- agent-benchmarks:schema_version=(\d+)$/m.exec(schemaSql);
     expect(match).not.toBeNull();
     expect(Number(match?.[1])).toBe(LATEST_SCHEMA_VERSION);
   });
@@ -636,9 +636,9 @@ describe("openDb", () => {
     const script = `
       import { existsSync, writeFileSync } from "node:fs";
       import { openDb } from ${JSON.stringify(dbModule)};
-      const path = process.env.DECANT_RACE_DB;
-      const ready = process.env.DECANT_RACE_READY;
-      const gate = process.env.DECANT_RACE_GATE;
+      const path = process.env.AGENT_BENCHMARKS_RACE_DB;
+      const ready = process.env.AGENT_BENCHMARKS_RACE_READY;
+      const gate = process.env.AGENT_BENCHMARKS_RACE_GATE;
       if (path == null || ready == null || gate == null) throw new Error("missing race fixture");
       writeFileSync(ready, "");
       while (!existsSync(gate)) await new Promise((resolve) => setTimeout(resolve, 1));
@@ -653,9 +653,9 @@ describe("openDb", () => {
           cwd: join(import.meta.dir, ".."),
           env: {
             ...process.env,
-            DECANT_RACE_DB: path,
-            DECANT_RACE_READY: ready,
-            DECANT_RACE_GATE: gate,
+            AGENT_BENCHMARKS_RACE_DB: path,
+            AGENT_BENCHMARKS_RACE_READY: ready,
+            AGENT_BENCHMARKS_RACE_GATE: gate,
           },
           stdout: "pipe",
           stderr: "pipe",
@@ -698,7 +698,7 @@ describe("openDb", () => {
       INSERT INTO session (id, tool, source_session_id) VALUES (1, 'claude', 'abc');
       INSERT INTO message (id, session_id, seq, raw) VALUES (10, 1, 0, '{}');
       INSERT INTO block (id, message_id, session_id, ordinal, type, text)
-        VALUES (100, 10, 1, 0, 'text', 'porting decant to typescript');
+        VALUES (100, 10, 1, 0, 'text', 'porting agent-benchmarks to typescript');
     `);
 
     const match = (q: string) =>
@@ -710,7 +710,7 @@ describe("openDb", () => {
         )
         .all(q) as { id: number; rank: number; hl: string }[];
 
-    expect(match("typescript")).toMatchObject([{ id: 100, hl: "porting decant to [typescript]" }]);
+    expect(match("typescript")).toMatchObject([{ id: 100, hl: "porting agent-benchmarks to [typescript]" }]);
 
     db.exec("UPDATE block SET text = 'nothing to see here' WHERE id = 100");
     expect(match("typescript")).toHaveLength(0);
@@ -1113,7 +1113,7 @@ describe("openDb", () => {
         id, message_id, session_id, ordinal, type, text, tool_name, tool_use_id, tool_result
       )
       VALUES
-        (100, 10, 1, 0, 'tool_use', 'porting decant', 'Read', 'toolu_1', NULL),
+        (100, 10, 1, 0, 'tool_use', 'porting agent-benchmarks', 'Read', 'toolu_1', NULL),
         (101, 11, 1, 0, 'tool_result', NULL, NULL, 'toolu_1', 'done');
       INSERT INTO tool_call (
         session_id, message_id, call_block_id, result_block_id, tool_name, tool_use_id,
@@ -1348,7 +1348,7 @@ describe("openDb", () => {
     expect([...(lines[0] ?? "")].length).toBeLessThan(2_048);
     expect(JSON.parse(lines[0] ?? "")).toMatchObject({
       level: "WARN",
-      "event.name": "decant.schema.additive_drift",
+      "event.name": "agent-benchmarks.schema.additive_drift",
       "schema.version": LATEST_SCHEMA_VERSION,
       "schema.drift.unexpected_objects":
         "index:operator_extra_0, index:operator_extra_1, index:operator_extra_10, " +
@@ -1435,7 +1435,7 @@ describe("openDb", () => {
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0] ?? "")).toMatchObject({
       level: "ERROR",
-      "event.name": "decant.schema.drift",
+      "event.name": "agent-benchmarks.schema.drift",
       "schema.version": LATEST_SCHEMA_VERSION,
       "schema.drift.missing_columns": "recommendation.impact_label",
       "schema.drift.unexpected_columns": "session.unexpected_local_state",

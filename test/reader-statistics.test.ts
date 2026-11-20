@@ -17,7 +17,7 @@ import {
   storedPlannerStatistics,
 } from "../src/server/reader-statistics.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-reader-statistics-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-reader-statistics-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;

@@ -22,10 +22,6 @@ reviews:
           - "Dockerfile"
           - "bun.lock"
           - "bunfig.toml"
-          - "install.sh"
-          - "npm/**"
-          - "package.json"
-          - "packaging/**"
           - "scripts/**"
           - "src/db.ts"
           - "src/schema-manifest.ts"
@@ -33,7 +29,6 @@ reviews:
           - "src/route-paths.ts"
           - "src/server.ts"
           - "src/server/**"
-          - "src/update.ts"
           - "tsconfig.json"
   path_filters:
     - "!test/golden/**"
@@ -67,8 +62,8 @@ reviews:
     - path: "src/**/*.ts"
       instructions: >-
         Runtime stays local-first: flag any new outbound network call, hosted
-        service, or LLM call outside src/update.ts. Core modules return data or
-        structured errors; only src/cli.ts and src/cli/ print or set exit codes.
+        service, or LLM call. Core modules return data or structured errors;
+        only src/cli.ts and src/cli/ print or set exit codes.
     - path: "{fixtures/**,test/**}"
       instructions: >-
         Fixtures must be hand-written synthetic data. Flag anything that looks
@@ -104,11 +99,9 @@ reviews:
       - name: "Local-first"
         mode: "error"
         instructions: >-
-          Only code under src/, which ships in the decant binary, counts.
+          Only code under src/, which ships in the Agent Benchmarks binary, counts.
           Fail when it adds an outbound network call, a hosted service
-          dependency, or an LLM call outside src/update.ts, or adds a Bun
-          macro import (`with { type: "macro" }`), which runs at build time
-          inside the release job. Pass otherwise.
+          dependency, an LLM call, or a build-time Bun macro. Pass otherwise.
 
 knowledge_base:
   code_guidelines:

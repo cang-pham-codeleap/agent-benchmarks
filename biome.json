@@ -10,7 +10,6 @@
       "src/**",
       "test/**",
       "scripts/**",
-      "npm/**",
       "*.json",
       "!test/golden",
       "!src/report/fonts/Source-Serif-OFL.md"

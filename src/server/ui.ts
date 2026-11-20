@@ -26,7 +26,7 @@ export interface UiFiles {
 }
 
 /** Bun's own HTMLBundle route has
- * no way to add response headers, so Decant serves the bundle's files itself. */
+ * no way to add response headers, so Agent Benchmarks serves the bundle's files itself. */
 export function createUiFiles(bundle: HTMLBundle, build: UiBuilder = buildUi): UiFiles {
   let current: UiBuild | null = bundle.files == null ? null : prebuiltUi(bundle);
   const prebuilt = current != null;

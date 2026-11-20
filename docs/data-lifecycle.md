@@ -1,11 +1,11 @@
 # Archive and data lifecycle
 
-Decant reads coding-agent logs into a local SQLite archive. The source logs and
+Agent Benchmarks reads coding-agent logs into a local SQLite archive. The source logs and
 the archive have different jobs: source logs are the durable record produced by
 Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI,
 Copilot Chat in VS Code, Hermes Agent, or Pi, or an ATIF trajectory file another
-agent wrote. `~/.decant/decant.db` is a searchable, rebuildable
-index plus Decant-owned user state.
+agent wrote. `~/.agent-benchmarks/agent-benchmarks.db` is a searchable, rebuildable
+index plus Agent Benchmarks-owned user state.
 
 Nothing in this lifecycle uploads transcripts or calls a hosted service. It does
 copy them onto your disk. See
@@ -14,37 +14,37 @@ archive, how to inspect it, and how to remove it.
 
 ## Source logs and the archive
 
-By default Decant discovers:
+By default Agent Benchmarks discovers:
 
 - Claude Code sessions under `~/.claude/projects`;
 - Codex sessions under `~/.codex/sessions` and source-archived sessions under
   `~/.codex/archived_sessions`. A forked Codex subagent's rollout replays the
-  thread it forked from before its own history. Decant stores the subagent
+  thread it forked from before its own history. Agent Benchmarks stores the subagent
   under its own session ID and skips the replayed records, which the parent's
   rollout already holds;
 - Gemini CLI sessions under `~/.gemini/tmp/<project>/chats`, including
   subagent transcripts nested under `chats/<parent-session-id>/`, which link
-  to their parent session. Decant reads the adjacent `.project_root` sidecar
+  to their parent session. Agent Benchmarks reads the adjacent `.project_root` sidecar
   for the workspace path and leaves the project unset when that sidecar is
-  absent or empty. Gemini session files are event logs. Decant replays
+  absent or empty. Gemini session files are event logs. Agent Benchmarks replays
   checkpoint and rewind records the way Gemini CLI does, so a rewound turn or
   a re-recorded message is stored once.
 - OpenCode sessions in `~/.local/share/opencode/opencode.db` and any
   `opencode-<channel>.db` beside it. The directory comes from
-  `--opencode-dir`, `DECANT_OPENCODE_DIR`, `OPENCODE_DATA_DIR`, or
+  `--opencode-dir`, `AGENT_BENCHMARKS_OPENCODE_DIR`, `OPENCODE_DATA_DIR`, or
   `$XDG_DATA_HOME/opencode`, in that order. `OPENCODE_DB`, when set, names an
   explicit extra database file that is read in addition to that directory.
-  Decant opens the databases read-only, never writes to them, and never
-  checkpoints them. Decant reads OpenCode 2.x sessions (`session_v2` and
+  Agent Benchmarks opens the databases read-only, never writes to them, and never
+  checkpoints them. Agent Benchmarks reads OpenCode 2.x sessions (`session_v2` and
   `session_message`) and OpenCode 1.x sessions (`session`, `message`, and
   `part`, from OpenCode 1.2 on), including databases only 1.x ever opened.
   Each session becomes its own source `<database>#<session id>`. One session
   can have several copies: in several databases, or in both layouts of one
   database, because OpenCode 2.x migrates 1.x sessions into its own tables and
-  a 1.x binary can keep writing a session after that. Decant reads the copy
+  a 1.x binary can keep writing a session after that. Agent Benchmarks reads the copy
   updated last. A tie within one database goes to the 2.x copy, which is the
   usual state of a freshly migrated session, and a tie across databases goes
-  to the database path that sorts first. When the copy Decant reads moves to
+  to the database path that sorts first. When the copy Agent Benchmarks reads moves to
   the other layout, the next sync re-ingests the session from it. A fork's
   rows inherited from its parent are skipped by their timestamps (see
   [analytics methodology](analytics-methodology.md#token-and-cost-totals),
@@ -57,68 +57,68 @@ By default Decant discovers:
   in a database that holds no catalog of its own (OpenCode 2.x keeps it in
   the database; 1.x does not). The file is `OPENCODE_MODELS_PATH` when that is
   set, as in OpenCode, else `$XDG_CACHE_HOME/opencode/models.json` (default
-  `~/.cache/opencode/models.json`). Decant reads it read-only, at most once per
+  `~/.cache/opencode/models.json`). Agent Benchmarks reads it read-only, at most once per
   sync, and never fetches a catalog. When the file is missing (logged at info
   level) or unreadable (a warning), the context window stays unknown, and the
   affected sessions are re-derived once on the first sync that can read it.
 - Cursor CLI chats under `~/.cursor/chats/<workspace>/<chat>/`, or the
-  directory from `--cursor-dir` or `DECANT_CURSOR_DIR`. Each chat is a SQLite
-  `store.db` with a `meta.json` beside it. Decant reads chats whose
+  directory from `--cursor-dir` or `AGENT_BENCHMARKS_CURSOR_DIR`. Each chat is a SQLite
+  `store.db` with a `meta.json` beside it. Agent Benchmarks reads chats whose
   `meta.json` sets `hasConversation` and skips the rest. A subagent's store
-  has no `meta.json`. Decant reads it when its metadata names a parent agent,
+  has no `meta.json`. Agent Benchmarks reads it when its metadata names a parent agent,
   links it to that chat, and takes its working directory from the
   environment block Cursor injects. Stores are opened
   read-only. When a store's directory cannot hold a `-shm` file (a read-only
-  mount, for example), Decant falls back to SQLite's immutable mode, which
+  mount, for example), Agent Benchmarks falls back to SQLite's immutable mode, which
   reads `store.db` alone and ignores locks and the WAL, so it does so only
   when `store.db-wal` is absent or empty. A store with WAL data a read-only
   open cannot see, or one another process has locked, counts as failed with
   a diagnostic and is not recorded, so the next sync retries it. To read a
   store with pending WAL data, mount the chats directory read-write or close
   the chat in Cursor so it checkpoints. A store whose recorded agent ID
-  changes replaces the session Decant filed for it instead of adding a
+  changes replaces the session Agent Benchmarks filed for it instead of adding a
   second one, and the new ID keeps the old one's archived or deleted state.
   Cursor records no token usage, so these sessions keep token and cost
   totals unavailable.
 - GitHub Copilot CLI sessions under
   `~/.copilot/session-state/<session id>/events.jsonl`, or the directory from
-  `--copilot-dir` or `DECANT_COPILOT_DIR`. With neither set, Decant follows
+  `--copilot-dir` or `AGENT_BENCHMARKS_COPILOT_DIR`. With neither set, Agent Benchmarks follows
   `COPILOT_HOME` to `$COPILOT_HOME/session-state`. Each session is an
   append-only event log, read read-only. Explicit `--path` imports also honor
   the configured Copilot directory when it has a custom name. Subagent events are in the same file
   and stay part of the parent session. When
   `COPILOT_SESSION_EVENT_LOG_ROTATION_BYTES` is set, Copilot moves older
   history into `events.<n>.jsonl` archives and starts a new `events.jsonl`
-  that replays that history. Decant reads only `events.jsonl`.
+  that replays that history. Agent Benchmarks reads only `events.jsonl`.
 - Copilot Chat in VS Code sessions in VS Code's `User` directory, or the
-  directory from `--vscode-copilot-dir` or `DECANT_VSCODE_COPILOT_DIR`. With
-  neither set, Decant reads both VS Code's and VS Code Insiders' `User`
+  directory from `--vscode-copilot-dir` or `AGENT_BENCHMARKS_VSCODE_COPILOT_DIR`. With
+  neither set, Agent Benchmarks reads both VS Code's and VS Code Insiders' `User`
   directories. A workspace window's sessions are
   `workspaceStorage/<id>/chatSessions/<session id>.jsonl`, and an empty
   window's are under `globalStorage/emptyWindowChatSessions/`. VS Code 1.109
   and later write each session as a change log that it appends to and
   sometimes rewrites whole. Earlier builds wrote `<session id>.json`. Both are
-  read read-only, and Decant re-reads the whole file when it changes. VS Code
-  keeps the old `.json` after it moves a session to the log, so Decant reads
+  read read-only, and Agent Benchmarks re-reads the whole file when it changes. VS Code
+  keeps the old `.json` after it moves a session to the log, so Agent Benchmarks reads
   the `.jsonl` when both exist. When VS Code copies an empty window's session
-  into a workspace, Decant reads the copy written most recently. It skips
+  into a workspace, Agent Benchmarks reads the copy written most recently. It skips
   `globalStorage/transferredChatSessions`, which holds short-lived copies.
   Explicit `--path` imports of these storage trees also exclude extension
   journals and databases outside the chat-session directories, including when
   `--vscode-copilot-dir` points at a relocated root.
-- ATIF trajectory files under `~/.decant/atif`, or the directory from
-  `--atif-dir` or `DECANT_ATIF_DIR`, read recursively and read-only. No agent
+- ATIF trajectory files under `~/.agent-benchmarks/atif`, or the directory from
+  `--atif-dir` or `AGENT_BENCHMARKS_ATIF_DIR`, read recursively and read-only. No agent
   writes there; it holds trajectories a user copies in. Symbolic links inside
   it are not followed, so point the setting at a Harbor `jobs` directory
   instead of linking one. See [ATIF imports](#atif-imports).
 - Hermes Agent sessions in `~/.hermes/state.db` and each named profile's
   `profiles/<name>/state.db`, or the same files under the directory from
-  `--hermes-dir`, `DECANT_HERMES_DIR`, or `HERMES_HOME`, in that order
-  (`%LOCALAPPDATA%\hermes` is the default on Windows). Decant opens each
+  `--hermes-dir`, `AGENT_BENCHMARKS_HERMES_DIR`, or `HERMES_HOME`, in that order
+  (`%LOCALAPPDATA%\hermes` is the default on Windows). Agent Benchmarks opens each
   database read-only and never writes to or checkpoints it. A database
   without Hermes's `sessions` and `messages` tables is skipped with a
   warning. Each session becomes its own source `<database>#<session id>`.
-  When two profiles hold one session ID, Decant reads the copy with the most
+  When two profiles hold one session ID, Agent Benchmarks reads the copy with the most
   recent activity, and a tie goes to the database path that sorts first.
   Reading one copy forgets the change key recorded for the others, so if the
   newer copy later disappears, the older one is read again. A database that
@@ -134,16 +134,16 @@ By default Decant discovers:
   removed (`active = 0, compacted = 0`). A session deleted from `state.db`
   stops being discovered, and the archive keeps the copy it last ingested.
 - Pi session files under `~/.pi/agent/sessions/--<cwd>--/`, or the directory
-  from `--pi-dir`, `DECANT_PI_DIR`, or the `sessions` directory under
+  from `--pi-dir`, `AGENT_BENCHMARKS_PI_DIR`, or the `sessions` directory under
   `PI_CODING_AGENT_DIR`, in that order. Each file is one session, read
-  read-only, and Decant re-reads the whole file when it changes.
+  read-only, and Agent Benchmarks re-reads the whole file when it changes.
 
 VS Code mutation logs are replayed in order. Malformed initial states, paths,
 and array updates produce diagnostics and are skipped without discarding the
 last valid state, and later valid updates still apply. Mutation paths cannot
 replace an object's prototype.
 
-`decant sync` inserts new sessions and replaces changed ones transactionally.
+`agent-benchmarks sync` inserts new sessions and replaces changed ones transactionally.
 Unchanged files are skipped by size and modification-time checks (for a Cursor
 chat, the existence, size, and nanosecond modification time of each of
 `store.db`, `store.db-wal`, and `meta.json` if present, since a running chat appends to
@@ -163,7 +163,7 @@ re-ingested. An OpenCode
 session's change key also covers the MCP server names from the OpenCode
 configs that apply to its directory, so editing those names re-derives the
 affected sessions once. A Hermes session's change key is a digest of every
-session column Decant reads (title, model, source, routing key, model config,
+session column Agent Benchmarks reads (title, model, source, routing key, model config,
 parent, end time and reason, working directory, branch, usage, cost, and
 billing columns, profile, and archive flag) and its transcript revision, plus
 its per-model usage rows, its parent's end time, end reason, and routing key,
@@ -177,7 +177,7 @@ sync re-ingests sources with an older pipeline revision once, refreshing tokens,
 cost estimates, and derived analytics while preserving session IDs and local
 archive state. This requires the source files to remain available. Provider
 attribution is one such revision: after upgrading, the next ordinary
-`decant sync` re-derives provider columns for sessions whose source files
+`agent-benchmarks sync` re-derives provider columns for sessions whose source files
 remain. Sync also
 refreshes SQLite's planner statistics as it goes, so the first sync into a new
 archive stays linear in its size; see
@@ -214,14 +214,14 @@ logs or databases.
 
 ## Trajectory exports
 
-`decant export <id> --as trajectory` emits Letta's `trajectory-v1` record
+`agent-benchmarks export <id> --as trajectory` emits Letta's `trajectory-v1` record
 format from the normalized archive. It does not change session discovery or
 send data to Letta. Source labels are `claude-code`, `codex`, `gemini-cli`,
 `opencode`, `cursor`, `copilot-cli`, `vscode-copilot-chat`, `hermes`, and `pi`.
 
 Exports preserve recorded tool success/failure in the optional `ok` field;
 when the source omits an authoritative outcome, the field stays absent.
-Decant assigns unique IDs to repeated calls and pairs their results in
+Agent Benchmarks assigns unique IDs to repeated calls and pairs their results in
 occurrence order, pairing only with calls already recorded. Orphan and surplus
 results cannot consume a later call's result slot. The export report counts
 renamed IDs, orphan and surplus results, omitted blocks, truncated output, and
@@ -231,12 +231,12 @@ retains the original records and full tool output.
 The exported format is intended for model consumption: it omits harness
 instructions and unsupported blocks, caps tool arguments and results, and
 requires at least one user and assistant record. Use JSON export when you need
-Decant's session totals and retained normalized transcript rather than this
+Agent Benchmarks's session totals and retained normalized transcript rather than this
 filtered format.
 
 ## ATIF exports
 
-`decant export <id> --as atif` writes one
+`agent-benchmarks export <id> --as atif` writes one
 [ATIF](https://harborframework.com/docs/agents/atif) document, the trajectory
 format Harbor and Terminal-Bench use, declared as `ATIF-v1.7`. `--all --out
 <dir>` writes `<id>.atif.json` files. Agent names follow Harbor's:
@@ -257,13 +257,13 @@ results as in trajectory exports. Tool arguments and results are not
 truncated.
 
 ATIF counts `prompt_tokens` inclusive of cached input and `completion_tokens`
-inclusive of reasoning. Decant stores input net of cache, so each step's
+inclusive of reasoning. Agent Benchmarks stores input net of cache, so each step's
 `prompt_tokens` is input plus cache reads plus cache writes, and
 `cached_tokens` is cache reads. ATIF has no cache-write field, so writes go in
 `metrics.extra.cache_write_tokens`. `final_metrics` comes from the session
-totals. `total_cost_usd` is Decant's estimate at current rates, with
+totals. `total_cost_usd` is Agent Benchmarks's estimate at current rates, with
 `extra.cost_source` saying whether a source-recorded cost was used, and
-`extra.total_reasoning_tokens` appears when the source reports or Decant
+`extra.total_reasoning_tokens` appears when the source reports or Agent Benchmarks
 infers reasoning. Steps carry no `cost_usd`. A source that records no usage,
 such as Cursor CLI, gets no token totals rather than zeros.
 
@@ -289,7 +289,7 @@ and the summary that follows is a `user` step marked
 
 ### Mirroring to a folder
 
-`decant export --mirror <dir>` keeps a folder of ATIF documents for other
+`agent-benchmarks export --mirror <dir>` keeps a folder of ATIF documents for other
 tools to read, one per session. It syncs first, like other exports. It writes
 every session you have not archived, plus every subagent of one, since the
 parent's document points at it. Each document lives at
@@ -322,19 +322,19 @@ temporary file is removed if the rename fails. A rewritten document keeps any
 read access others had to it, so one you shared stays readable, but never
 their write or execute access. A document that is a symbolic link is
 replaced, not followed, and a tool folder that is a link stops the mirror with
-an error. Unchanged files keep their modification times. Decant never deletes
-files from the folder, so a session deleted or archived in Decant keeps its
-last document there. A folder Decant creates is owner-only
-(`0700`), and one that already exists keeps its mode. Decant's own ATIF import
+an error. Unchanged files keep their modification times. Agent Benchmarks never deletes
+files from the folder, so a session deleted or archived in Agent Benchmarks keeps its
+last document there. A folder Agent Benchmarks creates is owner-only
+(`0700`), and one that already exists keeps its mode. Agent Benchmarks's own ATIF import
 reads the folder back with subagents linked, under the tool-prefixed IDs.
 
 ## ATIF imports
 
-Decant also reads ATIF documents as a source, with the tool ID `atif`. A
+Agent Benchmarks also reads ATIF documents as a source, with the tool ID `atif`. A
 `.json` file counts when its first 64 KiB declare an `ATIF-v` schema version,
 or when it carries one of Harbor's names (`trajectory.json`,
 `trajectory.cont-<n>.json`, `trajectory.summarization-<n>-*.json`) or the
-`.atif.json` suffix that `decant export --all --as atif` writes. Any
+`.atif.json` suffix that `agent-benchmarks export --all --as atif` writes. Any
 `ATIF-v1.0` through `ATIF-v1.8` document is read. A newer version is read the
 same way and reported as an `unknown_record_type` diagnostic, as are unknown
 step sources and content part types. A file that is not valid JSON, or has no
@@ -387,26 +387,26 @@ writes out of `prompt_tokens`, and only cache reads are subtracted.
 the steps, because a root's `final_metrics` can count its subagents or earlier
 continuation files. Two cases take `final_metrics` instead. A trajectory with no
 per-step metrics and no embedded subagents uses them as its totals. A
-trajectory Decant exported (`extra.exporter: "decant"`) uses its
+trajectory Agent Benchmarks exported (`extra.exporter: "agent-benchmarks"`) uses its
 `final_metrics`, or `final_metrics.extra.session_metrics` when they include
 subagents, because per-step metrics undercount sources such as Codex that
 record usage once per turn. A step that records `cost_usd` without token
-counts still counts toward cost. When no step records a cost, a model Decant
+counts still counts toward cost. When no step records a cost, a model Agent Benchmarks
 cannot price takes the run's `final_metrics.total_cost_usd`, but only when
 nothing else shares that total: no embedded subagents and no `trajectory_path`
-refs, or a Decant `session_metrics.total_cost_usd`. A trajectory whose only
+refs, or a Agent Benchmarks `session_metrics.total_cost_usd`. A trajectory whose only
 usage is `final_metrics` (zero totals included) or a recorded cost is not shown
 as unavailable. Harbor's
 OpenCode converter currently writes `prompt_tokens` without cache writes,
 against the spec. Nothing in its output tells that apart from a corrected
-converter, so Decant follows the spec, and such a trajectory's input reads low
+converter, so Agent Benchmarks follows the spec, and such a trajectory's input reads low
 by the cache-write count. A trial's Harbor job
 directory, the parent of `<trial>/agent/`, is its project. Otherwise the
-trajectory's `extra.cwd`, as Decant's export writes it, is. An embedded
+trajectory's `extra.cwd`, as Agent Benchmarks's export writes it, is. An embedded
 subagent that records neither takes its root's.
 
 Tool names keep the producing agent's conventions. When `agent.name` is one of
-Harbor's names for a source Decant reads natively (`claude-code`, `codex`,
+Harbor's names for a source Agent Benchmarks reads natively (`claude-code`, `codex`,
 `gemini-cli`, `opencode`, `cursor-cli`, `copilot-cli`,
 `vscode-copilot-chat`, or `hermes`), file and subagent attribution use that
 source's rules.
@@ -416,8 +416,8 @@ writes `atif` when the document had none.
 
 ## What the archive stores
 
-The archive is a searchable copy of the transcript content Decant retains, not
-just a summary of it. Decant canonicalizes stored JSON instead of preserving
+The archive is a searchable copy of the transcript content Agent Benchmarks retains, not
+just a summary of it. Agent Benchmarks canonicalizes stored JSON instead of preserving
 source whitespace and key order. Parsers also omit non-transcript event records
 that duplicate retained messages or contain only stream metadata.
 
@@ -440,7 +440,7 @@ which makes them harder to find, not absent.
 Large source records use standard Zstandard BLOBs in `message.raw` when the
 compressed record and its metadata take less space than the original JSON.
 Small records stay as JSON text. Compression preserves the complete canonical
-JSON, including fields Decant does not recognize. It does not truncate or redact
+JSON, including fields Agent Benchmarks does not recognize. It does not truncate or redact
 content. Normalized transcript blocks and the full-text index stay unchanged.
 
 For compressed records, `message.raw_meta` holds the small JSON projection that
@@ -449,20 +449,20 @@ original UTF-8 byte count. These queries read the projection without inflating
 the full source record. Code reading complete source records should use
 `decodeMessageRaw` from `src/message-storage.ts` for both TEXT and BLOB rows.
 
-There is no redaction step. Decant does not detect, mask, or strip secrets,
+There is no redaction step. Agent Benchmarks does not detect, mask, or strip secrets,
 tokens, keys, or personal data. Whatever your agents read, and whatever was
 pasted into a session, is in the archive in the clear.
 
 ### Permissions
 
-Decant creates `~/.decant/decant.db` and its `-wal` and `-shm` sidecars at mode
-`0600`, and creates `~/.decant` at `0700`. It sets the directory mode only when
+Agent Benchmarks creates `~/.agent-benchmarks/agent-benchmarks.db` and its `-wal` and `-shm` sidecars at mode
+`0600`, and creates `~/.agent-benchmarks` at `0700`. It sets the directory mode only when
 it creates the directory; a directory that already existed keeps whatever mode
 its owner gave it. Check what yours actually are:
 
 ```sh
-ls -ld ~/.decant
-ls -l ~/.decant/decant.db
+ls -ld ~/.agent-benchmarks
+ls -l ~/.agent-benchmarks/agent-benchmarks.db
 ```
 
 These are filesystem permissions, not encryption. The archive is a plain SQLite
@@ -470,26 +470,20 @@ file, so anything that can read it can read every transcript in it, including a
 backup, a synced folder, or another process running as you.
 
 Terminal, agent, and IDE preferences saved from the UI live apart from the
-archive in `~/.config/decant/settings.json`, or under `DECANT_CONFIG_DIR` when
+archive in `~/.config/agent-benchmarks/settings.json`, or under `AGENT_BENCHMARKS_CONFIG_DIR` when
 set. The file is written at mode `0600`. When it exists but cannot be parsed,
-Decant uses the detected defaults and leaves it alone until the next save, which
+Agent Benchmarks uses the detected defaults and leaves it alone until the next save, which
 moves it aside as `settings.json.corrupt-<timestamp>` before writing a new one.
 
-When update checks are on, the result of the last check is cached next to it in
-`update-check.json`, holding the time of the check and the newest version it
-found.
-Decant asks the npm registry again only after a day has passed, or an hour
-after a failed check, which the file marks with `failed`. `decant update` and `decant update --check` always ask and
-refresh the cache. Deleting the file only causes one more check.
 
 ### Inspecting and removing it
 
-`decant db info` reports where the archive is, how large it is, and how much it
+`agent-benchmarks db info` reports where the archive is, how large it is, and how much it
 holds. It prints no transcript content.
 
 ```sh
-decant db info
-decant db info --full   # adds fts_rows and text_bytes: a full scan, slow on a large archive
+agent-benchmarks db info
+agent-benchmarks db info --full   # adds fts_rows and text_bytes: a full scan, slow on a large archive
 ```
 
 `--full` also reports `compressed_messages` and `raw_stored_bytes`. The latter
@@ -503,10 +497,10 @@ ingested. Opening an existing archive adds the storage columns without
 rewriting its retained records. Compress those records explicitly with
 
 ```sh
-decant --no-sync db compact
+agent-benchmarks --no-sync db compact
 ```
 
-Stop any running Decant server before upgrading and compacting the archive,
+Stop any running Agent Benchmarks server before upgrading and compacting the archive,
 then restart it with the new build. A process running an older build cannot
 read compressed source records. Keep a consistent backup before maintaining a
 large archive. SQLite's final `VACUUM` can need up to twice the archive's size
@@ -517,16 +511,16 @@ record decodes to exactly the stored text before saving it, commits bounded
 batches, and then runs `VACUUM` to return freed pages to the filesystem. It
 prints progress while compressing and before vacuuming. If interrupted, run it
 again. Completed batches stay committed, already compressed records are
-skipped, and a failed vacuum can be retried with `decant --no-sync db vacuum`.
+skipped, and a failed vacuum can be retried with `agent-benchmarks --no-sync db vacuum`.
 Session IDs, user state, normalized content, and search results are preserved.
 
 Delete one session tree from the CLI, or use **Delete session** in the web UI:
 
 ```sh
-decant ls                      # find the id
-decant session rm 42 --dry-run # what would go, without deleting it
-decant session rm 42 --yes     # --yes is required once it has descendants
-decant db vacuum
+agent-benchmarks ls                      # find the id
+agent-benchmarks session rm 42 --dry-run # what would go, without deleting it
+agent-benchmarks session rm 42 --yes     # --yes is required once it has descendants
+agent-benchmarks db vacuum
 ```
 
 `session rm` deletes the session **and its descendant tree**, so `--yes` is
@@ -538,7 +532,7 @@ radius without touching anything.
 There is no un-delete command, and it is not enough to re-run `sync`. Deletion
 writes tombstones that make later syncs skip the deleted source files on purpose.
 The source JSONL remains on disk, so you can restore deleted sessions by clearing
-the tombstones and ingest bookkeeping before syncing again. Close `decant serve`
+the tombstones and ingest bookkeeping before syncing again. Close `agent-benchmarks serve`
 first, and back up the archive before editing it.
 
 The archive removes the parent-child links during deletion. After deleting a
@@ -547,13 +541,13 @@ The following recovery therefore restores **every** deleted session whose source
 JSONL still exists:
 
 ```sh
-sqlite3 ~/.decant/decant.db \
+sqlite3 ~/.agent-benchmarks/agent-benchmarks.db \
   "BEGIN IMMEDIATE;
    DELETE FROM session_user_state WHERE state = 'deleted';
    DELETE FROM ingest_source WHERE status = 'skipped_deleted';
    COMMIT;"
 
-decant sync
+agent-benchmarks sync
 ```
 
 Both deletes are required. Clearing only `session_user_state` leaves each file
@@ -562,31 +556,31 @@ rebuilds sessions from the source logs rather than recovering deleted archive
 pages, and only works while those source files still exist.
 
 Both paths remove the live rows and their full-text index entries. SQLite can
-leave deleted transcript text recoverable in freed pages until `decant db
+leave deleted transcript text recoverable in freed pages until `agent-benchmarks db
 vacuum` rewrites the archive.
-`decant db info` reports `freelist_bytes`, and a non-zero value means a vacuum is
+`agent-benchmarks db info` reports `freelist_bytes`, and a non-zero value means a vacuum is
 owed. The converse does not hold. Freed pages are reused: the next sync, and any
 read command that syncs first, writes new rows into them. So `freelist_bytes` can
 read back at or near zero while deleted text still survives in the unused tail of
 a page something else now occupies. Run `db vacuum` as the step that follows a
 delete, rather than waiting for the number to look large.
 
-To remove everything Decant holds:
+To remove everything Agent Benchmarks holds:
 
 ```sh
-rm -rf ~/.decant
+rm -rf ~/.agent-benchmarks
 ```
 
 Under Docker the archive lives in the **named** volume mounted at
-`/var/lib/decant`, and a named volume outlives its containers. Neither `--rm`
+`/var/lib/agent-benchmarks`, and a named volume outlives its containers. Neither `--rm`
 nor `docker rm` removes it; only removing the volume does:
 
 ```sh
-docker volume rm decant-data
+docker volume rm agent-benchmarks-data
 ```
 
 The source mounts in the documented `docker run` are read-only (`:ro`), so
-Decant cannot modify your Claude Code or Codex logs from inside the container.
+Agent Benchmarks cannot modify your Claude Code or Codex logs from inside the container.
 
 Removing the archive never removes the source logs. Those stay where Claude Code
 and Codex wrote them.
@@ -594,11 +588,11 @@ and Codex wrote them.
 ## Repository identity
 
 A local path names a repository differently on every machine and in every
-worktree, so Decant also records the repository's remote as
+worktree, so Agent Benchmarks also records the repository's remote as
 `project.repo_remote`: `github.com/acme/widget` for both
 `git@github.com:acme/widget.git` and `https://github.com/acme/widget`. Any sync
 that ingests a session reads it from the Git config on disk, for existing
-projects as well as new ones. Decant does not run `git` and does not contact
+projects as well as new ones. Agent Benchmarks does not run `git` and does not contact
 the remote.
 
 The lookup starts at the project's directory and walks up to the working tree
@@ -610,9 +604,9 @@ value is stored. A local path or `file:` remote is not recorded.
 A project whose directory is gone, such as a removed worktree, takes the remote
 of the repository root it resolved to. When neither can be read, the stored
 value stays as it was, so a project keeps its identity after its checkout is
-deleted. A project stays unset when its directory was removed before Decant
+deleted. A project stays unset when its directory was removed before Agent Benchmarks
 first read it and it has no root on disk, when its repository has no remote,
-and when Decant cannot see the directory at all, as in a container that mounts
+and when Agent Benchmarks cannot see the directory at all, as in a container that mounts
 only the source logs. Projects that hold only imported ATIF trajectories are
 skipped, because their path is a job directory, not the place the agent ran.
 
@@ -626,12 +620,12 @@ Documents, Desktop, or Downloads while its permission prompt is unanswered,
 which a background service may never get answered. A network mount that has
 gone away behaves the same way.
 
-Decant makes these reads on a helper thread and waits up to 2 seconds for each
-one. When a read runs out of time, Decant looks for the highest folder on that
+Agent Benchmarks makes these reads on a helper thread and waits up to 2 seconds for each
+one. When a read runs out of time, Agent Benchmarks looks for the highest folder on that
 path that also does not answer, and skips that folder and everything under it
 without waiting again. A sync waits about 4 seconds for each such folder, once
-per process, so `decant serve` and `decant watch` pay it once and later syncs
-do not. Each `decant sync` run is its own process and waits again. Decant
+per process, so `agent-benchmarks serve` and `agent-benchmarks watch` pay it once and later syncs
+do not. Each `agent-benchmarks sync` run is its own process and waits again. Agent Benchmarks
 remembers at most 8 such folders at a time. With all 8 in use it skips these
 lookups for every directory until one of them answers.
 
@@ -640,9 +634,9 @@ their content are ingested as usual. Config files under the skipped folder
 contribute no MCP server names, and no new worktree link or remote is found
 there. A worktree link or remote that was already recorded stays. An
 OpenCode session ingested this way carries an `unreachable_project_directory`
-diagnostic, which `decant sync --json` counts in `issues_by_code` and the
-session's issue list shows. `decant sync` and `decant watch` also log a
-`decant.ingest.directory_unreachable` warning that names the folder.
+diagnostic, which `agent-benchmarks sync --json` counts in `issues_by_code` and the
+session's issue list shows. `agent-benchmarks sync` and `agent-benchmarks watch` also log a
+`agent-benchmarks.ingest.directory_unreachable` warning that names the folder.
 
 The skip ends when every stalled read in that folder returns, for example after
 you allow access in System Settings or the mount comes back. The next sync reads
@@ -650,13 +644,13 @@ the directory again and re-derives the affected OpenCode sessions once.
 
 ## Automatic and explicit sync
 
-Read commands normally sync first. `decant serve` performs a startup sync and
+Read commands normally sync first. `agent-benchmarks serve` performs a startup sync and
 then watches the configured source directories. When the sync a read command
-starts runs for more than about a second, Decant prints one line to stderr that
+starts runs for more than about a second, Agent Benchmarks prints one line to stderr that
 says so and names `--no-sync`. `--quiet` suppresses it.
 
 A read command creates the default archive on first run, but not an archive at
-a path set with `--db` or `DECANT_DB`. There it fails with `archive_not_found`,
+a path set with `--db` or `AGENT_BENCHMARKS_DB`. There it fails with `archive_not_found`,
 so a mistyped path is not answered with an empty result. `sync`, `serve`,
 `watch`, and `db migrate` create the archive they are pointed at. See
 [CLI output, errors, and exit codes](cli.md#the-archive-path).
@@ -691,7 +685,7 @@ to the top. If a refresh fails, the rows stay up under a notice with a
 transcripts, and analytics, background activity only lights the **Update**
 button, so it never reshuffles a page while you are reading it.
 
-Set `DECANT_NO_SYNC` or pass `--no-sync` to suppress syncs Decant starts on its
+Set `AGENT_BENCHMARKS_NO_SYNC` or pass `--no-sync` to suppress syncs Agent Benchmarks starts on its
 own. With `serve`, this also disables the source watcher. It does not disable an
 operator-requested `POST /api/sync` or the UI's **Sync now** action.
 
@@ -699,49 +693,47 @@ Always use `--no-sync` with a scratch database unless you want it populated
 from the real default source directories:
 
 ```sh
-decant --db /tmp/decant-review.db --no-sync serve --no-open
+agent-benchmarks --db /tmp/agent-benchmarks-review.db --no-sync serve --no-open
 ```
 
 ### Running in the background
 
-By default the archive only stays current while `decant serve` runs in a
+By default the archive only stays current while `agent-benchmarks serve` runs in a
 terminal. Turn on **Run in the background** in Settings, or run
-`decant service install`, and the OS starts `decant serve --no-open` at login
+`agent-benchmarks service install`, and the OS starts `agent-benchmarks serve --no-open` at login
 and restarts it if it fails. On macOS this is a LaunchAgent at
-`~/Library/LaunchAgents/dev.dosu.decant.plist` with its log in
-`~/Library/Logs/decant/serve.log`. On Linux it is a systemd user unit at
-`~/.config/systemd/user/decant.service`, logging to the journal
-(`journalctl --user -u decant`). Run `decant service status` to see its state
-and `decant service uninstall` to remove it.
+`~/Library/LaunchAgents/dev.dosu.agent-benchmarks.plist` with its log in
+`~/Library/Logs/agent-benchmarks/serve.log`. On Linux it is a systemd user unit at
+`~/.config/systemd/user/agent-benchmarks.service`, logging to the journal
+(`journalctl --user -u agent-benchmarks`). Run `agent-benchmarks service status` to see its state
+and `agent-benchmarks service uninstall` to remove it.
 
 The service is the same single process that owns the archive when you run
-`decant serve` yourself. It serves the archive and port you chose when you
+`agent-benchmarks serve` yourself. It serves the archive and port you chose when you
 turned it on, on loopback only, with the default source directories. It does
 not carry over `--host`, `--trusted-peer`, `--no-sync`, or source-directory
 flags.
 
-A relative `--db` or `DECANT_DB` is stored as an absolute path, because the OS
-starts the service in its own working directory. Decant refuses to register a
+A relative `--db` or `AGENT_BENCHMARKS_DB` is stored as an absolute path, because the OS
+starts the service in its own working directory. Agent Benchmarks refuses to register a
 service when the archive path or its own executable path contains a control
 character such as a newline or carriage return, because no quoting keeps one
 inside a systemd unit or plist. Running
-`decant service install` again with a different archive or port replaces the
+`agent-benchmarks service install` again with a different archive or port replaces the
 registration, whether or not the service is running. On macOS this waits for
 the old process to exit, up to 30 seconds, before registering the new command.
 
 Turning it on from Settings hands off: the server you are using registers the
 service, then stops, and the service takes over the same address. The page
-reloads once the service answers. While another `decant serve` holds the port,
-the service waits for it instead of exiting, and a bare `decant` that finds the
+reloads once the service answers. While another `agent-benchmarks serve` holds the port,
+the service waits for it instead of exiting, and a bare `agent-benchmarks` that finds the
 service already serving its port opens the browser there.
 
-The service checks its binary once a minute. After `decant update`, a Homebrew
-upgrade, or an npm update replaces it, the service waits until the new file
-stops changing, then exits and the OS starts the new version. If a sync is
-stuck and the service has not stopped 10 seconds after it began, it exits
-anyway so the OS can restart it. Homebrew installs register the stable
-`$(brew --prefix)/opt/decant/bin/decant` path, so upgrades keep working. Source
-checkouts, `npx`, and the container cannot register a service.
+The service checks its binary once a minute. When a standalone binary is
+replaced locally, it waits until the new file stops changing, then exits so the
+OS can start the new version. If a sync is stuck and the service has not
+stopped 10 seconds after it began, it exits anyway so the OS can restart it.
+Source checkouts and the container cannot register a service.
 
 ## Visible, archived, and deleted
 
@@ -765,11 +757,11 @@ instead of reappearing after a later sync. Deleted sessions are not returned by
 API after their rows are removed.
 
 A provider can also mark a session archived in its own source layout. Clearing
-a Decant user override does not move or rewrite provider files.
+a Agent Benchmarks user override does not move or rewrite provider files.
 
 ## Sensitive sessions
 
-Deleting a session tree removes its transcript-derived rows from Decant and
+Deleting a session tree removes its transcript-derived rows from Agent Benchmarks and
 prevents the configured source from re-ingesting that identity. The original
 Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI,
 VS Code, Hermes Agent, or Pi record remains on disk.
@@ -784,8 +776,8 @@ Removing the rows may leave their text recoverable in freed pages. For a session
 that was sensitive enough to delete, run both commands:
 
 ```sh
-decant session rm <id> --yes
-decant db vacuum
+agent-benchmarks session rm <id> --yes
+agent-benchmarks db vacuum
 ```
 
 See [Inspecting and removing it](#inspecting-and-removing-it) for the rest of
@@ -813,7 +805,7 @@ own rows, so they refresh even when the source is gone.
 
 Earlier releases filed a forked Codex subagent under the thread it forked
 from, replacing that thread's session. When a sync re-reads such a fork,
-Decant removes the misfiled row and stores the subagent under its own ID. The
+Agent Benchmarks removes the misfiled row and stores the subagent under its own ID. The
 parent comes back from its own rollout while that file still exists.
 
 Subagent parent links are resolved at the end of any sync that wrote or
@@ -839,9 +831,9 @@ session is written, a message it shares with another session stays billed in
 one of them and keeps its transcript row in both.
 [Analytics methodology](analytics-methodology.md#token-and-cost-totals) says
 which one, and the order sessions are read in does not change it. When a
-session is deleted, or re-read without a message it held, Decant ranks the
+session is deleted, or re-read without a message it held, Agent Benchmarks ranks the
 sessions that still hold the message again, and the copy that ranks first bills
-it. Decant restores that copy's usage, totals, cost, and reasoning estimate
+it. Agent Benchmarks restores that copy's usage, totals, cost, and reasoning estimate
 from stored rows, so the copy matches an archive that never held the removed
 message, even when the copy's source file is gone. The first sync after an
 upgrade applies the same rule to every stored Claude Code session from its
@@ -861,10 +853,10 @@ Preserve the database before a rebuild if that state matters, and do not assume
 it can be reconstructed from transcripts.
 
 `session_model_usage.reported_cost_usd` holds the cost a source recorded for a
-model Decant cannot price (OpenCode records one per request). It is set when
+model Agent Benchmarks cannot price (OpenCode records one per request). It is set when
 the usage rows are derived, at ingest or by a format-version backfill, and is
 part of the cost every sync reconciles, so a rate added later replaces the
-recorded figure with Decant's estimate on the next sync. The reverse needs a
+recorded figure with Agent Benchmarks's estimate on the next sync. The reverse needs a
 re-derive: rows derived while a model had a rate store no recorded figure, so
 removing a rate requires bumping `MODEL_USAGE_FORMAT_VERSION`, which rebuilds
 the rows from the stored messages without the source database.
@@ -883,7 +875,7 @@ readable by id. Each becomes visible once its source gains a real prompt or
 reply.
 
 See the Response and archive semantics section of docs/api/routes.md for the
-wire behavior and [How Decant analytics work](analytics-methodology.md) for the
+wire behavior and [How Agent Benchmarks analytics work](analytics-methodology.md) for the
 effect on analytical denominators.
 
 Parser diagnostics retain locations and fixed error messages. Ordinary malformed

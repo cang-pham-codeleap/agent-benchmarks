@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 function tempDir(): string {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "decant-bounded-fs-")));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-bounded-fs-")));
   tempRoots.push(dir);
   return dir;
 }

@@ -10,7 +10,7 @@
 INSERT INTO `session` (`id`, `project_id`, `slug`, `directory`, `title`, `version`, `cost`,
   `tokens_input`, `tokens_output`, `tokens_reasoning`, `tokens_cache_read`, `tokens_cache_write`,
   `agent`, `model`, `time_created`, `time_updated`)
-VALUES ('ses_v1_fork', 'prj_v1', 'v1-fork', '/decant-fixture/example', 'Read the example notes (fork #1)', '1.18.35',
+VALUES ('ses_v1_fork', 'prj_v1', 'v1-fork', '/agent-benchmarks-fixture/example', 'Read the example notes (fork #1)', '1.18.35',
   0.0000601, 210, 40, 10, 40, 16, 'build',
   '{"id":"glm-5.3-flash","providerID":"opencode-go","variant":"max"}',
   1791795000000, 1791795060000);
@@ -19,11 +19,11 @@ INSERT INTO `message` (`id`, `session_id`, `time_created`, `time_updated`, `data
 ('msg_v1f_1', 'ses_v1_fork', 1791790000000, 1791795000000,
  '{"role":"user","time":{"created":1791790000000},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash","variant":"max"}}'),
 ('msg_v1f_2', 'ses_v1_fork', 1791790001000, 1791795000000,
- '{"role":"assistant","time":{"created":1791790001000,"completed":1791790005000},"parentID":"msg_v1f_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/decant-fixture/example","root":"/decant-fixture/example"},"cost":0.0000416,"tokens":{"total":216,"input":120,"output":30,"reasoning":10,"cache":{"read":40,"write":16}},"variant":"max","finish":"stop"}'),
+ '{"role":"assistant","time":{"created":1791790001000,"completed":1791790005000},"parentID":"msg_v1f_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/agent-benchmarks-fixture/example","root":"/agent-benchmarks-fixture/example"},"cost":0.0000416,"tokens":{"total":216,"input":120,"output":30,"reasoning":10,"cache":{"read":40,"write":16}},"variant":"max","finish":"stop"}'),
 ('msg_v1f_3', 'ses_v1_fork', 1791795001000, 1791795001000,
  '{"role":"user","time":{"created":1791795001000},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash","variant":"max"}}'),
 ('msg_v1f_4', 'ses_v1_fork', 1791795002000, 1791795004000,
- '{"role":"assistant","time":{"created":1791795002000,"completed":1791795004000},"parentID":"msg_v1f_3","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/decant-fixture/example","root":"/decant-fixture/example"},"cost":0.0000185,"tokens":{"total":100,"input":90,"output":10,"reasoning":0,"cache":{"read":0,"write":0}},"variant":"max","finish":"stop"}');
+ '{"role":"assistant","time":{"created":1791795002000,"completed":1791795004000},"parentID":"msg_v1f_3","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/agent-benchmarks-fixture/example","root":"/agent-benchmarks-fixture/example"},"cost":0.0000185,"tokens":{"total":100,"input":90,"output":10,"reasoning":0,"cache":{"read":0,"write":0}},"variant":"max","finish":"stop"}');
 
 INSERT INTO `part` (`id`, `message_id`, `session_id`, `time_created`, `time_updated`, `data`) VALUES
 ('prt_v1f_01', 'msg_v1f_1', 'ses_v1_fork', 1791795000000, 1791795000000,

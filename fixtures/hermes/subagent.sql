@@ -6,7 +6,7 @@ INSERT INTO sessions (id, source, model, parent_session_id, started_at, ended_at
   cache_write_tokens, reasoning_tokens, cwd, title, api_call_count, profile_name)
 VALUES ('20261101_090110_d4e5f6', 'cli', 'gpt-5.4-mini', '20261101_090000_a1b2c3',
   1791786070.0, 1791786099.0, 'subagent_done', 4, 1, 400, 30, 200, 0, 0,
-  '/decant-fixture/example', 'Count the lines in notes.txt', 2, 'default');
+  '/agent-benchmarks-fixture/example', 'Count the lines in notes.txt', 2, 'default');
 
 INSERT INTO messages (id, session_id, role, content, tool_call_id, tool_calls, tool_name,
   timestamp, finish_reason, active, compacted, message_uid) VALUES

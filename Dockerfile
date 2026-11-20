@@ -14,62 +14,60 @@ COPY src ./src
 COPY docs/api/openapi.yaml ./docs/api/openapi.yaml
 
 ARG TARGETPLATFORM
-ARG DECANT_VERSION=0.0.0-dev
+ARG AGENT_BENCHMARKS_VERSION=0.0.0-dev
 RUN case "${TARGETPLATFORM}" in \
-      "linux/amd64") DECANT_TARGET="linux-x64" ;; \
-      "linux/arm64") DECANT_TARGET="linux-arm64" ;; \
+      "linux/amd64") AGENT_BENCHMARKS_TARGET="linux-x64" ;; \
+      "linux/arm64") AGENT_BENCHMARKS_TARGET="linux-arm64" ;; \
       *) echo "unsupported Docker target platform: ${TARGETPLATFORM}" >&2; exit 1 ;; \
     esac; \
-    bun run scripts/build-binaries.ts --target "${DECANT_TARGET}" --out-dir /tmp/decant-bin --version "${DECANT_VERSION}"; \
-    cp "/tmp/decant-bin/${DECANT_TARGET}/decant" /usr/local/bin/decant
+    bun run scripts/build-binaries.ts --target "${AGENT_BENCHMARKS_TARGET}" --out-dir /tmp/agent-benchmarks-bin --version "${AGENT_BENCHMARKS_VERSION}"; \
+    cp "/tmp/agent-benchmarks-bin/${AGENT_BENCHMARKS_TARGET}/agent-benchmarks" /usr/local/bin/agent-benchmarks
 
 # Preserve the old Debian system account IDs so existing volumes stay writable.
-RUN mkdir -p /tmp/runtime/etc /tmp/runtime/var/lib/decant \
+RUN mkdir -p /tmp/runtime/etc /tmp/runtime/var/lib/agent-benchmarks \
       /tmp/runtime/sources/claude /tmp/runtime/sources/codex \
       /tmp/runtime/sources/gemini /tmp/runtime/sources/cursor \
       /tmp/runtime/sources/copilot /tmp/runtime/sources/vscode /tmp/runtime/sources/atif \
-    && printf 'root:x:0:0:root:/root:/sbin/nologin\ndecant:x:999:999::/var/lib/decant:/sbin/nologin\n' > /tmp/runtime/etc/passwd \
-    && printf 'root:x:0:\ndecant:x:999:\n' > /tmp/runtime/etc/group
+    && printf 'root:x:0:0:root:/root:/sbin/nologin\nagent-benchmarks:x:999:999::/var/lib/agent-benchmarks:/sbin/nologin\n' > /tmp/runtime/etc/passwd \
+    && printf 'root:x:0:\nagent-benchmarks:x:999:\n' > /tmp/runtime/etc/group
 
 FROM gcr.io/distroless/cc-debian12:latest@sha256:e5d81ddde149641e2a9ba55be4545bc125c67de07508b03ba4c22e6eb0ded5aa AS runtime
 
 COPY --from=build /tmp/runtime/etc/passwd /etc/passwd
 COPY --from=build /tmp/runtime/etc/group /etc/group
-COPY --from=build --chown=999:999 /tmp/runtime/var/lib/decant /var/lib/decant
+COPY --from=build --chown=999:999 /tmp/runtime/var/lib/agent-benchmarks /var/lib/agent-benchmarks
 COPY --from=build --chown=999:999 /tmp/runtime/sources /sources
-COPY --from=build /usr/local/bin/decant /usr/local/bin/decant
+COPY --from=build /usr/local/bin/agent-benchmarks /usr/local/bin/agent-benchmarks
 
 USER 999:999
-ENV HOME=/var/lib/decant
-WORKDIR /var/lib/decant
+ENV HOME=/var/lib/agent-benchmarks
+WORKDIR /var/lib/agent-benchmarks
 
-ENV DECANT_DB=/var/lib/decant/decant.db
-ENV DECANT_CLAUDE_DIR=/sources/claude
-ENV DECANT_CODEX_DIR=/sources/codex
-ENV DECANT_GEMINI_DIR=/sources/gemini
-ENV DECANT_CURSOR_DIR=/sources/cursor
-ENV DECANT_COPILOT_DIR=/sources/copilot
-ENV DECANT_VSCODE_COPILOT_DIR=/sources/vscode
-ENV DECANT_ATIF_DIR=/sources/atif
-# Tells `decant update` to print `docker pull` instead of rewriting a binary the
-# decant user cannot write. Marker files like /.dockerenv are not used because
-# devcontainers have them too, and Kubernetes and containerd create none.
-ENV DECANT_INSTALL_CHANNEL=docker
+ENV AGENT_BENCHMARKS_DB=/var/lib/agent-benchmarks/agent-benchmarks.db
+ENV AGENT_BENCHMARKS_CLAUDE_DIR=/sources/claude
+ENV AGENT_BENCHMARKS_CODEX_DIR=/sources/codex
+ENV AGENT_BENCHMARKS_GEMINI_DIR=/sources/gemini
+ENV AGENT_BENCHMARKS_CURSOR_DIR=/sources/cursor
+ENV AGENT_BENCHMARKS_COPILOT_DIR=/sources/copilot
+ENV AGENT_BENCHMARKS_VSCODE_COPILOT_DIR=/sources/vscode
+ENV AGENT_BENCHMARKS_ATIF_DIR=/sources/atif
+# Mark the compiled image as a container install for background-service diagnostics.
+ENV AGENT_BENCHMARKS_INSTALL_CHANNEL=docker
 # The archive is served without credentials and the `Host` header is forgeable
 # by any non-browser client, so the peer's source address is the only real
 # boundary. Ship no peer allowlist: a baked-in CIDR handed the whole archive to
 # every address in it, including sibling containers on the same bridge. Instead
 # opt in to one derived address -- this container's own bridge gateway, which is
 # where the runtime's port publisher forwards `-p` host traffic from -- and only
-# when decant can prove the default route is a container veth to an on-link
+# when agent-benchmarks can prove the default route is a container veth to an on-link
 # gateway inside 172.16.0.0/12. Shapes that fail that proof (`--network host`,
 # macvlan/ipvlan, bridges outside that range) trust nobody beyond loopback until
-# the operator sets DECANT_TRUSTED_PEERS, which replaces this default entirely.
-# Set DECANT_TRUST_DEFAULT_GATEWAY=0 to turn the derivation off outright.
-ENV DECANT_TRUST_DEFAULT_GATEWAY=1
+# the operator sets AGENT_BENCHMARKS_TRUSTED_PEERS, which replaces this default entirely.
+# Set AGENT_BENCHMARKS_TRUST_DEFAULT_GATEWAY=0 to turn the derivation off outright.
+ENV AGENT_BENCHMARKS_TRUST_DEFAULT_GATEWAY=1
 
-VOLUME ["/var/lib/decant"]
+VOLUME ["/var/lib/agent-benchmarks"]
 EXPOSE 3000
 
-ENTRYPOINT ["/usr/local/bin/decant"]
+ENTRYPOINT ["/usr/local/bin/agent-benchmarks"]
 CMD ["serve", "--host", "0.0.0.0", "--port", "3000", "--no-fs-watch", "--interval-ms", "45000"]

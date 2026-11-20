@@ -16,7 +16,6 @@ import {
   previousPeriodLabel,
   previousRange,
 } from "../analytics-metrics.ts";
-import dosuOfficialUrl from "../assets/dosu-official.svg";
 import { brandTone, ModelBadge } from "../badges.tsx";
 import {
   AnalyticsChart,
@@ -30,8 +29,6 @@ import {
 import { Bar, CostValue, EmptyState, Sparkline, StatCard, Tooltip } from "../common.tsx";
 import { ALL_DATE_RANGE, dateRangeQuery, withDateQuery } from "../date-range.ts";
 import { DateRangeControl } from "../date-range-control.tsx";
-import { DOSU_ANALYTICS_DISMISSAL_KEY, shouldShowDosuCta } from "../dosu-cta.ts";
-import { dosuLink } from "../dosu-links.ts";
 import {
   basename,
   compact,
@@ -51,7 +48,6 @@ import {
   ANALYTICS_REPORT_NEVER_INCLUDES,
   ReportExportButton,
 } from "../report-export.tsx";
-import { readStorage, writeStorage } from "../safe-storage.ts";
 import { hasShareCardValues, type ShareCardCopyInput } from "../share-card.ts";
 import { localTimezone, ShareChartButton, shareRange } from "../share-chart.tsx";
 import {
@@ -124,7 +120,7 @@ export function FirstRunPanel({
           cost, and context-window analytics wherever the source records usage. Nothing leaves this
           machine.
         </p>
-        <code>decant sync</code>
+        <code>agent-benchmarks sync</code>
         <SyncButton
           ariaLabel="Sync session logs"
           busy={syncing}
@@ -158,9 +154,6 @@ export function AnalyticsView({
   syncing: boolean;
 }) {
   const analyticsQuery = sourceScopeQuery(dateRangeQuery(dateRange), source);
-  const [dosuDismissed, setDosuDismissed] = useState(
-    () => readStorage(DOSU_ANALYTICS_DISMISSAL_KEY) === "1",
-  );
   const [modelSort, setModelSort] = useState<SortState<ModelSortKey>>({
     key: "cost",
     direction: "desc",

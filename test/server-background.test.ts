@@ -7,11 +7,11 @@ import type { RequestContext } from "../src/server/context.ts";
 import { handleRequest } from "../src/server.ts";
 import type { CommandResult, ServiceOptions } from "../src/service.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-background-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-background-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let counter = 0;
-const config = { dbPath: join(workDir, "decant.db") } as Config;
+const config = { dbPath: join(workDir, "agent-benchmarks.db") } as Config;
 
 function fakeService(env: Record<string, string> = {}): {
   options: ServiceOptions;
@@ -41,8 +41,8 @@ function fakeService(env: Record<string, string> = {}): {
       homeDir: join(workDir, `home-${counter}`),
       uid: 501,
       run,
-      install: { channel: "installer", binaryPath: "/opt/test/decant" },
-      execPath: "/opt/test/decant",
+      install: { channel: "standalone", binaryPath: "/opt/test/agent-benchmarks" },
+      execPath: "/opt/test/agent-benchmarks",
     },
   };
 }
@@ -109,7 +109,7 @@ describe("/api/background", () => {
   });
 
   test("turning it off from inside the service answers before stopping itself", async () => {
-    const { options, calls } = fakeService({ DECANT_SERVICE: "1" });
+    const { options, calls } = fakeService({ AGENT_BENCHMARKS_SERVICE: "1" });
     await post({ enabled: true }, { service: options, boundPort: 3000 });
     calls.length = 0;
     const response = await post({ enabled: false }, { service: options, boundPort: 3000 });
@@ -120,7 +120,7 @@ describe("/api/background", () => {
     });
     expect(calls.some((call) => call.includes("bootout"))).toBe(false);
     await settle();
-    expect(calls).toContain("launchctl bootout gui/501/dev.dosu.decant");
+    expect(calls).toContain("launchctl bootout gui/501/dev.dosu.agent-benchmarks");
   });
 
   test("only a loopback peer may change it", async () => {
@@ -158,13 +158,13 @@ describe("/api/background", () => {
       error: expect.stringContaining("control character"),
     });
 
-    const binary = "/opt/test/decant\nExecStartPre=/bin/false";
+    const binary = "/opt/test/agent-benchmarks\nExecStartPre=/bin/false";
     const exec = await post(
       { enabled: true },
       {
         service: {
           ...options,
-          install: { channel: "installer", binaryPath: binary },
+          install: { channel: "standalone", binaryPath: binary },
           execPath: binary,
         },
       },
@@ -209,7 +209,7 @@ describe("/api/background", () => {
     const { options } = fakeService();
     const response = await post(
       { enabled: true },
-      { service: { ...options, install: { channel: "npx", binaryPath: null } } },
+      { service: { ...options, install: { channel: "source", binaryPath: null } } },
     );
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ code: "background_unsupported" });

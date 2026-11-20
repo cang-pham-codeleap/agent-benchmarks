@@ -1,6 +1,6 @@
 ---
 name: contribution-triage
-description: Assess open Decant pull requests from outside contributors against CONTRIBUTING.md and draft the outcome (ready for review, needs changes, maintainer decision, take over, or close). Use when asked to triage, sort, or respond to contributor pull requests. Dry run unless the maintainer explicitly asks for comments, labels, or closures in the current request.
+description: Assess open Agent Benchmarks pull requests from outside contributors against CONTRIBUTING.md and draft the outcome (ready for review, needs changes, maintainer decision, take over, or close). Use when asked to triage, sort, or respond to contributor pull requests. Dry run unless the maintainer explicitly asks for comments, labels, or closures in the current request.
 ---
 
 # Contribution triage

@@ -164,7 +164,7 @@ export function registerSessionCommands(ctx: CliContext): void {
             } else if (!ctx.globals().quiet) {
               io.writeOut(
                 `deleted session ${id} (${descendants} descendant${plural})\n` +
-                  "run `decant db vacuum` to release the freed pages\n",
+                  "run `agent-benchmarks db vacuum` to release the freed pages\n",
               );
             }
             return 0;

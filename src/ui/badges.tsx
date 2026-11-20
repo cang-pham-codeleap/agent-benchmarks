@@ -126,7 +126,7 @@ export function ToolBadge({ tool }: { tool: string | null | undefined }) {
   if (tool === "atif") {
     return <Badge tone="info">{toolLabel(tool)}</Badge>;
   }
-  // No brand mark: Decant ships only marks published under an open license.
+  // No brand mark: Agent Benchmarks ships only marks published under an open license.
   if (tool === "hermes" || tool === "pi" || tool === "omp" || tool === "droid") {
     return <Badge tone="accent">{toolLabel(tool)}</Badge>;
   }

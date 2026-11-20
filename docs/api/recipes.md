@@ -1,6 +1,6 @@
 # Local API recipes
 
-These examples use Decant's local, unauthenticated API. Keep it on loopback
+These examples use Agent Benchmarks's local, unauthenticated API. Keep it on loopback
 unless you deliberately configured the trusted-peer boundary in
 [Local Serve API](routes.md).
 
@@ -13,7 +13,7 @@ Use `--no-sync` when you want to analyze the archive as it exists without a
 startup sync or source watcher:
 
 ```sh
-decant serve --no-sync --no-open
+agent-benchmarks serve --no-sync --no-open
 ```
 
 This does not make write routes read-only. An explicit `POST /api/sync` still
@@ -68,7 +68,7 @@ curl --fail --silent --show-error --get \
 
 Available dimensions are `tool`, `model`, `project`, and `day`. Aggregate
 `sessions` counts top-level sessions; token, cost, message, and tool totals
-include visible subagents. See [How Decant analytics work](../analytics-methodology.md).
+include visible subagents. See [How Agent Benchmarks analytics work](../analytics-methodology.md).
 
 ## Paginate sessions
 
@@ -152,7 +152,7 @@ curl --fail --silent --show-error \
 ```
 
 The CLI reads the same page without a running server:
-`decant show 123 --limit 100 --offset 0`. `decant show 123 --outline` lists a
+`agent-benchmarks show 123 --limit 100 --offset 0`. `agent-benchmarks show 123 --outline` lists a
 session's messages and their sizes, and `--max-chars` cuts long blocks. See
 [Read one session in pieces](../../README.md#read-one-session-in-pieces).
 

@@ -177,10 +177,10 @@ function subscribeToTranscriptTheme(listener: () => void): () => void {
   themeListeners.add(listener);
   if (detachThemeListeners == null) {
     const media = window.matchMedia?.("(prefers-color-scheme: dark)");
-    window.addEventListener("decant:set-theme", notifyThemeListeners);
+    window.addEventListener("agent-benchmarks:set-theme", notifyThemeListeners);
     media?.addEventListener("change", notifyThemeListeners);
     detachThemeListeners = () => {
-      window.removeEventListener("decant:set-theme", notifyThemeListeners);
+      window.removeEventListener("agent-benchmarks:set-theme", notifyThemeListeners);
       media?.removeEventListener("change", notifyThemeListeners);
     };
   }

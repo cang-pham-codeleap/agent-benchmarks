@@ -62,7 +62,7 @@ const fixtureRoot = join(repoRoot, "fixtures");
 const goldenDir = join(import.meta.dir, "golden");
 // Canonical, because OpenCode database paths are stored resolved (macOS's
 // temp directory sits behind the /var -> /private/var symlink).
-const workDir = realpathSync(mkdtempSync(join(tmpdir(), "decant-ingest-test-")));
+const workDir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-ingest-test-")));
 
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
@@ -149,7 +149,7 @@ function stageFixtures(dir: string): IngestConfig {
   mkdirSync(hermesDir, { recursive: true });
   buildHermesFixtureDb(join(hermesDir, "state.db"), ["sample.sql", "subagent.sql"]);
   const piDir = join(dir, "sources", "pi", "agent", "sessions");
-  const piProjectDir = join(piDir, "--decant-fixture-pi-example--");
+  const piProjectDir = join(piDir, "--agent-benchmarks-fixture-pi-example--");
   mkdirSync(piProjectDir, { recursive: true });
   for (const name of ["forked.jsonl", "sample.jsonl"]) {
     copyFileSync(
@@ -184,7 +184,9 @@ function rows(db: Database, sql: string): unknown[] {
 function canonicalizeRows(value: unknown, dir: string): unknown {
   // OpenCode source paths are resolved with realpath, which turns macOS's
   // /var/folders into /private/var/folders. Both spellings are the same case dir.
-  const text = JSON.stringify(value)
+  const text = JSON.stringify(value, (key, item) =>
+    key === "estimated_cost_usd" && typeof item === "number" ? Math.round(item * 1e12) / 1e12 : item,
+  )
     .replaceAll(realpathSync(dir), "<TMP>")
     .replaceAll(dir, "<TMP>");
   return JSON.parse(text) as unknown;
@@ -2515,7 +2517,7 @@ describe("sync", () => {
 
     for (const [name, sql] of Object.entries(ROW_QUERIES)) {
       expect(canonicalizeRows(decodeGoldenRows(rows(db, sql)), dir), name).toEqual(
-        await golden(`rows/${name}.json`),
+        canonicalizeRows(await golden(`rows/${name}.json`), dir),
       );
     }
 
@@ -2829,7 +2831,7 @@ describe("sync bookkeeping", () => {
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0] ?? "")).toMatchObject({
       level: "WARN",
-      "event.name": "decant.ingest.source_read_failed",
+      "event.name": "agent-benchmarks.ingest.source_read_failed",
       "file.path": sourcePath,
     });
     db.close();
@@ -3451,8 +3453,8 @@ describe("OpenCode ingest", () => {
     });
     const script = `
       INSERT INTO session_v2 (id, project_id, parent_id, slug, directory, title, version, agent, model, time_created, time_updated) VALUES
-        ('ses_parent', 'prj', NULL, 'parent', '/decant-fixture/example', 'Parent', '2.0.27', 'build', '{"providerID":"opencode-go","id":"glm-5.3-flash"}', ${T0}, ${T0 + 10000}),
-        ('ses_child', 'prj', 'ses_parent', 'child', '/decant-fixture/example', 'Child', '2.0.27', 'explore', '{"providerID":"opencode-go","id":"glm-5.3-flash"}', ${T0 + 2000}, ${T0 + 8000});
+        ('ses_parent', 'prj', NULL, 'parent', '/agent-benchmarks-fixture/example', 'Parent', '2.0.27', 'build', '{"providerID":"opencode-go","id":"glm-5.3-flash"}', ${T0}, ${T0 + 10000}),
+        ('ses_child', 'prj', 'ses_parent', 'child', '/agent-benchmarks-fixture/example', 'Child', '2.0.27', 'explore', '{"providerID":"opencode-go","id":"glm-5.3-flash"}', ${T0 + 2000}, ${T0 + 8000});
       INSERT INTO session_message (id, session_id, type, seq, time_created, time_updated, data) VALUES
         ('msg_p1', 'ses_parent', 'user', 1, ${T0}, ${T0}, '{"text":"Delegate the synthetic task.","time":{"created":${T0}}}'),
         ('msg_p2', 'ses_parent', 'assistant', 2, ${T0 + 1000}, ${T0 + 9000}, '${parentTool.replaceAll("'", "''")}'),
@@ -3524,7 +3526,7 @@ describe("OpenCode ingest", () => {
         .all();
     const catalogWarning = {
       level: "WARN",
-      "event.name": "decant.ingest.opencode_catalog_failed",
+      "event.name": "agent-benchmarks.ingest.opencode_catalog_failed",
       "file.path": main,
       "error.message": expect.stringContaining("no such column"),
     };
@@ -3675,7 +3677,7 @@ describe("OpenCode ingest", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({
       level: "WARN",
-      "event.name": expect.stringMatching(/^decant\.ingest\.opencode_(open|list)_failed$/),
+      "event.name": expect.stringMatching(/^agent-benchmarks\.ingest\.opencode_(open|list)_failed$/),
       "file.path": main,
     });
     closeDb(db);
@@ -3698,7 +3700,7 @@ describe("OpenCode ingest", () => {
     expect(lines).toEqual([
       expect.objectContaining({
         level: "WARN",
-        "event.name": "decant.ingest.opencode_unsupported_layout",
+        "event.name": "agent-benchmarks.ingest.opencode_unsupported_layout",
         "file.path": next,
       }),
     ]);
@@ -3709,7 +3711,7 @@ describe("OpenCode ingest", () => {
     function v1Session(id: string, timeUpdated: number, title: string): string {
       return `
         INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated)
-        VALUES ('${id}', 'prj', 'slug', '/decant-fixture/example', '${title}', '1.18.35', ${T0}, ${timeUpdated});
+        VALUES ('${id}', 'prj', 'slug', '/agent-benchmarks-fixture/example', '${title}', '1.18.35', ${T0}, ${timeUpdated});
         INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES
           ('msg_${id}_1', '${id}', ${T0}, ${T0},
            '{"role":"user","time":{"created":${T0}},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash"}}');
@@ -3720,7 +3722,7 @@ describe("OpenCode ingest", () => {
     function v2Session(id: string, timeUpdated: number, title: string): string {
       return `
         INSERT INTO session_v2 (id, project_id, slug, directory, title, version, time_created, time_updated)
-        VALUES ('${id}', 'prj', 'slug', '/decant-fixture/example', '${title}', '2.0.27', ${T0}, ${timeUpdated});
+        VALUES ('${id}', 'prj', 'slug', '/agent-benchmarks-fixture/example', '${title}', '2.0.27', ${T0}, ${timeUpdated});
         INSERT INTO session_message (id, session_id, type, seq, time_created, time_updated, data) VALUES
           ('msg_${id}_1', '${id}', 'user', 1, ${T0}, ${T0}, '{"text":"hello","files":[],"time":{"created":${T0}}}');`;
     }
@@ -3857,7 +3859,7 @@ describe("OpenCode ingest", () => {
       expect(missing.lines).toEqual([
         expect.objectContaining({
           level: "INFO",
-          "event.name": "decant.ingest.opencode_models_cache_missing",
+          "event.name": "agent-benchmarks.ingest.opencode_models_cache_missing",
           "file.path": modelsPath,
         }),
       ]);
@@ -3871,7 +3873,7 @@ describe("OpenCode ingest", () => {
       expect(malformed.lines).toEqual([
         expect.objectContaining({
           level: "WARN",
-          "event.name": "decant.ingest.opencode_models_cache_failed",
+          "event.name": "agent-benchmarks.ingest.opencode_models_cache_failed",
           "file.path": modelsPath,
         }),
       ]);
@@ -4069,7 +4071,7 @@ describe("OpenCode ingest", () => {
       exec(
         main,
         `INSERT INTO session_v2 (id, project_id, slug, directory, title, version, time_created, time_updated)
-         VALUES ('ses_v1_sample', 'prj_v1', 'v1-sample', '/decant-fixture/example', 'Migrated title',
+         VALUES ('ses_v1_sample', 'prj_v1', 'v1-sample', '/agent-benchmarks-fixture/example', 'Migrated title',
                  '1.18.35', 1791790000000, 1791790060000);
          INSERT INTO session_message (id, session_id, type, seq, time_created, time_updated, data)
          VALUES ('msg_v1s_1', 'ses_v1_sample', 'user', 1, 1791790000000, 1791790000000,
@@ -4168,8 +4170,8 @@ describe("OpenCode ingest", () => {
       });
       buildOpenCodeDb(join(opencodeDir, "opencode.db"), [
         `INSERT INTO session_v2 (id, project_id, parent_id, slug, directory, title, version, time_created, time_updated) VALUES
-           ('ses_m_parent', 'prj', NULL, 'parent', '/decant-fixture/example', 'Parent', '1.18.35', ${T0}, ${T0 + 10000}),
-           ('ses_m_child', 'prj', 'ses_m_parent', 'child', '/decant-fixture/example', 'Child', '1.18.35', ${T0 + 2000}, ${T0 + 8000});
+           ('ses_m_parent', 'prj', NULL, 'parent', '/agent-benchmarks-fixture/example', 'Parent', '1.18.35', ${T0}, ${T0 + 10000}),
+           ('ses_m_child', 'prj', 'ses_m_parent', 'child', '/agent-benchmarks-fixture/example', 'Child', '1.18.35', ${T0 + 2000}, ${T0 + 8000});
          INSERT INTO session_message (id, session_id, type, seq, time_created, time_updated, data) VALUES
            ('msg_mp1', 'ses_m_parent', 'user', 1, ${T0}, ${T0}, '{"text":"Delegate.","time":{"created":${T0}}}'),
            ('msg_mp2', 'ses_m_parent', 'assistant', 2, ${T0 + 1000}, ${T0 + 9000}, '${parentTool}'),

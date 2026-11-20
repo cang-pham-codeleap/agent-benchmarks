@@ -19,7 +19,7 @@ import {
 import { setSessionUserState } from "../src/session-user-state.ts";
 import { toolUsage } from "../src/stats.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-recommendations-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-recommendations-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -649,7 +649,7 @@ describe("recommendations", () => {
     expect(keys(rows)).toContain(SEARCH_HEAVY_KEY);
     expect(keys(rows)).toContain("signal:abandoned-rate");
     expect(rows.find((row) => row.key === HOT_AGENTS_KEY)?.suggestion).toContain(
-      "decant distill skill",
+      "agent-benchmarks distill skill",
     );
     expect(rows.find((row) => row.key === HOT_AGENTS_KEY)?.impact_label).toBe("9 sessions");
     expect(rows.find((row) => row.key === CHURN_PARSER_KEY)?.impact_label).toBe("7 sessions");
@@ -917,8 +917,8 @@ describe("recommendations", () => {
     function twoProjects(): Database {
       const db = base();
       db.exec(`
-        UPDATE project SET path = '/work/decant', root_path = '/work/decant',
-                           repo_remote = 'github.com/example/decant' WHERE id = 1;
+        UPDATE project SET path = '/work/agent-benchmarks', root_path = '/work/agent-benchmarks',
+                           repo_remote = 'github.com/example/agent-benchmarks' WHERE id = 1;
         INSERT INTO project(id, path, root_path) VALUES (2, '/work/api', '/work/api');
       `);
       return db;
@@ -934,15 +934,15 @@ describe("recommendations", () => {
       const hot = rows.filter((row) => row.key.startsWith("signal:hot-context:"));
       expect(hot).toHaveLength(1);
       expect(hot[0]).toMatchObject({
-        key: `signal:hot-context:src/config.ts${projectSuffix("/work/decant")}`,
-        title: 'Agents re-read "src/config.ts" in 9 "decant" sessions this month',
-        project_path: "/work/decant",
-        project_root: "/work/decant",
-        project_label: "decant",
-        project_remote: "github.com/example/decant",
+        key: `signal:hot-context:src/config.ts${projectSuffix("/work/agent-benchmarks")}`,
+        title: 'Agents re-read "src/config.ts" in 9 "agent-benchmarks" sessions this month',
+        project_path: "/work/agent-benchmarks",
+        project_root: "/work/agent-benchmarks",
+        project_label: "agent-benchmarks",
+        project_remote: "github.com/example/agent-benchmarks",
       });
-      expect(hot[0]?.prompt).toStartWith('Work in the "decant" repository at "/work/decant".');
-      expect(hot[0]?.prompt).toContain('passing --project "/work/decant"');
+      expect(hot[0]?.prompt).toStartWith('Work in the "agent-benchmarks" repository at "/work/agent-benchmarks".');
+      expect(hot[0]?.prompt).toContain('passing --project "/work/agent-benchmarks"');
 
       const churn = rows.filter((row) => row.key.startsWith("signal:churn:"));
       expect(churn).toMatchObject([
@@ -974,7 +974,7 @@ describe("recommendations", () => {
       const db = twoProjects();
       db.exec(`
         INSERT INTO project(id, path, root_path, is_worktree)
-        VALUES (3, '/work/decant/.worktrees/fix', '/work/decant', 1);
+        VALUES (3, '/work/agent-benchmarks/.worktrees/fix', '/work/agent-benchmarks', 1);
       `);
       seedFileSessions(db, 100, 4, "docs/guide.md", "read", 1);
       seedFileSessions(db, 200, 4, "docs/guide.md", "read", 3);
@@ -982,10 +982,10 @@ describe("recommendations", () => {
       const hot = signals(db).filter((row) => row.key.startsWith("signal:hot-context:"));
       expect(hot).toMatchObject([
         {
-          key: `signal:hot-context:docs/guide.md${projectSuffix("/work/decant")}`,
+          key: `signal:hot-context:docs/guide.md${projectSuffix("/work/agent-benchmarks")}`,
           impact_label: "8 sessions",
-          project_path: "/work/decant",
-          project_root: "/work/decant",
+          project_path: "/work/agent-benchmarks",
+          project_root: "/work/agent-benchmarks",
         },
       ]);
       db.close();
@@ -994,24 +994,24 @@ describe("recommendations", () => {
     test("a root known only by name starts in its newest worktree", () => {
       const db = base();
       db.exec(`
-        UPDATE project SET path = '/tools/worktrees/decant/old', root_path = 'decant',
+        UPDATE project SET path = '/tools/worktrees/agent-benchmarks/old', root_path = 'agent-benchmarks',
                            last_seen_at = '2026-01-01 00:00:00' WHERE id = 1;
         INSERT INTO project(id, path, root_path, last_seen_at, repo_remote)
-        VALUES (2, '/tools/worktrees/decant/new', 'decant', '2026-02-01 00:00:00',
-                'github.com/example/decant');
+        VALUES (2, '/tools/worktrees/agent-benchmarks/new', 'agent-benchmarks', '2026-02-01 00:00:00',
+                'github.com/example/agent-benchmarks');
       `);
       seedFileSessions(db, 100, 9, "AGENTS.md", "read", 1);
 
       const hot = signals(db).find((row) => row.key.startsWith("signal:hot-context:"));
       expect(hot).toMatchObject({
-        key: `signal:hot-context:AGENTS.md${projectSuffix("decant")}`,
-        project_path: "/tools/worktrees/decant/new",
-        project_root: "decant",
-        project_label: "decant",
-        project_remote: "github.com/example/decant",
+        key: `signal:hot-context:AGENTS.md${projectSuffix("agent-benchmarks")}`,
+        project_path: "/tools/worktrees/agent-benchmarks/new",
+        project_root: "agent-benchmarks",
+        project_label: "agent-benchmarks",
+        project_remote: "github.com/example/agent-benchmarks",
       });
       expect(hot?.prompt).toStartWith(
-        'Work in the "decant" repository at "/tools/worktrees/decant/new".',
+        'Work in the "agent-benchmarks" repository at "/tools/worktrees/agent-benchmarks/new".',
       );
       db.close();
     });
@@ -1185,7 +1185,7 @@ describe("recommendations", () => {
         note: "which project?",
       });
       const scoped = hot.filter((row) => row.key !== "signal:hot-context:AGENTS.md");
-      expect(scoped.map((row) => row.project_label).sort()).toEqual(["api", "decant"]);
+      expect(scoped.map((row) => row.project_label).sort()).toEqual(["agent-benchmarks", "api"]);
       expect(scoped.every((row) => row.status === "open" && row.note == null)).toBe(true);
       db.close();
     });
@@ -1193,7 +1193,7 @@ describe("recommendations", () => {
 
   test("only project rows say this repo, and the abandoned row names no missing filter", () => {
     const db = base();
-    db.exec("UPDATE project SET path = '/work/decant', root_path = '/work/decant'");
+    db.exec("UPDATE project SET path = '/work/agent-benchmarks', root_path = '/work/agent-benchmarks'");
     seedTool(db, "fetch", "mcp", "svc", 25, 5);
     seedTool(db, "mcp__svc__a", "mcp", "svc", 60, 0);
     seedTool(db, "Bash", "builtin", null, 250, 0);
@@ -1214,11 +1214,11 @@ describe("recommendations", () => {
     const scoped = rows.filter((row) => row.project_path != null);
     expect(scoped.map((row) => row.key).sort()).toEqual(
       [CHURN_PARSER_KEY, HOT_AGENTS_KEY, SEARCH_HEAVY_KEY]
-        .map((key) => key.replace(P, projectSuffix("/work/decant")))
+        .map((key) => key.replace(P, projectSuffix("/work/agent-benchmarks")))
         .sort(),
     );
     for (const row of scoped) {
-      expect(row.prompt, row.key).toStartWith('Work in the "decant" repository at "/work/decant".');
+      expect(row.prompt, row.key).toStartWith('Work in the "agent-benchmarks" repository at "/work/agent-benchmarks".');
     }
     const repoWords = /this repo|this project|our repo/i;
     const unscoped = rows.filter((row) => row.project_path == null);
@@ -1234,12 +1234,12 @@ describe("recommendations", () => {
 
     const abandoned = rows.find((row) => row.key === "signal:abandoned-rate");
     expect(abandoned?.detail).toBe(
-      '7 of 20 classified sessions in the last 30 days ended mid-flight (interrupted, unanswered, or stopped between tool calls). Most were in "decant" (7).',
+      '7 of 20 classified sessions in the last 30 days ended mid-flight (interrupted, unanswered, or stopped between tool calls). Most were in "agent-benchmarks" (7).',
     );
     for (const text of [abandoned?.suggestion, abandoned?.prompt]) {
       expect(text).not.toContain("outcome=abandoned");
       expect(text).not.toMatch(/filters? by outcome/i);
-      expect(text).toContain("decant stats --by outcome");
+      expect(text).toContain("agent-benchmarks stats --by outcome");
     }
     expect(abandoned?.prompt).toContain("cannot list sessions by outcome");
     db.close();

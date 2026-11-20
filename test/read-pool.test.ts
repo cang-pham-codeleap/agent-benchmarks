@@ -26,7 +26,7 @@ import { handleRequest, serve } from "../src/server.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 import { parseCodexSession } from "../src/sources/codex.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-read-pool-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-read-pool-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;

@@ -10,7 +10,7 @@ import { upsertSession } from "../src/ingest.ts";
 import { getSession, getSessionOutline } from "../src/query.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-cli-show-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cli-show-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const SOURCE_ID = "5b0c7d6e-0000-4000-8000-00000000abcd";
@@ -137,7 +137,7 @@ describe("show --outline", () => {
       "4\tuser\t33\ttext 33\tThanks. Now list the slow steps",
       "5\tassistant\t17\ttext 17",
       "[showing 6 of 6 messages]",
-      `[read messages: decant ${base.join(" ")} show ${id} --offset <index> --limit <n> --max-chars <n>]`,
+      `[read messages: agent-benchmarks ${base.join(" ")} show ${id} --offset <index> --limit <n> --max-chars <n>]`,
       "",
     ]);
 
@@ -216,7 +216,7 @@ describe("show --outline", () => {
     expect(page.stdout).not.toContain("\n5\tassistant\t");
     expect(page.stdout).toContain("[showing 2 of 6 messages from offset 3]");
     expect(page.stdout).toContain(
-      `[next page: decant ${base.join(" ")} show ${id} --outline --offset 5 --limit 2]`,
+      `[next page: agent-benchmarks ${base.join(" ")} show ${id} --outline --offset 5 --limit 2]`,
     );
 
     const json = await runCli([...base, "--json", ...args]);
@@ -268,7 +268,7 @@ describe("show --limit and --offset", () => {
     expect(text.stdout).not.toContain("No step was slow.");
     expect(text.stdout).toEndWith(
       "[showing 2 of 6 messages from offset 1]\n" +
-        `[next page: decant ${base.join(" ")} show ${id} --offset 3 --limit 2]\n`,
+        `[next page: agent-benchmarks ${base.join(" ")} show ${id} --offset 3 --limit 2]\n`,
     );
   });
 
@@ -412,7 +412,7 @@ describe("show --max-chars", () => {
     const result = await runCli([...base, "show", String(id), "--limit", "3", "--max-chars", "40"]);
     expect(result.stdout).toEndWith(
       "[showing 3 of 6 messages]\n" +
-        `[next page: decant ${base.join(" ")} show ${id} --offset 3 --limit 3 --max-chars 40]\n` +
+        `[next page: agent-benchmarks ${base.join(" ")} show ${id} --offset 3 --limit 3 --max-chars 40]\n` +
         "[1 block cut at 40 chars. Raise --max-chars to read it in full.]\n",
     );
   });
@@ -423,17 +423,17 @@ describe("follow-up commands", () => {
     const { id, dbPath } = seed();
     const quiet = await runCli(["--db", dbPath, "--no-sync", "show", String(id), "--limit", "1"]);
     expect(quiet.stdout).toContain(
-      `[next page: decant --db ${dbPath} --no-sync show ${id} --offset 1 --limit 1]`,
+      `[next page: agent-benchmarks --db ${dbPath} --no-sync show ${id} --offset 1 --limit 1]`,
     );
 
     const outline = await runCli(["--db", dbPath, "--no-sync", "show", String(id), "--outline"]);
     expect(outline.stdout).toContain(
-      `[read messages: decant --db ${dbPath} --no-sync show ${id} --offset <index>`,
+      `[read messages: agent-benchmarks --db ${dbPath} --no-sync show ${id} --offset <index>`,
     );
 
-    expect(readInvocation({})).toBe("decant");
+    expect(readInvocation({})).toBe("agent-benchmarks");
     expect(readInvocation({ db: "/tmp/it's here/a.db", sync: true })).toBe(
-      "decant --db '/tmp/it'\\''s here/a.db'",
+      "agent-benchmarks --db '/tmp/it'\\''s here/a.db'",
     );
   });
 });
@@ -451,19 +451,19 @@ describe("completion", () => {
 describe("session lookup by source session id", () => {
   test("show and export accept the id the source tool uses", async () => {
     const { id, base } = seed();
-    const byDecantId = await runCli([...base, "show", String(id)]);
-    expect(await runCli([...base, "show", `+${id}`])).toMatchObject(byDecantId);
+    const byAgentBenchmarksId = await runCli([...base, "show", String(id)]);
+    expect(await runCli([...base, "show", `+${id}`])).toMatchObject(byAgentBenchmarksId);
     expect((await runCli([...base, "export", `+${id}`])).code).toBe(0);
     const bySourceId = await runCli([...base, "show", SOURCE_ID]);
     expect(bySourceId).toMatchObject({ code: 0, stderr: "" });
-    expect(bySourceId.stdout).toBe(byDecantId.stdout);
+    expect(bySourceId.stdout).toBe(byAgentBenchmarksId.stdout);
 
     const outline = await runCli([...base, "--json", "show", SOURCE_ID, "--outline"]);
     expect(JSON.parse(outline.stdout).session).toMatchObject({ id, source_session_id: SOURCE_ID });
 
     const exported = await runCli([...base, "export", SOURCE_ID]);
     expect(exported).toMatchObject({ code: 0, stderr: "" });
-    expect(exported.stdout).toBe(`${byDecantId.stdout}\n`);
+    expect(exported.stdout).toBe(`${byAgentBenchmarksId.stdout}\n`);
 
     const outDir = join(workDir, `export-${caseCounter}`);
     const written = await runCli([...base, "export", SOURCE_ID, "--as", "json", "--out", outDir]);
@@ -520,7 +520,7 @@ describe("session lookup by source session id", () => {
     expect(exported).toMatchObject({ code: 1, stderr: "error: no session with id 999999\n" });
   });
 
-  test("an integer names the Decant id first and a source id only as a fallback", async () => {
+  test("an integer names the Agent Benchmarks id first and a source id only as a fallback", async () => {
     const { dbPath, id, base } = seed();
     const numeric = read(dbPath, (db) => ({
       clash: upsertSession(
@@ -541,8 +541,8 @@ describe("session lookup by source session id", () => {
       ),
     }));
 
-    const byDecantId = await runCli([...base, "--json", "show", String(id), "--outline"]);
-    expect(JSON.parse(byDecantId.stdout).session).toMatchObject({
+    const byAgentBenchmarksId = await runCli([...base, "--json", "show", String(id), "--outline"]);
+    expect(JSON.parse(byAgentBenchmarksId.stdout).session).toMatchObject({
       id,
       source_session_id: SOURCE_ID,
     });

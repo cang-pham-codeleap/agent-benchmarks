@@ -17,7 +17,7 @@ import { OpenCodeStore } from "../src/sources/opencode-store.ts";
 import { parseVscodeCopilotSession } from "../src/sources/vscode-copilot.ts";
 import { buildOpenCodeFixtureDb } from "./opencode-fixture.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-atif-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-atif-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -317,7 +317,7 @@ describe("exportAtif", () => {
           arguments: { file_path: "/Users/dev/proj/auth_test.py" },
         },
       ]);
-      // The result lives in a later user message in Decant but must sit on the
+      // The result lives in a later user message in Agent Benchmarks but must sit on the
       // calling step in ATIF.
       expect(call?.observation).toEqual({
         results: [
@@ -340,10 +340,10 @@ describe("exportAtif", () => {
         total_prompt_tokens: 14_500,
         total_completion_tokens: 460,
         total_cached_tokens: 11_000,
-        extra: { total_cache_write_tokens: 800, cost_source: "decant" },
+        extra: { total_cache_write_tokens: 800, cost_source: "agent-benchmarks" },
       });
       expect(doc.final_metrics.total_cost_usd).toBeGreaterThan(0);
-      expect(doc.extra).toMatchObject({ exporter: "decant", cwd: "/Users/dev/proj" });
+      expect(doc.extra).toMatchObject({ exporter: "agent-benchmarks", cwd: "/Users/dev/proj" });
     } finally {
       db.close();
     }
@@ -804,7 +804,7 @@ describe("exportAtif", () => {
       expect(doc.agent).toMatchObject({ name: "codex", version: "0.116.0" });
       expect(doc.steps.map((step) => step.source)).toEqual(["system", "user", "agent", "agent"]);
       expect(doc.steps[2]?.tool_calls?.[0]?.arguments).toEqual({ command: "rg TODO" });
-      // Codex input_tokens includes cached input; Decant stores it net, and
+      // Codex input_tokens includes cached input; Agent Benchmarks stores it net, and
       // ATIF wants it inclusive again.
       expect(doc.final_metrics).toMatchObject({
         total_prompt_tokens: 900,

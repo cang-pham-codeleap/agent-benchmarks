@@ -34,7 +34,7 @@ export function eventStream(heartbeatMs = 5_000): Response {
   if (eventClients.size >= MAX_EVENT_CLIENTS) {
     return errorResponse(
       "server_busy",
-      "Too many event streams are open. Close another Decant tab or try again.",
+      "Too many event streams are open. Close another Agent Benchmarks tab or try again.",
       { retryable: true },
       503,
     );

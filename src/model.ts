@@ -54,7 +54,7 @@ export type ToolKind = (typeof TOOL_KINDS)[number];
 export const REASONING_SOURCES = ["reported", "inferred", "none"] as const;
 export type ReasoningSource = (typeof REASONING_SOURCES)[number];
 
-export const COST_SOURCES = ["decant", "reported", "mixed"] as const;
+export const COST_SOURCES = ["agent-benchmarks", "reported", "mixed"] as const;
 export type CostSource = (typeof COST_SOURCES)[number];
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };

@@ -37,7 +37,7 @@ function openAiPrice(
   };
 }
 
-// Google bills explicit Gemini cache storage by the token-hour. Decant
+// Google bills explicit Gemini cache storage by the token-hour. Agent Benchmarks
 // approximates short holds at the input rate and uses that rate for any
 // separately reported write tokens on implicit-cache models.
 function geminiPrice(inputPerMtok: number, cacheReadPerMtok: number, outputPerMtok: number): Price {
@@ -79,11 +79,11 @@ const EXACT_ID_PRICES: ReadonlyArray<readonly [string, Price]> = [
   ["muse-spark-1.1", openAiPrice(1.25, 0.15, 4.25)],
   ["muse-spark-1.3-contributor", openAiPrice(0.1, 0.002, 0.2)],
   ["muse-spark-1.2-contributor", openAiPrice(0.1, 0.002, 0.2)],
-  // Muse Ember bills prompts above 200K tokens at 3x; Decant applies the
+  // Muse Ember bills prompts above 200K tokens at 3x; Agent Benchmarks applies the
   // standard tier only.
   ["muse-ember-1.0", openAiPrice(0.1, 0.004, 0.5)],
   // DeepSeek bills these peak-hour rates on weekday mornings and afternoons
-  // (Beijing time) and half of them otherwise. Decant prices every request at
+  // (Beijing time) and half of them otherwise. Agent Benchmarks prices every request at
   // the peak rate. `deepseek-v4-flash` and its vision alias now serve and bill
   // as `deepseek-flash`.
   ["deepseek-flash", openAiPrice(0.3, 0.006, 1.2)],
@@ -163,7 +163,7 @@ const EXACT_ID_KEYS: ReadonlySet<string> = new Set(EXACT_ID_PRICES.map(([model])
 // These IDs arrive through router prefixes (`z-ai/`, `meta/`, `deepseek/`,
 // `moonshotai/`, `x-ai/`), hosted routing variants (OpenRouter's `:free` or `:nitro`,
 // Ollama's `:cloud`), Claude Code's `[1m]` marker, dated snapshots, and
-// promotional `-free` copies that Decant prices at list rate like any route.
+// promotional `-free` copies that Agent Benchmarks prices at list rate like any route.
 // Other `:tags` name a local Ollama or LM Studio build, which incurs no API
 // spend, so they stay unpriced. Matching the whole normalized ID rather than a
 // prefix keeps `-highspeed`, `-turbo`, and `muse-wonder-full` from inheriting a

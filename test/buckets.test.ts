@@ -189,7 +189,7 @@ describe("activity bucket classifier", () => {
     expect(bashBucket("git ls-files && git rev-parse HEAD")).toBe("context");
     expect(bashBucket("cd $PWD; git stash list; git status --short")).toBe("context");
     expect(bashBucket("git stash push src/cli.ts")).toBe("code");
-    expect(bashBucket("ls -la scripts/lib; cat README.md; ./scripts/install.sh")).toBe("code");
+    expect(bashBucket("ls -la scripts/lib; cat README.md; ./scripts/setup.sh")).toBe("code");
     expect(bashBucket("cd $PWD; git stash push src/cli.ts -q && bun test")).toBe("code");
     expect(bashBucket("cd $PWD; sed -i '' 's/a/b/' src/cli.ts; grep -n b src/cli.ts")).toBe("code");
     expect(bashBucket("git config --local core.hooksPath .githooks")).toBe("code");

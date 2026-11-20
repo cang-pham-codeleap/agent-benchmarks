@@ -22,7 +22,7 @@ import {
   unknownTypeIssues,
 } from "./shared.ts";
 
-/** Entry types Pi writes that carry nothing Decant stores (session-format.md). */
+/** Entry types Pi writes that carry nothing Agent Benchmarks stores (session-format.md). */
 const IGNORED_TYPES = new Set(["context_edit", "custom", "label"]);
 const OMP_IGNORED_TYPES = new Set([
   "session_init", "credential_pin", "ttsr_injection", "mode_change",
@@ -400,7 +400,7 @@ function timeOf(timestamp: string | null): number {
   return timestamp == null ? Number.NaN : Date.parse(timestamp);
 }
 
-/** Pi's `input` excludes cache reads and writes, as Decant's does, and its
+/** Pi's `input` excludes cache reads and writes, as Agent Benchmarks's does, and its
  * `reasoning` is already part of `output`. */
 export function piUsage(value: Json | undefined): TokenUsage | null {
   if (!isObject(value)) {
@@ -549,7 +549,7 @@ function bashText(message: JsonObject): string {
   return output === "" ? `$ ${command}` : `$ ${command}\n${output}`;
 }
 
-/** Pi names the lowest level `off`; Decant's shared name for it is `none`. */
+/** Pi names the lowest level `off`; Agent Benchmarks's shared name for it is `none`. */
 function collectEffort(efforts: string[], value: Json | undefined): void {
   const effort = asString(value);
   if (effort != null) {

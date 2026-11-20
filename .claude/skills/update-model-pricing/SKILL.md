@@ -1,6 +1,6 @@
 ---
 name: update-model-pricing
-description: Add or change model token rates in Decant. Use when a provider publishes new pricing, a new model needs a rate, a model ID pattern fails to match, or a retired model should stop inheriting a current tier's price.
+description: Add or change model token rates in Agent Benchmarks. Use when a provider publishes new pricing, a new model needs a rate, a model ID pattern fails to match, or a retired model should stop inheriting a current tier's price.
 ---
 
 # Update model pricing

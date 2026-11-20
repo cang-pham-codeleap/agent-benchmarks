@@ -193,7 +193,7 @@ function isVscodeChatFileName(name: string): boolean {
 }
 
 /** Cursor keeps each chat in its own SQLite store. Opening a store, even
- * read-only during Decant's own sync, rewrites its `-shm` index, so that file
+ * read-only during Agent Benchmarks's own sync, rewrites its `-shm` index, so that file
  * says nothing about new content and reacting to it would sync twice per
  * change. */
 const cursorEvents: EventFilter = (filename) => filename == null || !filename.endsWith("-shm");
@@ -201,7 +201,7 @@ const cursorEvents: EventFilter = (filename) => filename == null || !filename.en
 /**
  * Events beside an OpenCode database warrant a sync only when the database or
  * its `-wal` actually changed. Every connection that opens the database,
- * Decant's own read-only sync included, rewrites the `-shm` index, so reacting
+ * Agent Benchmarks's own read-only sync included, rewrites the `-shm` index, so reacting
  * to the event alone would loop forever. Events are also incomplete: on macOS
  * a writer that keeps its connection open, as a running OpenCode does, raises
  * an event for its first commit and for its checkpoint or close, but later

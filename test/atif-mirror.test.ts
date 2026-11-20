@@ -21,7 +21,7 @@ import type { AtifTrajectory } from "../src/export-atif.ts";
 import { upsertSession } from "../src/ingest.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-atif-mirror-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-atif-mirror-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let counter = 0;
@@ -206,7 +206,7 @@ describe("mirrorAtif", () => {
     }
   });
 
-  test("reads back into Decant with the subagent linked and nothing counted twice", async () => {
+  test("reads back into Agent Benchmarks with the subagent linked and nothing counted twice", async () => {
     const { db, out } = fresh();
     nest(db, add(db, "parent"), add(db, "child"));
     mirror(db, out);
@@ -398,7 +398,7 @@ describe("atifMirrorPath", () => {
   });
 });
 
-describe("decant export --mirror", () => {
+describe("agent-benchmarks export --mirror", () => {
   test("mirrors from the command line and refuses other formats", async () => {
     const { db, dbPath, out } = fresh();
     add(db, "first");

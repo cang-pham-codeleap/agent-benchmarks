@@ -55,7 +55,7 @@ test("ATIF keeps root and sibling when a descendant exceeds the embedded cap", (
 });
 
 test("file budget rejects a sparse oversized file without reading it", () => {
-  const dir = mkdtempSync(join(tmpdir(), "decant-limit-"));
+  const dir = mkdtempSync(join(tmpdir(), "agent-benchmarks-limit-"));
   const fd = openSync(join(dir, "large.jsonl"), "w+");
   try {
     ftruncateSync(fd, MAX_SOURCE_FILE_BYTES + 1);
@@ -67,7 +67,7 @@ test("file budget rejects a sparse oversized file without reading it", () => {
 });
 
 test("Cursor skips an oversized blob before decoding and keeps its next message", () => {
-  const dir = mkdtempSync(join(tmpdir(), "decant-cursor-limit-"));
+  const dir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-limit-"));
   try {
     const path = join(dir, "store.db");
     writeCursorStore(path, {}, [

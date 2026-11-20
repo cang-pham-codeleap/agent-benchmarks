@@ -17,7 +17,7 @@ import { AnalyticsView, DailyPanel } from "../src/ui/views/analytics.tsx";
 import { ProjectsView } from "../src/ui/views/projects.tsx";
 import { buildCursorChat } from "./cursor-fixture.ts";
 
-const root = mkdtempSync(join(tmpdir(), "decant-cursor-cost-"));
+const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-cursor-cost-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 function mixedArchive(): string {
@@ -123,7 +123,7 @@ describe("cost for sessions without recorded usage", () => {
       />,
     );
     expect(html).not.toContain("$0.00");
-    expect(html).toContain(`<span class="faint" title="${NO_USAGE_TITLE}">-</span>`);
+    expect(html).toContain(`<span class="text-muted-foreground" title="${NO_USAGE_TITLE}">-</span>`);
     expect(html).toContain("$0.25*");
     expect(html).toContain("2 sessions lack usage data and are not in this cost.");
   });
@@ -175,7 +175,7 @@ describe("cost for sessions without recorded usage", () => {
     expect(mixed).not.toContain("Cost unavailable");
   });
 
-  test("decant project ls prints no cost for a project without usage", async () => {
+  test("agent-benchmarks project ls prints no cost for a project without usage", async () => {
     const result = await runCli(["--db", mixedArchive(), "--no-sync", "project", "ls"]);
     expect(result.code).toBe(0);
     const cost = (path: string) =>
@@ -187,7 +187,7 @@ describe("cost for sessions without recorded usage", () => {
     expect(cost("/Users/dev/proj")).toMatch(/^\d+\.\d{2}$/);
   });
 
-  test("decant tokens prints no cost when nothing in scope records usage", async () => {
+  test("agent-benchmarks tokens prints no cost when nothing in scope records usage", async () => {
     const dir = mkdtempSync(join(root, "tokens-"));
     const cursorDir = join(dir, "cursor");
     buildCursorChat(join(cursorDir, "workspace", "chat"));

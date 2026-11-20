@@ -36,7 +36,7 @@ describe("local analytics share cards", () => {
 
   test("builds deterministic copy and filenames without promotional links", () => {
     expect(shareCardFilename(DAILY.kind, DAILY.start, DAILY.end)).toBe(
-      "decant-sessions-per-day-2026-07-17-2026-07-23.png",
+      "agent-benchmarks-sessions-per-day-2026-07-17-2026-07-23.png",
     );
     expect(shareCardButtonLabel(DAILY.kind)).toBe("Share Sessions per day");
     expect(shareCardCaption(DAILY)).not.toContain("http");

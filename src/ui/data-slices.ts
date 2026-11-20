@@ -18,7 +18,6 @@ import type {
   Summary,
   TokenEconomics,
   ToolRow,
-  UpdateStatus,
 } from "./types.ts";
 
 export const emptyData: DashboardData = {
@@ -34,7 +33,6 @@ export const emptyData: DashboardData = {
   recommendations: [],
   config: null,
   settings: null,
-  update: null,
   activity: null,
   modelSparklines: null,
   tokenEconomics: null,
@@ -127,10 +125,6 @@ export const SLICE_LOADERS: Record<
     dateScoped: false,
     load: async () => ({ settings: await getJson<SettingsInfo>("/api/settings") }),
   },
-  update: {
-    dateScoped: false,
-    load: async () => ({ update: await getJson<UpdateStatus>("/api/update") }),
-  },
   activity: {
     dateScoped: true,
     load: async (q) => ({
@@ -165,7 +159,7 @@ export const SLICE_LOADERS: Record<
   },
 };
 
-export const SHELL_SLICES: DataSlice[] = ["summary", "dateBounds", "config", "update"];
+export const SHELL_SLICES: DataSlice[] = ["summary", "dateBounds", "config"];
 
 export const ROUTE_SLICES: Record<string, DataSlice[]> = {
   sessions: [],

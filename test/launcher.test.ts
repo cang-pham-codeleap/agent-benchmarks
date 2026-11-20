@@ -12,14 +12,13 @@ import {
 } from "../src/launcher.ts";
 import type { UserSettings } from "../src/settings.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-launcher-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-launcher-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const settings: UserSettings = {
   agent: "claude",
   terminal: "ghostty",
   ide: "cursor",
-  updateCheck: false,
 };
 
 describe("launcher", () => {
@@ -43,7 +42,7 @@ describe("launcher", () => {
     expect(result.ok).toBe(false);
     expect(result.error).toContain("macOS");
     expect(result.command).toContain("codex");
-    expect(result.command).toContain("decant recommendations mark catalog:skills");
+    expect(result.command).toContain("agent-benchmarks recommendations mark catalog:skills");
   });
 
   test("launchAgent refuses keys that could inject prompt text", async () => {
@@ -63,8 +62,8 @@ describe("launcher", () => {
     const calls: { bin: string; args: string[] }[] = [];
     const result = await launchAgent("claude", "ship it", null, settings, {
       platform: "darwin",
-      env: { DECANT_SKILLS_DIR: "/tmp/skills", SHELL: "/bin/zsh" },
-      tempName: () => "decant-launcher-test-prompt.txt",
+      env: { AGENT_BENCHMARKS_SKILLS_DIR: "/tmp/skills", SHELL: "/bin/zsh" },
+      tempName: () => "agent-benchmarks-launcher-test-prompt.txt",
       run: (bin, args) => {
         calls.push({ bin, args });
         return { ok: true };
@@ -84,17 +83,17 @@ describe("launcher", () => {
   describe("launch directory", () => {
     const home = join(workDir, "home");
     const project = join(workDir, "repo with 'quote");
-    const saved = { home: process.env.HOME, skills: process.env.DECANT_SKILLS_DIR };
+    const saved = { home: process.env.HOME, skills: process.env.AGENT_BENCHMARKS_SKILLS_DIR };
     beforeAll(() => {
       mkdirSync(home);
       mkdirSync(project);
       process.env.HOME = home;
-      delete process.env.DECANT_SKILLS_DIR;
+      delete process.env.AGENT_BENCHMARKS_SKILLS_DIR;
     });
     afterAll(() => {
       process.env.HOME = saved.home;
       if (saved.skills != null) {
-        process.env.DECANT_SKILLS_DIR = saved.skills;
+        process.env.AGENT_BENCHMARKS_SKILLS_DIR = saved.skills;
       }
     });
 
@@ -122,7 +121,7 @@ describe("launcher", () => {
       expect(result).toEqual({ ok: true, dir: project });
       expect(shellCommand).toStartWith(`cd '${project.replaceAll("'", "'\\''")}' && claude `);
       expect(prompt).toBe(
-        "tidy the parser\n\nWhen you have completed and verified this, run: decant recommendations mark catalog:skills",
+        "tidy the parser\n\nWhen you have completed and verified this, run: agent-benchmarks recommendations mark catalog:skills",
       );
     });
 
@@ -133,9 +132,9 @@ describe("launcher", () => {
       expect(shellCommand).toStartWith(`cd '${home}' && claude `);
       expect(prompt).toBe(
         "tidy the parser\n\n" +
-          `Decant could not find that project directory on this machine, so this session started in ${home} instead. ` +
+          `Agent Benchmarks could not find that project directory on this machine, so this session started in ${home} instead. ` +
           "Locate the repository before changing anything.\n\n" +
-          "When you have completed and verified this, run: decant recommendations mark catalog:skills",
+          "When you have completed and verified this, run: agent-benchmarks recommendations mark catalog:skills",
       );
     });
 
@@ -146,7 +145,7 @@ describe("launcher", () => {
 
       const probed: string[] = [];
       const relative = await launch({
-        dir: "decant",
+        dir: "agent-benchmarks",
         isDirectory: (path) => {
           probed.push(path);
           return true;
@@ -170,11 +169,11 @@ describe("launcher", () => {
       expect(probed).toEqual([]);
     });
 
-    test("DECANT_SKILLS_DIR wins over the project directory without checking it", async () => {
+    test("AGENT_BENCHMARKS_SKILLS_DIR wins over the project directory without checking it", async () => {
       const probed: string[] = [];
       const { result, shellCommand, prompt } = await launch({
         dir: project,
-        env: { DECANT_SKILLS_DIR: "/tmp/skills" },
+        env: { AGENT_BENCHMARKS_SKILLS_DIR: "/tmp/skills" },
         isDirectory: (path) => {
           probed.push(path);
           return true;
@@ -206,12 +205,12 @@ describe("launcher", () => {
       expect(result.result).toMatchObject({ ok: false, error: "app missing", dir: project });
       const pasted = result.result.command ?? "";
       expect(pasted).toStartWith(`cd '${project.replaceAll("'", "'\\''")}' && claude `);
-      expect(pasted).toContain("decant recommendations mark catalog:skills");
+      expect(pasted).toContain("agent-benchmarks recommendations mark catalog:skills");
     });
 
     test("every fallback directory is in the copyable command", async () => {
       const unsupported = { platform: "linux" as const };
-      const override = await launch({ ...unsupported, env: { DECANT_SKILLS_DIR: "/work/a" } });
+      const override = await launch({ ...unsupported, env: { AGENT_BENCHMARKS_SKILLS_DIR: "/work/a" } });
       expect(override.result.command).toStartWith("cd '/work/a' && claude ");
 
       const gone = await launch({ ...unsupported, dir: join(workDir, "deleted-worktree") });
@@ -275,7 +274,7 @@ describe("launcher", () => {
       { ...settings, terminal: "warp" },
       {
         platform: "darwin",
-        env: { DECANT_SKILLS_DIR: "/tmp/skills" },
+        env: { AGENT_BENCHMARKS_SKILLS_DIR: "/tmp/skills" },
         run: (_bin, args) => {
           calls.push(args[0] ?? "");
           if ((args[0] ?? "").startsWith("warp://launch/")) {
@@ -306,7 +305,7 @@ describe("launcher", () => {
       { ...settings, terminal: "warp" },
       {
         platform: "darwin",
-        env: { DECANT_SKILLS_DIR: "/tmp/skills" },
+        env: { AGENT_BENCHMARKS_SKILLS_DIR: "/tmp/skills" },
         run: () => {
           call += 1;
           return call === 1 ? { ok: false, error: "launch config failed" } : { ok: true };
@@ -328,7 +327,7 @@ describe("launcher", () => {
       { ...settings, terminal: "warp" },
       {
         platform: "darwin",
-        env: { DECANT_SKILLS_DIR: "/tmp/skills" },
+        env: { AGENT_BENCHMARKS_SKILLS_DIR: "/tmp/skills" },
         run: (_bin, args) => {
           const uri = args[0] ?? "";
           if (uri.startsWith("warp://launch/")) {

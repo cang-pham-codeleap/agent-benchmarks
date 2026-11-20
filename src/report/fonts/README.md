@@ -1,6 +1,6 @@
 # Report fonts
 
-Decant embeds these WOFF2 files as data URLs so exported reports remain
+Agent Benchmarks embeds these WOFF2 files as data URLs so exported reports remain
 self-contained and make no runtime network requests.
 
 - IBM Plex Sans Regular and Semibold, Latin 1 split

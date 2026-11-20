@@ -13,7 +13,7 @@ import {
 } from "../src/server/sse.ts";
 import { handleRequest } from "../src/server.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-sse-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-sse-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const QUIET_HEARTBEAT_MS = 60_000;
@@ -78,7 +78,7 @@ describe("event streams", () => {
     try {
       expect(eventClientCount()).toBe(MAX_EVENT_CLIENTS);
       const refused = await handleRequest(new Request("http://127.0.0.1:3000/api/events"), {
-        dbPath: join(workDir, "decant.db"),
+        dbPath: join(workDir, "agent-benchmarks.db"),
       } as Config);
       expect(refused.status).toBe(503);
       expect(await refused.json()).toMatchObject({ code: "server_busy", retryable: true });

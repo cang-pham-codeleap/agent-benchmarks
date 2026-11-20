@@ -1,7 +1,7 @@
 # Copilot Chat in VS Code fixtures
 
 `User` is laid out like VS Code's `User` directory, holding only the chat
-session files Decant reads and the `workspace.json` that names their folder.
+session files Agent Benchmarks reads and the `workspace.json` that names their folder.
 All of it is invented.
 
 - `workspaceStorage/5f3e9c1a/chatSessions/vscode-sample-session.jsonl` is a

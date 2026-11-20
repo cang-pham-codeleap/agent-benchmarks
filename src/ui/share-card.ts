@@ -88,7 +88,7 @@ function isCostKind(kind: ShareCardKind): boolean {
 }
 
 export function shareCardFilename(kind: ShareCardKind, start: string, end: string): string {
-  return `decant-${kind.replaceAll("_", "-")}-${safeDate(start)}-${safeDate(end)}.png`;
+  return `agent-benchmarks-${kind.replaceAll("_", "-")}-${safeDate(start)}-${safeDate(end)}.png`;
 }
 
 export function shareCardTakeaway(input: ShareCardCopyInput): string {

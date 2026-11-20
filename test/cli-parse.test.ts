@@ -179,7 +179,7 @@ describe("assertFormatSupported", () => {
     }
     for (const path of ["ls", "session ls", "stats", "search", "project ls", "db info", "sync"]) {
       expect(() => assertFormatSupported(path, "md")).toThrow(
-        `option '--format <format>' argument 'md' is invalid for 'decant ${path}'. expected: table | json`,
+        `option '--format <format>' argument 'md' is invalid for 'agent-benchmarks ${path}'. expected: table | json`,
       );
     }
   });

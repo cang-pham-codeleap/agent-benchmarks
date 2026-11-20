@@ -49,7 +49,7 @@ describe("route table", () => {
 });
 
 describe("route dispatch edge cases", () => {
-  const workDir = mkdtempSync(join(tmpdir(), "decant-server-routes-"));
+  const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-server-routes-"));
   afterAll(() => rmSync(workDir, { recursive: true, force: true }));
   const root = join(workDir, "case");
   mkdirSync(join(root, "claude"), { recursive: true });

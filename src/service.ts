@@ -10,13 +10,13 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { DEFAULT_SERVE_PORT } from "./serve-defaults.ts";
-import { detectInstall, type InstallInfo } from "./update.ts";
+import { detectInstall, type InstallInfo } from "./install.ts";
 
 export type ServiceManager = "launchd" | "systemd";
 
-export const LAUNCHD_LABEL = "dev.dosu.decant";
-export const SYSTEMD_UNIT = "decant.service";
-export const SERVICE_ENV = "DECANT_SERVICE";
+export const LAUNCHD_LABEL = "dev.dosu.agent-benchmarks";
+export const SYSTEMD_UNIT = "agent-benchmarks.service";
+export const SERVICE_ENV = "AGENT_BENCHMARKS_SERVICE";
 const EX_TEMPFAIL = 75;
 export const SERVICE_RESTART_EXIT_CODE = EX_TEMPFAIL;
 
@@ -87,14 +87,9 @@ export function unitPath(manager: ServiceManager, options: ServiceOptions = {}):
 
 export function serviceLogPath(options: ServiceOptions = {}): string {
   const home = (options.homeDir ?? homedir()) || ".";
-  return join(home, "Library", "Logs", "decant", "serve.log");
+  return join(home, "Library", "Logs", "agent-benchmarks", "serve.log");
 }
 
-/**
- * The path the unit file should run. A Homebrew upgrade installs into a new
- * versioned Cellar directory and removes the old one, so the unit points at the
- * stable `opt` symlink instead of the path the running binary resolves to.
- */
 export function serviceBinary(
   options: ServiceOptions = {},
 ): { path: string; reason: null } | { path: null; reason: string } {
@@ -105,29 +100,19 @@ export function serviceBinary(
       return {
         path: null,
         reason:
-          "This is a source checkout running under bun. Install a Decant release to run it in the background.",
-      };
-    case "npx":
-      return {
-        path: null,
-        reason:
-          "npx runs Decant from a temporary copy. Install it with npm, Homebrew, or the installer first.",
+          "This is a source checkout running under bun. Build a standalone Agent Benchmarks binary to run it in the background.",
       };
     case "docker":
       return {
         path: null,
         reason:
-          "The container already runs Decant. Use Docker's restart policy to keep it running.",
+          "The container already runs Agent Benchmarks. Use Docker's restart policy to keep it running.",
       };
     default:
       break;
   }
   const execPath = options.execPath ?? process.execPath;
   const real = safeRealpath(execPath);
-  const cellar = /^(.*)\/Cellar\/decant\/[^/]+\/bin\/decant$/.exec(real);
-  if (cellar != null) {
-    return { path: `${cellar[1]}/opt/decant/bin/decant`, reason: null };
-  }
   return { path: real, reason: null };
 }
 
@@ -156,7 +141,7 @@ ${args}
 \t<dict>
 \t\t<key>${SERVICE_ENV}</key>
 \t\t<string>1</string>
-\t\t<key>DECANT_LOG_LEVEL</key>
+\t\t<key>AGENT_BENCHMARKS_LOG_LEVEL</key>
 \t\t<string>warning</string>
 \t</dict>
 \t<key>RunAtLoad</key>
@@ -181,13 +166,12 @@ export function systemdUnit(spec: ServiceSpec): string {
   assertUnitSafe(spec, "systemd");
   const exec = serviceArgs(spec).map(systemdQuote).join(" ");
   return `[Unit]
-Description=Decant local UI and session sync
-Documentation=https://github.com/dosu-ai/decant
+Description=Agent Benchmarks local UI and session sync
 
 [Service]
 ExecStart=${exec}
 Environment=${SERVICE_ENV}=1
-Environment=DECANT_LOG_LEVEL=warning
+Environment=AGENT_BENCHMARKS_LOG_LEVEL=warning
 Restart=on-failure
 RestartSec=5
 
@@ -251,7 +235,7 @@ export async function serviceStatus(options: ServiceOptions = {}): Promise<Servi
   } else {
     const probe = await run(["systemctl", "--user", "show-environment"]);
     if (probe.code !== 0) {
-      reason ??= "No systemd user session is available, so Decant cannot register a service.";
+      reason ??= "No systemd user session is available, so Agent Benchmarks cannot register a service.";
     } else {
       const active = await run(["systemctl", "--user", "is-active", SYSTEMD_UNIT]);
       running = active.stdout.trim() === "active";
@@ -283,7 +267,7 @@ export async function installService(
   }
   const binary = spec.binary ?? serviceBinary(options).path;
   if (binary == null) {
-    throw new ServiceUnavailableError(before.reason ?? "Decant could not find its own binary.");
+    throw new ServiceUnavailableError(before.reason ?? "Agent Benchmarks could not find its own binary.");
   }
   // The service starts in launchd's or systemd's working directory, not the
   // caller's, so a relative --db would open a different file or none at all.
@@ -540,7 +524,7 @@ function safeRealpath(path: string): string {
 }
 
 function assertUnitSafe(spec: ServiceSpec, manager: ServiceManager): void {
-  assertNoControlCharacters("Decant executable path", spec.binary, manager);
+  assertNoControlCharacters("Agent Benchmarks executable path", spec.binary, manager);
   assertNoControlCharacters("archive path", spec.dbPath, manager);
 }
 

@@ -86,10 +86,10 @@ export function resolveTrustedPeers(
   if (configured != null) {
     return assertValidPeers(configured);
   }
-  if (env.DECANT_TRUSTED_PEERS != null) {
-    return assertValidPeers(parsePeerList(env.DECANT_TRUSTED_PEERS));
+  if (env.AGENT_BENCHMARKS_TRUSTED_PEERS != null) {
+    return assertValidPeers(parsePeerList(env.AGENT_BENCHMARKS_TRUSTED_PEERS));
   }
-  if (!isEnvEnabled(env.DECANT_TRUST_DEFAULT_GATEWAY)) {
+  if (!isEnvEnabled(env.AGENT_BENCHMARKS_TRUST_DEFAULT_GATEWAY)) {
     return [];
   }
   const gateway = containerBridgeGateway(
@@ -105,8 +105,7 @@ export function resolveTrustedPeers(
  * so it stands in for the host while sibling containers stay denied. That only
  * holds for a veth into another network namespace: on host networking, macvlan
  * or ipvlan the default gateway is a LAN or VPC router that must never be
- * trusted implicitly, so every unproven shape (and any non-Linux host) fails
- * closed. See docs/distribution.md#docker. */
+ * trusted implicitly, so every unproven shape (and any non-Linux host) fails closed. */
 function containerBridgeGateway(routeTablePath: string, sysClassNetPath: string): string | null {
   const routes = readRouteTable(routeTablePath);
   if (routes == null) {

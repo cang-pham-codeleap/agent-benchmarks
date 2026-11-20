@@ -22,7 +22,7 @@ import {
 } from "../src/token-economics.ts";
 import { STEP_TIMES, timingMessageRows, timingSessionRow } from "./opencode-timing.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-token-economics-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-token-economics-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -361,7 +361,7 @@ describe("token economics", () => {
         },
       }),
     );
-    const id = upsertSession(db, parsed, "/decant-fixture/missing/source.jsonl", 1, 2);
+    const id = upsertSession(db, parsed, "/agent-benchmarks-fixture/missing/source.jsonl", 1, 2);
     const row = db
       .query("SELECT vector_json FROM session_economics WHERE session_id = ?1")
       .get(id) as { vector_json: string };
@@ -374,7 +374,7 @@ describe("token economics", () => {
       "UPDATE session_economics SET format_version = 11, vector_json = ?1 WHERE session_id = ?2",
     ).run(JSON.stringify(oldVector), id);
     expect(
-      sync(db, { claudeDir: "/decant-fixture/missing", codexDir: "/decant-fixture/missing" }),
+      sync(db, { claudeDir: "/agent-benchmarks-fixture/missing", codexDir: "/agent-benchmarks-fixture/missing" }),
     ).toMatchObject({ ingested: 0 });
     const result = tokenEconomicsForSession(db, id);
     expect(result?.buckets.find((b) => b.bucket === "code")?.generation_tokens).toBe(20);

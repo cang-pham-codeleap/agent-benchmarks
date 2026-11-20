@@ -14,7 +14,6 @@ import { dateRangeQuery } from "../date-range.ts";
 import { DateRangeControl } from "../date-range-control.tsx";
 import { fullDateTime, sessionListDate } from "../date-time.ts";
 import { dosuBadgeAriaLabel, dosuEvidenceSummary } from "../dosu-badge.ts";
-import { dosuLink } from "../dosu-links.ts";
 import { basename, compact, costDisplay, formatInt, money } from "../format.ts";
 import { Icon } from "../icons.tsx";
 import { Link, visit } from "../link.tsx";
@@ -509,16 +508,13 @@ export function DosuProvenanceBadge({
       }
     >
       {(tooltipProps) => (
-        <a
+        <span
           {...tooltipProps}
           aria-label={dosuBadgeAriaLabel(evidence)}
-          className="inline-flex size-6 items-center justify-center rounded-md border hover:bg-accent [&_img]:size-4"
-          href={dosuLink("session_badge")}
-          rel="noopener"
-          target="_blank"
+          className="inline-flex size-6 items-center justify-center rounded-md border [&_img]:size-4"
         >
           <img alt="" src={dosuOfficialUrl} />
-        </a>
+        </span>
       )}
     </Tooltip>
   );

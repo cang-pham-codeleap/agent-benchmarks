@@ -59,9 +59,9 @@ export function syntheticOpenCodeSession(id: string, requests: SyntheticRequest[
     session: {
       tool: "opencode",
       sourceSessionId: id,
-      projectPath: "/decant-fixture/example",
+      projectPath: "/agent-benchmarks-fixture/example",
       title: "hello",
-      cwd: "/decant-fixture/example",
+      cwd: "/agent-benchmarks-fixture/example",
       gitBranch: null,
       model: requests[0]?.model ?? null,
       reasoningEffort: null,

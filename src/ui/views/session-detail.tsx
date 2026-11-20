@@ -1120,14 +1120,7 @@ export function IngestIssuesPanel({
                     ? `: ${unknownSummary.types.map((type) => `“${type}”`).join(", ")}`
                     : ""}
                   .{" "}
-                  <a
-                    href="https://github.com/dosu-ai/decant/releases"
-                    rel="noopener"
-                    target="_blank"
-                  >
-                    Check for an Agent Benchmarks update
-                  </a>{" "}
-                  before re-syncing.
+                  Review the unknown record types before re-syncing.
                 </div>
               </div>
             ) : null}

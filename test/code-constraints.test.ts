@@ -3,14 +3,12 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ReleaseFailure } from "../scripts/release/actions.ts";
-import { ascIssuerId, ascKeyId } from "../scripts/release/validate.ts";
 import { openDb } from "../src/db.ts";
 import { METADATA_PATHS } from "../src/message-storage.ts";
 import { AGENT_CONTEXT_SQL, isAgentContextText } from "../src/query.ts";
 import { signals, USAGE_SIGNAL_SCORE } from "../src/recommendations.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-code-constraints-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-code-constraints-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -253,30 +251,6 @@ describe("rules the code depends on", () => {
     expect(missedByJs).toEqual([]);
   });
 
-  test("a release validation error names the secret's variable but never prints its value", () => {
-    const sentinel = "LEAKED-SECRET-5d1e";
-    const checks = [
-      { name: "ASC_ISSUER_ID", validate: ascIssuerId, value: sentinel },
-      {
-        name: "ASC_ISSUER_ID",
-        validate: ascIssuerId,
-        value: `00000000-0000-0000-0000-00000000000${sentinel}`,
-      },
-      { name: "ASC_KEY_ID", validate: ascKeyId, value: sentinel },
-      { name: "ASC_KEY_ID", validate: ascKeyId, value: `ABCDE${sentinel}` },
-    ];
-    for (const { name, validate, value } of checks) {
-      let message = "";
-      try {
-        validate(name, value);
-      } catch (error) {
-        expect(error).toBeInstanceOf(ReleaseFailure);
-        message = (error as Error).message;
-      }
-      expect(message).toContain(name);
-      expect(message).not.toContain(sentinel);
-    }
-  });
 
   test("adding a message metadata path needs a backfill for existing archives", () => {
     expect(METADATA_PATHS).toEqual([
@@ -289,7 +263,10 @@ describe("rules the code depends on", () => {
       ["data", "preCompactionTokens"],
       ["payload", "role"],
       ["message", "id"],
+      ["message", "provider"],
       ["message", "usage"],
+      ["_provider"],
+      ["provider"],
       ["cost"],
       ["metrics", "cost_usd"],
       ["model", "providerID"],

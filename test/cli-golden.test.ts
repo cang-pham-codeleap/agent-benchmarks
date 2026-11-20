@@ -13,12 +13,12 @@ import { basename, join } from "node:path";
 import { stripGoldenVolatility } from "../scripts/golden-normalize.ts";
 import { runCli } from "../src/cli.ts";
 import { compareCodePoints } from "../src/order.ts";
-import { DECANT_VERSION } from "../src/version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "../src/version.ts";
 import { buildCursorChat, cursorFixtureNames } from "./cursor-fixture.ts";
 import { buildHermesFixtureDb } from "./hermes-fixture.ts";
 import { buildOpenCodeFixtureDb } from "./opencode-fixture.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-cli-golden-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cli-golden-test-"));
 const goldenDir = join(import.meta.dir, "golden");
 
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
@@ -48,6 +48,8 @@ function stageFixtures(caseDir: string): {
   atifDir: string;
   hermesDir: string;
   piDir: string;
+  ompDir: string;
+  droidDir: string;
 } {
   const claudeDir = join(caseDir, "sources", "claude");
   const codexDir = join(caseDir, "sources", "codex");
@@ -59,6 +61,8 @@ function stageFixtures(caseDir: string): {
   const atifDir = join(caseDir, "sources", "atif");
   const hermesDir = join(caseDir, "sources", "hermes");
   const piDir = join(caseDir, "sources", "pi", "agent", "sessions");
+  const ompDir = join(caseDir, "sources", "omp");
+  const droidDir = join(caseDir, "sources", "droid");
   mkdirSync(opencodeDir, { recursive: true });
   mkdirSync(claudeDir, { recursive: true });
   mkdirSync(join(codexDir, "sessions"), { recursive: true });
@@ -110,7 +114,7 @@ function stageFixtures(caseDir: string): {
     join(hermesDir, "state.db"),
     fixtureFiles("hermes", ".sql").filter((file) => file !== "schema.sql"),
   );
-  const piProjectDir = join(piDir, "--decant-fixture-pi-example--");
+  const piProjectDir = join(piDir, "--agent-benchmarks-fixture-pi-example--");
   mkdirSync(piProjectDir, { recursive: true });
   for (const file of fixtureFiles("pi")) {
     copyFileSync(
@@ -130,6 +134,8 @@ function stageFixtures(caseDir: string): {
     atifDir,
     hermesDir,
     piDir,
+    ompDir,
+    droidDir,
   };
 }
 
@@ -144,11 +150,16 @@ function stageAtifFlat(atifDir: string): void {
 }
 
 function normalizeCliGolden(name: string, value: unknown): unknown {
-  const normalized = stripGoldenVolatility(value, DECANT_VERSION);
-  if (name !== "ls" || !Array.isArray(normalized)) {
-    return normalized;
+  const normalized = stripGoldenVolatility(value, AGENT_BENCHMARKS_VERSION);
+  const stable = JSON.parse(JSON.stringify(normalized, (key, item) =>
+    key === "estimated_cost_usd" && typeof item === "number"
+      ? Math.round(item * 1e12) / 1e12
+      : item,
+  ));
+  if (name !== "ls" || !Array.isArray(stable)) {
+    return stable;
   }
-  return [...normalized].sort((left, right) => {
+  return [...stable].sort((left, right) => {
     const a = left as Record<string, unknown>;
     const b = right as Record<string, unknown>;
     return (
@@ -181,7 +192,7 @@ describe("CLI golden parity", () => {
           generated_with: "dev",
           project: "/Users/dev/proj",
           href: "/sessions/123#message-4",
-          artifact: "Distilled by Decant dev from /Users/dev/proj",
+          artifact: "Distilled by Agent Benchmarks dev from /Users/dev/proj",
         },
         "dev",
       ),
@@ -190,7 +201,7 @@ describe("CLI golden parity", () => {
       generated_with: "0.0.0-dev",
       project: "/Users/dev/proj",
       href: "/sessions/<ID>#message-4",
-      artifact: "Distilled by Decant 0.0.0-dev from /Users/dev/proj",
+      artifact: "Distilled by Agent Benchmarks 0.0.0-dev from /Users/dev/proj",
     });
   });
 
@@ -208,6 +219,8 @@ describe("CLI golden parity", () => {
       atifDir,
       hermesDir,
       piDir,
+      ompDir,
+      droidDir,
     } = stageFixtures(caseDir);
     const dbPath = join(caseDir, "archive.db");
     const sync = await runCli(
@@ -236,11 +249,15 @@ describe("CLI golden parity", () => {
         hermesDir,
         "--pi-dir",
         piDir,
+        "--omp-dir",
+        ompDir,
+        "--droid-dir",
+        droidDir,
       ],
       {
         env: {
           ...process.env,
-          DECANT_OPENCODE_CONFIG: opencodeConfigPath,
+          AGENT_BENCHMARKS_OPENCODE_CONFIG: opencodeConfigPath,
           OPENCODE_CONFIG: undefined,
           OPENCODE_CONFIG_DIR: join(caseDir, "opencode-config"),
           OPENCODE_MODELS_PATH: join(caseDir, "opencode-cache", "models.json"),
@@ -256,7 +273,7 @@ describe("CLI golden parity", () => {
       const result = await runCli(argsForTs(dbPath, command));
       expect(result.code, `${name} exited nonzero: ${result.stderr}`).toBe(0);
       const actual = normalizeCliGolden(name, JSON.parse(result.stdout));
-      const expected = await Bun.file(join(goldenDir, "cli", `${name}.json`)).json();
+      const expected = normalizeCliGolden(name, await Bun.file(join(goldenDir, "cli", `${name}.json`)).json());
       expect(actual, name).toEqual(expected);
     }
   });

@@ -1,13 +1,13 @@
 # Local Serve API
 
-`decant serve` runs the archive owner, source watcher, local HTTP API,
+`agent-benchmarks serve` runs the archive owner, source watcher, local HTTP API,
 Server-Sent Events stream, and React UI in one Bun process. It listens on
 `http://127.0.0.1:3000` by default.
 
 The reference contract is [openapi.yaml](openapi.yaml). It describes every
 `/api/*` operation, parameter, request body, response schema, and stable error
 code. A running server exposes the same OpenAPI 3.1 document as JSON at
-`GET /api/openapi.json`; its `info.version` is the running Decant version.
+`GET /api/openapi.json`; its `info.version` is the running Agent Benchmarks version.
 
 This page records the operational semantics around that contract.
 
@@ -64,9 +64,9 @@ heuristic, not a measure of task success. See [Compare](../compare.md).
 
 
 The API's `repo` takes one stored root and compares it as written. The CLI's
-`--repo` on `decant ls` and `decant search` first resolves a directory, a
+`--repo` on `agent-benchmarks ls` and `agent-benchmarks search` first resolves a directory, a
 remote, or a repository name to stored roots, and includes every checkout that
-shares the `origin` remote. `decant project ls --fields path,root_path` prints
+shares the `origin` remote. `agent-benchmarks project ls --fields path,root_path` prints
 each project beside its root.
 
 ## Access control
@@ -79,13 +79,13 @@ the local guard can read or mutate the whole archive.
   resolved at startup are admitted; every other source receives
   `403 forbidden_remote`.
 - Trusted-peer sources use replacement precedence, not a union. The first
-  present source wins: `--trusted-peer`, then `DECANT_TRUSTED_PEERS` whenever
-  the variable is set, then `DECANT_TRUST_DEFAULT_GATEWAY=1`.
-  `DECANT_TRUSTED_PEERS=` therefore means “trust nobody,” not “fall through.”
-- Every trusted peer must be an IP address or an IPv4 CIDR. `decant serve`
+  present source wins: `--trusted-peer`, then `AGENT_BENCHMARKS_TRUSTED_PEERS` whenever
+  the variable is set, then `AGENT_BENCHMARKS_TRUST_DEFAULT_GATEWAY=1`.
+  `AGENT_BENCHMARKS_TRUSTED_PEERS=` therefore means “trust nobody,” not “fall through.”
+- Every trusted peer must be an IP address or an IPv4 CIDR. `agent-benchmarks serve`
   exits with an error at startup on an entry that could never match, such as
   `10.0.0.0/33` or a hostname, instead of silently trusting nobody.
-- The gateway option contributes one address only when Decant proves the
+- The gateway option contributes one address only when Agent Benchmarks proves the
   default route is a container veth to an on-link gateway inside
   `172.16.0.0/12`. It fails closed for host networking, macvlan/ipvlan,
   multi-homed hosts, and other unproven shapes. See
@@ -139,13 +139,13 @@ JSON errors use the stable envelope `{ "error": string, "code": string, ... }`.
 Expected recovery cases retain specific codes, including `archive_locked`,
 `server_busy`, `schema_drift`, `schema_too_new`, `schema_too_old`,
 `session_not_found`, and validation failures. `server_busy` is a retryable
-`503`: `decant serve` runs heavy reads on two workers and queues at most 256
+`503`: `agent-benchmarks serve` runs heavy reads on two workers and queues at most 256
 more, and refuses a read beyond that rather than letting the backlog grow.
 `GET /api/events` answers the same way when 32 event streams are already
 open. Unexpected failures return generic `internal_error` prose;
 the structured stderr log retains the diagnostic.
 
-`DECANT_NO_SYNC` and `--no-sync` suppress Decant-initiated startup, watch, and
+`AGENT_BENCHMARKS_NO_SYNC` and `--no-sync` suppress Agent Benchmarks-initiated startup, watch, and
 sweep syncs. They do not disable `POST /api/sync`.
 
 Sync responses include `repriced` when stored session or activity costs changed.
@@ -174,7 +174,7 @@ operations; full-text and command-palette search remain limited to visible
 sessions. Deletion creates a tombstone keyed to source identity, so a later sync
 does not restore the session. Neither operation modifies the source JSONL file.
 Deletion removes the live rows. SQLite may leave deleted text recoverable in
-freed pages until `decant db vacuum` rewrites the archive. See
+freed pages until `agent-benchmarks db vacuum` rewrites the archive. See
 [What the archive stores](../data-lifecycle.md#what-the-archive-stores).
 
 Session visibility also excludes sessions that hold no conversation. Claude Code
@@ -185,11 +185,6 @@ Their rows stay in the archive and remain readable by id through
 `GET /api/sessions/:id`. Each becomes visible once its source gains a real
 prompt or reply.
 
-`GET /api/update` is the only operation that can make an outbound request. It
-asks the npm registry for the latest `@dosu/decant` version only when the
-`updateCheck` setting or `DECANT_UPDATE_CHECK=1` turned checks on and the
-cached answer in `update-check.json` is at least a day old. A failed check is
-also cached, so an offline machine retries once an hour.
 
 `GET /api/recommendations` rows carry `project_path`, `project_root`,
 `project_label`, and `project_remote`. They are set on rows about one project
@@ -206,7 +201,7 @@ When the key belongs to a project row, the agent starts in that row's
 `project_path` if it exists and is a directory. That is one filesystem check,
 made at launch and never while listing. Otherwise the agent starts in the home
 directory and the prompt says the project directory was not found.
-`DECANT_SKILLS_DIR` overrides both. The response reports the directory as
+`AGENT_BENCHMARKS_SKILLS_DIR` overrides both. The response reports the directory as
 `dir`. The request has no field that sets it.
 `POST /api/launch/ide` requires an absolute `dir` that matches a project path or
 root path in the archive. Both answer `400 invalid_request` otherwise.
@@ -227,14 +222,14 @@ and the server logs its details instead of sending them.
 Report operations return self-contained, zero-JavaScript HTML. Session reports
 omit transcript content by design.
 
-Session summaries carry `cost_source`. `decant` means `estimated_cost_usd`
-was priced from token usage at Decant's rates. `reported` means the source
-recorded a per-request cost and Decant has no rate for the model, so the
+Session summaries carry `cost_source`. `agent-benchmarks` means `estimated_cost_usd`
+was priced from token usage at Agent Benchmarks's rates. `reported` means the source
+recorded a per-request cost and Agent Benchmarks has no rate for the model, so the
 recorded figure is shown (OpenCode records one; a recorded zero is never
 used). `mixed` means some of the session's model rows were priced each way.
 The label is decided when the session is read: a recorded figure counts only
-while Decant still has no rate for its model, so a model that gains a rate
-later reads as `decant` even if a figure was stored earlier.
+while Agent Benchmarks still has no rate for its model, so a model that gains a rate
+later reads as `agent-benchmarks` even if a figure was stored earlier.
 Token-economics totals expose the reported share as `reported_cost_usd`.
 `model_provider` is the provider route the model ran through when the source
 records one. `GET /api/config` includes `opencodeDir`, the OpenCode data
@@ -244,7 +239,7 @@ directory being read, `cursorDir`, the Cursor CLI chats directory,
 `atifDir`, the directory read for ATIF trajectory files (null when none is
 configured), `hermesDir`, the Hermes Agent home directory (null when none
 is configured), and `piDir`, the Pi sessions directory (null when none is
-configured). When no override is set, Decant also reads VS Code Insiders'
+configured). When no override is set, Agent Benchmarks also reads VS Code Insiders'
 `User` directory, which `vscodeCopilotDir` does not list.
 
 Session summaries also carry `usage_available`. It is false for a session from

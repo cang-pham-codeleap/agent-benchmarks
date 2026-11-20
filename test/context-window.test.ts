@@ -18,7 +18,7 @@ import { parseOpenCodeSession } from "../src/sources/opencode.ts";
 import { OpenCodeStore } from "../src/sources/opencode-store.ts";
 import { buildOpenCodeDb, opencodeFixtureSql } from "./opencode-fixture.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-context-window-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-context-window-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;

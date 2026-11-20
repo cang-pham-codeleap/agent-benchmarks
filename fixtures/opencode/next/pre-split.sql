@@ -4,7 +4,7 @@
 -- named `session`, beside `session_message`, and there is no `session_v2`.
 -- The 1.x `message` and `part` tables exist but are empty. OpenCode tells this
 -- layout apart by `session_message` (v1-migration.bun.ts isNextDatabase), so
--- Decant must never read its `session` rows as 1.x sessions. Self-contained
+-- Agent Benchmarks must never read its `session` rows as 1.x sessions. Self-contained
 -- (DDL included) and kept out of the top level so the CLI golden run, which
 -- loads every top-level script into a 2.x database, never applies it.
 CREATE TABLE `project` (
@@ -73,11 +73,11 @@ CREATE TABLE `part` (
 );
 
 INSERT INTO `project` (`id`, `worktree`, `time_created`, `time_updated`)
-VALUES ('prj_next', '/decant-fixture/example', 1791800000000, 1791800000000);
+VALUES ('prj_next', '/agent-benchmarks-fixture/example', 1791800000000, 1791800000000);
 
 INSERT INTO `session` (`id`, `project_id`, `slug`, `directory`, `title`, `version`, `cost`,
   `tokens_input`, `tokens_output`, `agent`, `model`, `time_created`, `time_updated`)
-VALUES ('ses_next', 'prj_next', 'next', '/decant-fixture/example', 'Pre-split copy',
+VALUES ('ses_next', 'prj_next', 'next', '/agent-benchmarks-fixture/example', 'Pre-split copy',
   '0.0.0-next-202607200000', 0.000005, 20, 4, 'build',
   '{"providerID":"opencode-go","id":"glm-5.3-flash"}', 1791800000000, 1791800004000);
 

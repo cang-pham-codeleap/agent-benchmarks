@@ -105,7 +105,7 @@
     "total_steps": 4,
     "extra": {
       "total_cache_write_tokens": 2300,
-      "cost_source": "decant",
+      "cost_source": "agent-benchmarks",
       "includes_subagents": true,
       "session_metrics": {
         "total_prompt_tokens": 7000,
@@ -117,7 +117,7 @@
     }
   },
   "extra": {
-    "exporter": "decant",
+    "exporter": "agent-benchmarks",
     "cwd": "/tmp/example",
     "git_branch": "main",
     "title": "Explain the example config"

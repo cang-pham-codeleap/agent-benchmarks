@@ -138,5 +138,5 @@
       "success_rate": 1
     }
   ],
-  "artifact": "# Distilled by Decant 0.0.0-dev from all sessions\n# 27 session(s) (2025-07-14..2026-11-02). Commands you actually ran, ranked by frequency × success.\n# REVIEW before running. Secrets are best-effort redacted.\n\nexport PROJECT_ROOT := `git rev-parse --show-toplevel`\n"
+  "artifact": "# Distilled by Agent Benchmarks 0.0.0-dev from all sessions\n# 27 session(s) (2025-07-14..2026-11-02). Commands you actually ran, ranked by frequency × success.\n# REVIEW before running. Secrets are best-effort redacted.\n\nexport PROJECT_ROOT := `git rev-parse --show-toplevel`\n"
 }

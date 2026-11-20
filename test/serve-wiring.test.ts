@@ -72,7 +72,7 @@ interface ServeCase {
 }
 
 async function withServe<T>(c: ServeCase, run: (port: number) => Promise<T>): Promise<T> {
-  const dir = mkdtempSync(join(tmpdir(), "decant-serve-wiring-"));
+  const dir = mkdtempSync(join(tmpdir(), "agent-benchmarks-serve-wiring-"));
   const claudeDir = join(dir, "claude");
   const codexDir = join(dir, "codex");
   const geminiDir = join(dir, "gemini");
@@ -82,6 +82,8 @@ async function withServe<T>(c: ServeCase, run: (port: number) => Promise<T>): Pr
   const vscodeCopilotDir = join(dir, "vscode", "User");
   const hermesDir = join(dir, "hermes");
   const piDir = join(dir, "pi");
+  const ompDir = join(dir, "omp");
+  const droidDir = join(dir, "droid");
   mkdirSync(claudeDir, { recursive: true });
   mkdirSync(codexDir, { recursive: true });
   mkdirSync(geminiDir, { recursive: true });
@@ -91,7 +93,7 @@ async function withServe<T>(c: ServeCase, run: (port: number) => Promise<T>): Pr
   mkdirSync(vscodeCopilotDir, { recursive: true });
 
   const env = { ...process.env, ...(c.env ?? {}) };
-  if (!(c.env && "DECANT_TRUSTED_PEERS" in c.env)) delete env.DECANT_TRUSTED_PEERS;
+  if (!(c.env && "AGENT_BENCHMARKS_TRUSTED_PEERS" in c.env)) delete env.AGENT_BENCHMARKS_TRUSTED_PEERS;
 
   const proc = Bun.spawn(
     [
@@ -122,6 +124,10 @@ async function withServe<T>(c: ServeCase, run: (port: number) => Promise<T>): Pr
       hermesDir,
       "--pi-dir",
       piDir,
+      "--omp-dir",
+      ompDir,
+      "--droid-dir",
+      droidDir,
       ...(c.flags ?? []),
     ],
     { cwd: repoRoot, env, stdout: "ignore", stderr: "pipe" },
@@ -146,8 +152,8 @@ describe.skipIf(lanIP == null)("serve trusted-peer wiring (real CLI process)", (
     });
   }, 30_000);
 
-  test("DECANT_TRUSTED_PEERS alone admits the peer (env-only)", async () => {
-    await withServe({ env: { DECANT_TRUSTED_PEERS: ip } }, async (port) => {
+  test("AGENT_BENCHMARKS_TRUSTED_PEERS alone admits the peer (env-only)", async () => {
+    await withServe({ env: { AGENT_BENCHMARKS_TRUSTED_PEERS: ip } }, async (port) => {
       expect(await httpStatus(ip, port, "/api/health")).toBe(200);
     });
   }, 30_000);
@@ -160,7 +166,7 @@ describe.skipIf(lanIP == null)("serve trusted-peer wiring (real CLI process)", (
 
   test("flags replace the env var rather than merging with it", async () => {
     await withServe(
-      { env: { DECANT_TRUSTED_PEERS: "203.0.113.0/24" }, flags: ["--trusted-peer", ip] },
+      { env: { AGENT_BENCHMARKS_TRUSTED_PEERS: "203.0.113.0/24" }, flags: ["--trusted-peer", ip] },
       async (port) => {
         expect(await httpStatus(ip, port, "/api/health")).toBe(200);
       },
@@ -169,7 +175,7 @@ describe.skipIf(lanIP == null)("serve trusted-peer wiring (real CLI process)", (
 
   test("a peer trusted only by the env var is rejected once flags take over", async () => {
     await withServe(
-      { env: { DECANT_TRUSTED_PEERS: ip }, flags: ["--trusted-peer", "203.0.113.9"] },
+      { env: { AGENT_BENCHMARKS_TRUSTED_PEERS: ip }, flags: ["--trusted-peer", "203.0.113.9"] },
       async (port) => {
         expect(await httpStatus(ip, port, "/api/health")).toBe(403);
       },
@@ -193,7 +199,7 @@ async function withSeededServe<T>(
   c: SyncCase,
   run: (port: number, startupLog: string, sources: SeededSources) => Promise<T>,
 ): Promise<T> {
-  const dir = mkdtempSync(join(tmpdir(), "decant-serve-sync-"));
+  const dir = mkdtempSync(join(tmpdir(), "agent-benchmarks-serve-sync-"));
   const claudeDir = join(dir, "claude");
   const codexDir = join(dir, "codex");
   const geminiDir = join(dir, "gemini");
@@ -203,6 +209,8 @@ async function withSeededServe<T>(
   const vscodeCopilotDir = join(dir, "vscode", "User");
   const hermesDir = join(dir, "hermes");
   const piDir = join(dir, "pi");
+  const ompDir = join(dir, "omp");
+  const droidDir = join(dir, "droid");
   const projectDir = join(claudeDir, "-Users-dev-proj");
   const codexSessionsDir = join(codexDir, "sessions");
   const claudeSessionPath = join(projectDir, "s1.jsonl");
@@ -218,9 +226,9 @@ async function withSeededServe<T>(
   copyFileSync(join(repoRoot, "fixtures", "codex", "sample.jsonl"), codexSessionPath);
 
   const env = { ...process.env, ...(c.env ?? {}) };
-  delete env.DECANT_TRUSTED_PEERS;
-  if (!(c.env && "DECANT_NO_SYNC" in c.env)) {
-    delete env.DECANT_NO_SYNC;
+  delete env.AGENT_BENCHMARKS_TRUSTED_PEERS;
+  if (!(c.env && "AGENT_BENCHMARKS_NO_SYNC" in c.env)) {
+    delete env.AGENT_BENCHMARKS_NO_SYNC;
   }
 
   const proc = Bun.spawn(
@@ -253,6 +261,10 @@ async function withSeededServe<T>(
       hermesDir,
       "--pi-dir",
       piDir,
+      "--omp-dir",
+      ompDir,
+      "--droid-dir",
+      droidDir,
     ],
     { cwd: repoRoot, env, stdout: "ignore", stderr: "pipe" },
   );
@@ -371,8 +383,8 @@ describe("serve sync opt-out (real CLI process)", () => {
     });
   }, 40_000);
 
-  test("DECANT_NO_SYNC does the same, matching read commands", async () => {
-    await withSeededServe({ env: { DECANT_NO_SYNC: "1" } }, async (port, startupLog) => {
+  test("AGENT_BENCHMARKS_NO_SYNC does the same, matching read commands", async () => {
+    await withSeededServe({ env: { AGENT_BENCHMARKS_NO_SYNC: "1" } }, async (port, startupLog) => {
       expect(startupLog).toContain('"watch.enabled":false');
       await expectNoIngest(port);
     });

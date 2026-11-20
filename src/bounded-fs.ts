@@ -1,13 +1,13 @@
 import { dirname, isAbsolute, resolve, sep } from "node:path";
 import { getEnvironmentData, isMainThread, setEnvironmentData } from "node:worker_threads";
-import { getDecantLogger } from "./logging.ts";
+import { getAgentBenchmarksLogger } from "./logging.ts";
 
 // File access for paths that came out of session logs. Such a path can sit
 // where a call never returns (a macOS privacy prompt nobody answers, a stale
 // network mount), so a helper thread makes the call and the caller waits for
 // it only up to a deadline.
 
-const logger = getDecantLogger("ingest");
+const logger = getAgentBenchmarksLogger("ingest");
 
 export interface ProbeFs {
   readText(path: string): string | null;
@@ -203,7 +203,7 @@ export function createProbeLedger(): SharedArrayBuffer {
   return new SharedArrayBuffer(HEADER_INTS * Int32Array.BYTES_PER_ELEMENT + SLOTS * PATH_BYTES);
 }
 
-const LEDGER_KEY = "decant.unreachable-roots";
+const LEDGER_KEY = "agent-benchmarks.unreachable-roots";
 
 function processLedger(): SharedArrayBuffer {
   const inherited = getEnvironmentData(LEDGER_KEY);
@@ -368,7 +368,7 @@ export class BoundedFs implements ProbeFs {
       if (this.#idle == null) {
         this.#helperFailed = true;
         logger.warning("Project directories are not read: the helper thread did not start.", {
-          "event.name": "decant.ingest.probe_helper_failed",
+          "event.name": "agent-benchmarks.ingest.probe_helper_failed",
         });
       }
     }
@@ -398,7 +398,7 @@ export class BoundedFs implements ProbeFs {
       return;
     }
     logger.warning("A project directory did not answer in time and is skipped.", {
-      "event.name": "decant.ingest.directory_unreachable",
+      "event.name": "agent-benchmarks.ingest.directory_unreachable",
       "file.path": root,
       "probe.timeout_ms": this.#deadlineMs,
     });

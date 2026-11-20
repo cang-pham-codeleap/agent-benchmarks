@@ -1,39 +1,24 @@
-# Decant
+# Agent Benchmarks
 
-[![npm version](https://img.shields.io/npm/v/%40dosu%2Fdecant?logo=npm)](https://www.npmjs.com/package/@dosu/decant)
-[![npm downloads](https://img.shields.io/npm/dm/%40dosu%2Fdecant?logo=npm)](https://www.npmjs.com/package/@dosu/decant)
-[![CI](https://github.com/dosu-ai/decant/actions/workflows/ci.yml/badge.svg)](https://github.com/dosu-ai/decant/actions/workflows/ci.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/dosu-ai/decant/badge)](https://scorecard.dev/viewer/?uri=github.com/dosu-ai/decant)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13840/badge)](https://www.bestpractices.dev/projects/13840)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Decant shows where your coding agents spend tokens, money, and time. It reads
-the session logs that Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI,
-GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write
-on your machine, plus [ATIF](https://harborframework.com/docs/agents/atif)
-trajectories you import, into one searchable archive. You explore it in a local web UI or from
-the command line.
-
-Built by
-[Dosu](https://dosu.dev?utm_source=decant&utm_medium=github&utm_campaign=attribution&utm_content=readme).
-
-https://github.com/user-attachments/assets/188f7cca-5b0a-4504-8eb2-a317a606d91e
+Agent Benchmarks is a private research fork for evaluating models, agent harnesses, and agentic workflows. It shows where coding agents spend tokens, money, and time. It reads the session logs that Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write on your machine, plus [ATIF](https://harborframework.com/docs/agents/atif) trajectories you import, into one searchable archive.
 
 ## Quick start
 
 ```sh
-npx @dosu/decant@latest
+bun install
+bun run src/cli.ts
 ```
 
-You don't need Bun or a global install. The command indexes the agent logs it
-finds, starts the web UI at <http://127.0.0.1:3000>, and keeps watching for new
-sessions. For a persistent `decant` command, see [Installation](#installation).
+This indexes the local agent logs it finds, starts the web UI at <http://127.0.0.1:3000>, and watches for new sessions. The default `bun run lens` command opens the user's existing `~/.agent-lens/lens.db` on port 4711.
+
 
 ## Features
 
 - One SQLite archive for every supported agent, with full-text search across
   prompts, responses, tool names, and tool inputs.
-- Session transcripts, with diagnostics for records Decant could not parse
+- Session transcripts, with diagnostics for records Agent Benchmarks could not parse
   or skipped under its [input limits](docs/sources.md#input-limits).
 - Token, [estimated cost](docs/pricing.md), context-window, and agent-time
   analytics by agent, model, project, repository (including worktrees), outcome,
@@ -52,7 +37,7 @@ sessions. For a persistent `decant` command, see [Installation](#installation).
 
 ## Supported agents
 
-Decant finds each agent's logs in its default location. To point it somewhere
+Agent Benchmarks finds each agent's logs in its default location. To point it somewhere
 else, or for per-agent details, see [Sources](docs/sources.md).
 
 | Agent | Default location | Token usage |
@@ -66,128 +51,56 @@ else, or for per-agent details, see [Sources](docs/sources.md).
 | Copilot Chat in VS Code | VS Code's `User` directory | VS Code builds from April 2026 on, as a rough estimate |
 | Hermes Agent | `~/.hermes` | Recorded per session and model, not per message |
 | Pi | `~/.pi/agent/sessions` | Recorded |
-| ATIF trajectories | `~/.decant/atif` | From step `metrics` or `final_metrics` |
+| ATIF trajectories | `~/.agent-benchmarks/atif` | From step `metrics` or `final_metrics` |
 
-When an agent records no usage, Decant shows tokens and cost as unavailable
+When an agent records no usage, Agent Benchmarks shows tokens and cost as unavailable
 instead of $0.
 
 ## Where does my data go?
 
-Decant is local-first. It makes no outbound network calls at runtime, and your
-transcripts never leave your machine. The one exception is an update check that
-stays off until you turn it on. See [Updating](#updating).
+Agent Benchmarks is local-first and makes no outbound network calls at runtime. Your transcripts stay on your machine.
 
 > [!IMPORTANT]
-> Decant does keep a copy of your transcripts. To make sessions searchable, it
-> writes prompts, tool inputs, tool output, and canonicalized raw records for
-> retained transcript messages into an **unencrypted** SQLite archive at
-> `~/.decant/decant.db`, with a full-text index over the prompt and
-> tool-argument text. Whatever your agents read is in there too, including
-> source code, file contents, local paths, and any credentials pasted into a
-> session.
->
-> Decant creates the archive owner-only (`0600`). If your organization has a
-> retention policy for agent transcripts, the archive is subject to it. See
-> [What the archive stores](docs/data-lifecycle.md#what-the-archive-stores) to
-> inspect, delete, or remove it.
+> Agent Benchmarks keeps a copy of your transcripts in an unencrypted SQLite archive. Prompts, tool inputs and output, raw records, source code, local paths, and credentials pasted into sessions can all be present. The archive is owner-only (`0600`); inspect, delete, or remove it when required by your retention policy. See [What the archive stores](docs/data-lifecycle.md#what-the-archive-stores).
 
 ## Installation
 
-> [!NOTE]
-> Published binaries support macOS and Linux on x64 and arm64. Native Windows
-> binaries are not currently available.
-
-### npm
+This fork is not published to npm, Homebrew, GitHub Releases, or a container registry. Install Bun 1.3 or newer, run `bun install --frozen-lockfile`, and use the source checkout:
 
 ```sh
-npm install --global @dosu/decant@latest
-decant
+bun run src/cli.ts
 ```
 
-The npm package is a small launcher that runs the matching native binary. It
-needs Node.js 18 or newer, and does not need Bun.
-
-### Homebrew
+To build a local standalone binary:
 
 ```sh
-brew install dosu-ai/dosu/decant
-decant
+bun run scripts/build-binaries.ts --target native
 ```
 
-### Shell installer
-
-This installs the latest release without Node.js or Bun:
+To build and run the local Docker image:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dosu-ai/decant/main/install.sh | sh
-decant
+docker build -t agent-benchmarks:local .
+docker run --rm -p 127.0.0.1:3000:3000 -v agent-benchmarks-data:/var/lib/agent-benchmarks agent-benchmarks:local
 ```
 
-### Docker
+Keep the `127.0.0.1:` prefix because the local archive API is unauthenticated. Mount each source directory read-only as needed; the data-lifecycle guide documents those paths and the archive volume.
 
-```sh
-docker run --rm \
-  -p 127.0.0.1:3000:3000 \
-  -v decant-data:/var/lib/decant \
-  -v "$HOME/.claude/projects:/sources/claude:ro" \
-  -v "$HOME/.codex:/sources/codex:ro" \
-  -v "$HOME/.gemini/tmp:/sources/gemini:ro" \
-  -v "$HOME/.cursor/chats:/sources/cursor:ro" \
-  -v "$HOME/.copilot/session-state:/sources/copilot:ro" \
-  -v "$HOME/Library/Application Support/Code/User:/sources/vscode:ro" \
-  -v "$HOME/.decant/atif:/sources/atif:ro" \
-  ghcr.io/dosu-ai/decant:latest
-```
+## Updating
 
-The VS Code mount shows the macOS path. On Linux, mount
-`$HOME/.config/Code/User` instead.
+There is no automatic release check or `update` command. Update the private checkout through its normal source-control process, then reinstall dependencies and rerun the checks below.
 
-> [!WARNING]
-> Keep the `127.0.0.1:` prefix. Publishing `-p 3000:3000` exposes the
-> unauthenticated archive API on every host interface. Custom container
-> networks may need the trusted-peer setting documented under
-> [Docker distribution](docs/distribution.md#docker).
-
-The source mounts are read-only, but `decant-data` is a named volume. The
-archive outlives every container, and neither `--rm` nor `docker rm` removes
-it. Run `docker volume rm decant-data` when you want it gone.
-
-### From source
-
-Source builds need Bun 1.3 or newer. Follow the steps under
-[Contributing](#contributing).
-
-[Distribution](docs/distribution.md) covers installer options, native builds,
-and release verification.
-
-### Updating
-
-```sh
-decant update           # install the newest release in place
-decant update --check   # only report whether one exists
-```
-
-`decant update` uses the tool that installed Decant. It runs
-`npm install --global` for npm and `brew update` and `brew upgrade` for
-Homebrew, and makes a checksum-verified download for the shell installer.
-Docker, `npx`, source checkouts, and binaries Decant did not install print how
-to update instead.
-
-To hear about new releases, turn on **Check for updates** in Settings or set
-`DECANT_UPDATE_CHECK=1`. Decant then asks the npm registry for the newest
-version once a day and shows a notice in the sidebar and after CLI commands.
-The request carries no session data.
 
 ## Usage
 
 ### Web UI
 
-Run `decant` with no arguments to sync your sessions, start the UI at
-<http://127.0.0.1:3000>, and open it in your browser. `decant serve --no-open`
+Run `agent-benchmarks` with no arguments to sync your sessions, start the UI at
+<http://127.0.0.1:3000>, and open it in your browser. `agent-benchmarks serve --no-open`
 skips the browser, and `--host` and `--port` change the address.
 
-To keep Decant running without a terminal, turn on **Run in the background** in
-Settings or run `decant service install`. It then starts at login on macOS and
+To keep Agent Benchmarks running without a terminal, turn on **Run in the background** in
+Settings or run `agent-benchmarks service install`. It then starts at login on macOS and
 Linux. See [Running in the background](docs/data-lifecycle.md#running-in-the-background).
 
 | Page | What it shows |
@@ -203,36 +116,35 @@ Linux. See [Running in the background](docs/data-lifecycle.md#running-in-the-bac
 ### CLI
 
 ```sh
-decant                         # start the local web UI
-decant sync                    # index new and changed sessions
-decant ls                      # list sessions
-decant ls --repo . --since 2026-11-01  # this repository and its worktrees
-decant ls --json --fields id,title     # only the fields you name
-decant show 1                  # render a transcript
-decant show 1 --outline        # list its messages and their sizes
-decant search "auth bug"       # full-text search
-decant project ls --limit 20   # projects with session counts and cost
-decant stats --by model        # usage and cost rollups
-decant economics               # token, cost, and time breakdowns
-decant files --group ext       # file hotspots
-decant tool stats              # tool usage
-decant mcp stats               # MCP server usage
-decant export 1 > session.md   # export a session
-decant export 1 --as atif      # also md, json, and trajectory
-decant export --mirror ~/atif  # keep a folder of ATIF documents, one per session
-decant distill script          # workflow script from command history
-decant db info                 # what the archive holds and where
-decant session rm 1 --yes      # delete a session and its descendants
-decant db vacuum               # release the freed pages after a delete
-decant db compact              # losslessly compress stored source records
-decant update                  # update Decant with the tool that installed it
-decant service install         # start Decant at login and keep it running
-decant doctor                  # redacted environment report for bug reports
+agent-benchmarks                         # start the local web UI
+agent-benchmarks sync                    # index new and changed sessions
+agent-benchmarks ls                      # list sessions
+agent-benchmarks ls --repo . --since 2026-11-01  # this repository and its worktrees
+agent-benchmarks ls --json --fields id,title     # only the fields you name
+agent-benchmarks show 1                  # render a transcript
+agent-benchmarks show 1 --outline        # list its messages and their sizes
+agent-benchmarks search "auth bug"       # full-text search
+agent-benchmarks project ls --limit 20   # projects with session counts and cost
+agent-benchmarks stats --by model        # usage and cost rollups
+agent-benchmarks economics               # token, cost, and time breakdowns
+agent-benchmarks files --group ext       # file hotspots
+agent-benchmarks tool stats              # tool usage
+agent-benchmarks mcp stats               # MCP server usage
+agent-benchmarks export 1 > session.md   # export a session
+agent-benchmarks export 1 --as atif      # also md, json, and trajectory
+agent-benchmarks export --mirror ~/atif  # keep a folder of ATIF documents, one per session
+agent-benchmarks distill script          # workflow script from command history
+agent-benchmarks db info                 # what the archive holds and where
+agent-benchmarks session rm 1 --yes      # delete a session and its descendants
+agent-benchmarks db vacuum               # release the freed pages after a delete
+agent-benchmarks db compact              # losslessly compress stored source records
+agent-benchmarks service install         # start Agent Benchmarks at login and keep it running
+agent-benchmarks doctor                  # redacted environment report for bug reports
 ```
 
-Run `decant --help` or `decant <command> --help` for every command and flag.
+Run `agent-benchmarks --help` or `agent-benchmarks <command> --help` for every command and flag.
 Read commands support `--json`. Global flags include `--db`, `--format`,
-`--quiet`, `--no-color`, and `--no-sync`. `--db` or `DECANT_DB` sets the
+`--quiet`, `--no-color`, and `--no-sync`. `--db` or `AGENT_BENCHMARKS_DB` sets the
 archive path. A read command does not create an archive at a path you name, so
 a mistyped path is an error.
 
@@ -243,14 +155,14 @@ object with a stable `code` on stderr. See
 
 #### Read one session in pieces
 
-`decant show <id>` prints the whole transcript, which can be megabytes for a
+`agent-benchmarks show <id>` prints the whole transcript, which can be megabytes for a
 long session. To read part of one, list its messages first and then ask for
 the ones you need:
 
 ```sh
-decant show 1 --outline                    # one row per message
-decant show 1 --offset 10 --limit 5        # five messages, starting at index 10
-decant show 1 --limit 20 --max-chars 2000  # cut long text and tool output
+agent-benchmarks show 1 --outline                    # one row per message
+agent-benchmarks show 1 --offset 10 --limit 5        # five messages, starting at index 10
+agent-benchmarks show 1 --limit 20 --max-chars 2000  # cut long text and tool output
 ```
 
 | Flag | What it does |
@@ -277,15 +189,15 @@ adds `max_chars` and `truncated_blocks`, and each cut block carries
 cut. `--outline --json` holds the per-message rows in `messages` and the items
 of `GET /api/sessions/{id}/outline` in `outline`.
 
-`show` and `export` take Decant's session id or the id the source tool gave the
+`show` and `export` take Agent Benchmarks's session id or the id the source tool gave the
 session, such as the Claude Code session UUID in its transcript file name. An
-integer names the Decant id first. When one source id belongs to sessions from
+integer names the Agent Benchmarks id first. When one source id belongs to sessions from
 two tools, the command exits 2 and lists each match with its id, tool, and
 start time.
 
-`decant ls` and `decant search` take the same scope flags:
+`agent-benchmarks ls` and `agent-benchmarks search` take the same scope flags:
 
-- `--project <path>` matches one project directory. Decant resolves `.`, a
+- `--project <path>` matches one project directory. Agent Benchmarks resolves `.`, a
   relative path, `~`, a trailing slash, and a symlink before it compares.
 - `--repo <value>` matches a repository, its worktrees, and any other checkout
   with the same `origin` remote. The value is a directory inside the repository
@@ -302,98 +214,60 @@ A path or repository the archive has never recorded exits with code 1 and an
 error on stderr, so an empty list always means the scope is known and holds no
 matching session.
 
-`decant ls --json` prints every field of each session. `--fields` keeps only
-the fields you name, in the order you name them, on both `decant ls` and
-`decant project ls`. Without `--json` they print as tab-separated columns. An
-unknown field is a usage error that lists the valid names. `decant project ls`
+`agent-benchmarks ls --json` prints every field of each session. `--fields` keeps only
+the fields you name, in the order you name them, on both `agent-benchmarks ls` and
+`agent-benchmarks project ls`. Without `--json` they print as tab-separated columns. An
+unknown field is a usage error that lists the valid names. `agent-benchmarks project ls`
 prints every project unless `--limit` and `--offset` say otherwise.
 
 ### Local API
 
-`decant serve` also serves a local HTTP API. Its OpenAPI 3.1 contract is
+`agent-benchmarks serve` also serves a local HTTP API. Its OpenAPI 3.1 contract is
 [docs/api/openapi.yaml](docs/api/openapi.yaml), and a running server exposes it
 at <http://127.0.0.1:3000/api/openapi.json>. See
 [API recipes](docs/api/recipes.md) for examples.
 
 ## Documentation
 
-Using Decant:
+Using Agent Benchmarks:
 
 - [CLI output, errors, and exit codes](docs/cli.md)
-- [Sources and where Decant finds them](docs/sources.md)
+- [Sources and where Agent Benchmarks finds them](docs/sources.md)
 - [How the analytics are calculated](docs/analytics-methodology.md)
 - [Pricing estimates and their sources](docs/pricing.md)
 - [What the archive stores, and how sync and deletion work](docs/data-lifecycle.md)
-- [Install channels, updates, and release verification](docs/distribution.md)
 - [Local API routes](docs/api/routes.md) and [recipes](docs/api/recipes.md)
 - [Operational logging](docs/logging.md)
 
-Working on Decant:
+Working on Agent Benchmarks:
 
 - [Contributing guide](CONTRIBUTING.md)
 - [Architecture](docs/architecture.md)
 - [Adding a source](docs/adding-a-source.md)
 - [Guidance for coding agents](AGENTS.md)
 
-## Contributing
+## Development
 
-Contributions are welcome. Bug fixes, pricing updates, and documentation fixes
-can go straight to a pull request. New sources, commands, UI features, and
-changes to existing behavior need an issue or a
-[discussion](https://github.com/dosu-ai/decant/discussions) first, where a
-maintainer agrees on the direction and scope.
-
-To run Decant from source, install Bun 1.3 or newer, then:
+This is a private research fork. Work against the local checkout and keep tests and fixtures synthetic.
 
 ```sh
-git clone https://github.com/dosu-ai/decant.git
-cd decant
-bun run dev
-```
-
-`bun run dev` installs dependencies, starts the UI at <http://127.0.0.1:3000>,
-indexes your sessions, and watches for changes. Before you open a pull request,
-run:
-
-```sh
+bun install --frozen-lockfile
 bun test
 bunx tsc --noEmit
 bunx biome check .
 ```
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for the full checklist, including
-commit signing and the pull request template. Coding agents should also read
-[AGENTS.md](AGENTS.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md), and [SECURITY.md](SECURITY.md) for local conventions and privacy requirements.
 
-Use synthetic session data in issues and tests. Real transcripts can contain
-source code, prompts, credentials, and local paths.
 
-## Community and support
 
-- Ask questions and share ideas in
-  [GitHub Discussions](https://github.com/dosu-ai/decant/discussions).
-- Report bugs with the
-  [issue templates](https://github.com/dosu-ai/decant/issues/new/choose), and
-  paste the output of `decant doctor`. It reports versions, platform, and
-  per-source counts without any transcript content.
-- Report security vulnerabilities privately as described in
-  [SECURITY.md](SECURITY.md).
-- Everyone who takes part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
-
-## About Dosu
-
-Decant is built and maintained by
-[Dosu](https://dosu.dev?utm_source=decant&utm_medium=github&utm_campaign=attribution&utm_content=about),
-Knowledge Infrastructure for Agents. Dosu helps make agents faster, cheaper,
-and more effective. Decant shows what your agents spent, read, and touched via
-your agent logs.
 
 ## Acknowledgments
 
-Decant was inspired in part by
+Agent Benchmarks was inspired in part by
 [Letta's Trajectory](https://github.com/letta-ai/trajectory), which normalizes
 agent transcripts across runtimes into a shared record format.
 
 ## License
 
-Decant is licensed under the [Apache License 2.0](LICENSE).
+Agent Benchmarks is licensed under the [Apache License 2.0](LICENSE).

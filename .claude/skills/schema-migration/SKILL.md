@@ -1,6 +1,6 @@
 ---
 name: schema-migration
-description: Change Decant's SQLite schema (tables, columns, indexes, triggers) or force a re-derive of existing archives. Use when editing src/db.ts migrations, src/schema.sql, src/schema-manifest.ts, LATEST_SCHEMA_VERSION, or INGEST_PIPELINE_REVISION.
+description: Change Agent Benchmarks's SQLite schema (tables, columns, indexes, triggers) or force a re-derive of existing archives. Use when editing src/db.ts migrations, src/schema.sql, src/schema-manifest.ts, LATEST_SCHEMA_VERSION, or INGEST_PIPELINE_REVISION.
 ---
 
 # Schema migration
@@ -34,7 +34,7 @@ of `docs/data-lifecycle.md`. Read both before editing.
 - `test/db.test.ts`: migrate a previous-version archive and compare it with a
   fresh one; assert any query plan the new index exists for.
 - Run the migration against a scratch copy of a large archive and time it
-  (`DECANT_DB=<copy>`). Never point a migration at `~/.decant/decant.db`.
+  (`AGENT_BENCHMARKS_DB=<copy>`). Never point a migration at `~/.agent-benchmarks/agent-benchmarks.db`.
 
 ## Docs
 

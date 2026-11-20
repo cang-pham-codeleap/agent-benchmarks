@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { decideOpen, displayUrl, openBrowser } from "../../browser.ts";
 import { shellQuote } from "../../distill.ts";
 import { sync as ingestSync } from "../../ingest.ts";
-import { getDecantLogger, logWatchEvent } from "../../logging.ts";
+import { getAgentBenchmarksLogger, logWatchEvent } from "../../logging.ts";
 import { DEFAULT_SERVE_HOST, DEFAULT_SERVE_PORT } from "../../serve-defaults.ts";
 import {
   binaryFingerprint,
@@ -20,12 +20,11 @@ import {
 } from "../../watch.ts";
 import type { CliContext } from "../context.ts";
 import { collectOption, parseInteger, parsePort } from "../parse.ts";
-import { renderUpdateNotice } from "../update-notice.ts";
 
 export function registerSyncCommands(ctx: CliContext): void {
   const { program, io } = ctx;
-  const watchLogger = getDecantLogger("watch");
-  const serverLogger = getDecantLogger("server");
+  const watchLogger = getAgentBenchmarksLogger("watch");
+  const serverLogger = getAgentBenchmarksLogger("server");
 
   const runSync = (commandOptions: {
     claudeDir?: string;
@@ -54,12 +53,12 @@ export function registerSyncCommands(ctx: CliContext): void {
           ...archive.config,
           sourcePaths: commandOptions.path,
         });
-        const dbFlag = ctx.globals().db ?? (ctx.env ?? process.env).DECANT_DB;
+        const dbFlag = ctx.globals().db ?? (ctx.env ?? process.env).AGENT_BENCHMARKS_DB;
         const issuesHint =
           report.issues > 0
-            ? `inspect affected sessions with: decant ${dbFlag ? `--db ${shellQuote(archive.config.dbPath)} ` : ""}ls --json | ` +
+            ? `inspect affected sessions with: agent-benchmarks ${dbFlag ? `--db ${shellQuote(archive.config.dbPath)} ` : ""}ls --json | ` +
               "jq '[.[] | select(.ingest_issue_count + .informational_ingest_issue_count > 0)]' " +
-              "(issue detail: GET /api/sessions/:id/issues under `decant serve`)"
+              "(issue detail: GET /api/sessions/:id/issues under `agent-benchmarks serve`)"
             : undefined;
         const jsonReport = {
           scanned: report.scanned,
@@ -351,7 +350,7 @@ export function registerSyncCommands(ctx: CliContext): void {
             server = supervised
               ? await bindWhenFree(start, () =>
                   serverLogger.warning("Port in use; waiting for it to be released.", {
-                    "event.name": "decant.service.port_busy",
+                    "event.name": "agent-benchmarks.service.port_busy",
                     "server.port": wanted,
                   }),
                 )
@@ -363,8 +362,8 @@ export function registerSyncCommands(ctx: CliContext): void {
               if (background?.running === true && background.url === `http://127.0.0.1:${wanted}`) {
                 const decision = openDecision(commandOptions.open !== false, environment);
                 io.writeErr(
-                  `Decant is already running in the background at ${url}\n` +
-                    "Stop it with: decant service uninstall\n",
+                  `Agent Benchmarks is already running in the background at ${url}\n` +
+                    "Stop it with: agent-benchmarks service uninstall\n",
                 );
                 if (decision.open && decision.command != null) {
                   openBrowser(url, decision.command);
@@ -372,8 +371,8 @@ export function registerSyncCommands(ctx: CliContext): void {
                 return 0;
               }
               io.writeErr(
-                `error: port ${wanted} is already in use — is Decant already running at ${url}?\n` +
-                  "Pick another port with: decant serve --port <n>\n",
+                `error: port ${wanted} is already in use — is Agent Benchmarks already running at ${url}?\n` +
+                  "Pick another port with: agent-benchmarks serve --port <n>\n",
               );
               return 1;
             }
@@ -385,7 +384,7 @@ export function registerSyncCommands(ctx: CliContext): void {
           try {
             if (!ctx.globals().quiet) {
               serverLogger.info("Server started.", {
-                "event.name": "decant.server.started",
+                "event.name": "agent-benchmarks.server.started",
                 "server.address": host,
                 "server.port": server.port,
                 "watch.enabled": syncEnabled,
@@ -398,15 +397,6 @@ export function registerSyncCommands(ctx: CliContext): void {
             if (!ctx.globals().quiet && !supervised) {
               io.writeErr(serveBanner(url, decision.open));
             }
-            void ctx.pendingUpdateNotice?.then(
-              (status) => {
-                const notice = renderUpdateNotice(status);
-                if (notice != null) {
-                  io.writeErr(notice);
-                }
-              },
-              () => undefined,
-            );
             if (decision.open && decision.command != null) {
               openBrowser(url, decision.command);
             }
@@ -417,8 +407,8 @@ export function registerSyncCommands(ctx: CliContext): void {
                     binaryPath,
                     () => {
                       exitCode = SERVICE_RESTART_EXIT_CODE;
-                      serverLogger.info("Decant was updated; restarting the background service.", {
-                        "event.name": "decant.service.binary_changed",
+                      serverLogger.info("Agent Benchmarks was updated; restarting the background service.", {
+                        "event.name": "agent-benchmarks.service.binary_changed",
                       });
                       requestShutdown();
                     },
@@ -435,7 +425,7 @@ export function registerSyncCommands(ctx: CliContext): void {
             const forceExit = supervised
               ? setTimeout(() => {
                   serverLogger.warning("Shutdown is stuck; exiting so the service can restart.", {
-                    "event.name": "decant.service.stop_timeout",
+                    "event.name": "agent-benchmarks.service.stop_timeout",
                   });
                   process.exit(exitCode);
                 }, SERVICE_STOP_GRACE_MS)
@@ -451,7 +441,7 @@ export function registerSyncCommands(ctx: CliContext): void {
             }
             if (!ctx.globals().quiet) {
               serverLogger.info("Server stopped.", {
-                "event.name": "decant.server.stopped",
+                "event.name": "agent-benchmarks.server.stopped",
                 "server.address": host,
                 "server.port": server.port,
               });
@@ -494,7 +484,7 @@ function openDecision(enabled: boolean, environment: Record<string, string | und
     enabled,
     env: {
       BROWSER: environment.BROWSER,
-      DECANT_NO_OPEN: environment.DECANT_NO_OPEN,
+      AGENT_BENCHMARKS_NO_OPEN: environment.AGENT_BENCHMARKS_NO_OPEN,
       CI: environment.CI,
     },
     isTTY: process.stdout.isTTY === true,
@@ -505,14 +495,14 @@ function openDecision(enabled: boolean, environment: Record<string, string | und
 function serveBanner(url: string, opening: boolean): string {
   return [
     "",
-    "  Decant is running.",
+    "  Agent Benchmarks is running.",
     "",
     `    ${url}`,
     "",
     opening
       ? "  Opening your browser — the printed link works if it does not."
       : "  Open the link in your browser.",
-    "  Ctrl-C stops the server; decant --help lists every command.",
+    "  Ctrl-C stops the server; agent-benchmarks --help lists every command.",
     "",
     "",
   ].join("\n");

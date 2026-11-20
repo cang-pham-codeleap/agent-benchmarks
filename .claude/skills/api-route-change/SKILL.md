@@ -1,6 +1,6 @@
 ---
 name: api-route-change
-description: Add, remove, or change a route served by `decant serve`, including parameters, limits, status codes, response shapes, and SSE events. Use when editing the route table in src/server/routes.ts, the path manifest in src/route-paths.ts, or anything the UI fetches through src/ui/api.ts.
+description: Add, remove, or change a route served by `agent-benchmarks serve`, including parameters, limits, status codes, response shapes, and SSE events. Use when editing the route table in src/server/routes.ts, the path manifest in src/route-paths.ts, or anything the UI fetches through src/ui/api.ts.
 ---
 
 # Change a serve API route
@@ -34,7 +34,7 @@ move together in one change:
 Use a scratch archive and a loopback port:
 
 ```sh
-DECANT_DB=/tmp/decant-api.db bun run src/cli.ts --no-sync serve --no-open --port 43111
+AGENT_BENCHMARKS_DB=/tmp/agent-benchmarks-api.db bun run src/cli.ts --no-sync serve --no-open --port 43111
 ```
 
 Done means `bun test`, `bunx tsc --noEmit`, and `bunx biome check .` pass.

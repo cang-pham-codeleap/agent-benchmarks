@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkFrozenMigrations, runPolicy } from "../scripts/pr-policy.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-pr-policy-reads-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-pr-policy-reads-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 function git(cwd: string, ...args: string[]): void {

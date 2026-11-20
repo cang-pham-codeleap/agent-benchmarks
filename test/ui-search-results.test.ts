@@ -7,7 +7,7 @@ import { search, searchPage } from "../src/query.ts";
 import { SEARCH_MATCH_END, SEARCH_MATCH_START } from "../src/search-query.ts";
 import { searchSnippetParts, visuallyOrderedSearchHits } from "../src/ui/search-results.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-ui-search-results-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-ui-search-results-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 describe("search result presentation", () => {

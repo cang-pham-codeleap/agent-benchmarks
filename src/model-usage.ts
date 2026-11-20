@@ -329,11 +329,11 @@ export function reportedCostApplies(
 
 export function costSourceFor(reportedModels: readonly string[], otherRows: number): CostSource {
   const reported = reportedModels.filter((model) => reportedCostApplies(model, 0)).length;
-  const decant = otherRows + (reportedModels.length - reported);
+  const agentBenchmarks = otherRows + (reportedModels.length - reported);
   if (reported === 0) {
-    return "decant";
+    return "agent-benchmarks";
   }
-  return decant === 0 ? "reported" : "mixed";
+  return agentBenchmarks === 0 ? "reported" : "mixed";
 }
 
 export function totalCost(parts: SessionCostParts): number {
@@ -422,7 +422,7 @@ function atifRunCost(rawMeta: string | null): number {
   return positive(final.total_cost_usd);
 }
 
-/** The source's recorded cost stands in only where Decant has no rate. A
+/** The source's recorded cost stands in only where Agent Benchmarks has no rate. A
  * recorded zero is a subscription placeholder (OpenCode writes 0 for
  * coding-plan routes), not a free model, so it stays unpriced. */
 function reportedFallback(model: string, reported: number): number | null {

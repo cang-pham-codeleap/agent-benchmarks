@@ -32,9 +32,9 @@ describe("backgroundNote", () => {
         "idle",
       ),
     ).toContain("http://127.0.0.1:4000");
-    expect(backgroundNote({ ...base, installed: true }, "idle")).toContain("decant service status");
+    expect(backgroundNote({ ...base, installed: true }, "idle")).toContain("agent-benchmarks service status");
     expect(backgroundNote(base, "handoff")).toContain("reloads");
-    expect(backgroundNote(base, "stopped")).toContain("Run decant");
+    expect(backgroundNote(base, "stopped")).toContain("Run agent-benchmarks");
   });
 });
 

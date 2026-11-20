@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Decant has no backing services or credentials to reconnect on wake. This only
+# Agent Benchmarks has no backing services or credentials to reconnect on wake. This only
 # confirms the pinned toolchain from setup is still the one on PATH.
 set -euo pipefail
 

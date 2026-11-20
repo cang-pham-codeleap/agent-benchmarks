@@ -13,7 +13,7 @@ import { parseOpenCodeSession } from "../src/sources/opencode.ts";
 import { OpenCodeStore } from "../src/sources/opencode-store.ts";
 import { buildOpenCodeFixtureDb } from "./opencode-fixture.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-trajectory-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-trajectory-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 function fixtureContent(name: string): string {
@@ -144,7 +144,7 @@ describe("exportTrajectory", () => {
       expect(out.records[0]).toEqual({
         role: "meta",
         source: "opencode",
-        cwd: "/decant-fixture/example",
+        cwd: "/agent-benchmarks-fixture/example",
         model: "glm-5.3-flash",
       });
       expect(out.records.filter((r) => (r as { role: string }).role === "tool")).toHaveLength(1);
@@ -386,7 +386,7 @@ describe("exportTrajectory", () => {
         return typeof r === "object" && r != null && "tool_calls" in r;
       })
       .map((r) => r.tool_calls[0]?.id);
-    expect(callIds).toEqual(["t1", "t1__dup2", `decant-${sessionId}-3`]);
+    expect(callIds).toEqual(["t1", "t1__dup2", `agent-benchmarks-${sessionId}-3`]);
     expect(out.report.tool_call_ids_renamed).toBe(1);
     expect(out.report.tool_call_ids_synthesized).toBe(1);
 

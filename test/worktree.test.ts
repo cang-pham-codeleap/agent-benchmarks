@@ -31,7 +31,7 @@ function tempDir(prefix: string): string {
 }
 
 function tempDb(): Database {
-  return openDb(join(tempDir("decant-worktree-db-"), "test.db"));
+  return openDb(join(tempDir("agent-benchmarks-worktree-db-"), "test.db"));
 }
 
 function pathRow(db: Database, path: string): [number, string, string | null, string | null] {
@@ -59,9 +59,9 @@ describe("worktree pure classifiers", () => {
   });
 
   test("intree plain git worktree uses git tool", () => {
-    const result = classifyIntree("/Users/dev/src/decant/.worktrees/feature-x");
+    const result = classifyIntree("/Users/dev/src/agent-benchmarks/.worktrees/feature-x");
     expect(result).toMatchObject({
-      rootPath: "/Users/dev/src/decant",
+      rootPath: "/Users/dev/src/agent-benchmarks",
       worktreeLabel: "feature-x",
       worktreeTool: "git",
       source: "intree",
@@ -69,9 +69,9 @@ describe("worktree pure classifiers", () => {
   });
 
   test("intree codex worktree recovers root and label", () => {
-    const result = classifyIntree("/Users/dev/src/decant/.codex-worktrees/feature-token-ui");
+    const result = classifyIntree("/Users/dev/src/agent-benchmarks/.codex-worktrees/feature-token-ui");
     expect(result).toMatchObject({
-      rootPath: "/Users/dev/src/decant",
+      rootPath: "/Users/dev/src/agent-benchmarks",
       worktreeLabel: "feature-token-ui",
       worktreeTool: "codex",
       source: "intree",
@@ -79,7 +79,7 @@ describe("worktree pure classifiers", () => {
   });
 
   test("plain path is not intree", () => {
-    expect(classifyIntree("/Users/dev/src/decant")).toBeNull();
+    expect(classifyIntree("/Users/dev/src/agent-benchmarks")).toBeNull();
   });
 
   test("external container detects warp conductor and t3", () => {
@@ -95,7 +95,7 @@ describe("worktree pure classifiers", () => {
       tool: "t3",
       leaf: "dosu-t3code-abcdef12",
     });
-    expect(externalContainer("/Users/dev/src/decant")).toBeNull();
+    expect(externalContainer("/Users/dev/src/agent-benchmarks")).toBeNull();
   });
 
   test("external container detects nested warp layout", () => {
@@ -105,57 +105,57 @@ describe("worktree pure classifiers", () => {
       repo: "skymap",
     });
     expect(externalContainer("/Users/dev/.warp/worktrees/skymap")).toBeNull();
-    expect(externalContainer("/Users/dev/src/worktrees/decant")).toBeNull();
+    expect(externalContainer("/Users/dev/src/worktrees/agent-benchmarks")).toBeNull();
   });
 
   test("external container detects the ~/.t3/worktrees layout", () => {
-    expect(externalContainer("/Users/dev/.t3/worktrees/decant/t3-0cacd467")).toEqual({
+    expect(externalContainer("/Users/dev/.t3/worktrees/agent-benchmarks/t3-0cacd467")).toEqual({
       tool: "t3",
-      leaf: "decant-t3-0cacd467",
-      repo: "decant",
+      leaf: "agent-benchmarks-t3-0cacd467",
+      repo: "agent-benchmarks",
     });
-    expect(externalContainer("/Users/dev/.t3/worktrees/decant")).toBeNull();
+    expect(externalContainer("/Users/dev/.t3/worktrees/agent-benchmarks")).toBeNull();
     const known: KnownRoot[] = [
-      { path: "/Users/dev/src/decant", basename: "decant", sessions: 3, lastSeen: "2026-06-01" },
+      { path: "/Users/dev/src/agent-benchmarks", basename: "agent-benchmarks", sessions: 3, lastSeen: "2026-06-01" },
     ];
-    expect(classifyExternal("t3", "decant-t3-0cacd467", "/x", known, "decant")).toMatchObject({
+    expect(classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", known, "agent-benchmarks")).toMatchObject({
       source: "namematch",
-      rootPath: "/Users/dev/src/decant",
+      rootPath: "/Users/dev/src/agent-benchmarks",
       worktreeLabel: "t3-0cacd467",
       worktreeTool: "t3",
     });
-    expect(classifyExternal("t3", "decant-t3-0cacd467", "/x", [], "decant")).toMatchObject({
+    expect(classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", [], "agent-benchmarks")).toMatchObject({
       source: "synthetic",
-      rootPath: "decant",
+      rootPath: "agent-benchmarks",
       worktreeLabel: "t3-0cacd467",
     });
     const lookalike: KnownRoot[] = [
       ...known,
       {
-        path: "/Users/dev/src/decant-t3",
-        basename: "decant-t3",
+        path: "/Users/dev/src/agent-benchmarks-t3",
+        basename: "agent-benchmarks-t3",
         sessions: 9,
         lastSeen: "2026-07-01",
       },
     ];
-    expect(classifyExternal("t3", "decant-t3-0cacd467", "/x", lookalike, "decant")).toMatchObject({
+    expect(classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", lookalike, "agent-benchmarks")).toMatchObject({
       source: "namematch",
-      rootPath: "/Users/dev/src/decant",
+      rootPath: "/Users/dev/src/agent-benchmarks",
       worktreeLabel: "t3-0cacd467",
     });
   });
 
   test("external container detects Codex worktree layouts", () => {
-    expect(externalContainer("/Users/dev/.codex-worktrees/decant-token-ui")).toEqual({
+    expect(externalContainer("/Users/dev/.codex-worktrees/agent-benchmarks-token-ui")).toEqual({
       tool: "codex",
-      leaf: "decant-token-ui",
+      leaf: "agent-benchmarks-token-ui",
     });
-    expect(externalContainer("/Users/dev/.codex/worktrees/decant/token-ui")).toEqual({
+    expect(externalContainer("/Users/dev/.codex/worktrees/agent-benchmarks/token-ui")).toEqual({
       tool: "codex",
-      leaf: "decant-token-ui",
-      repo: "decant",
+      leaf: "agent-benchmarks-token-ui",
+      repo: "agent-benchmarks",
     });
-    expect(externalContainer("/Users/dev/.codex/worktrees/decant")).toBeNull();
+    expect(externalContainer("/Users/dev/.codex/worktrees/agent-benchmarks")).toBeNull();
   });
 
   test("nested warp leaf name-matches known root", () => {
@@ -296,7 +296,7 @@ describe("worktree pure classifiers", () => {
 
 describe("git worktree pointer resolution", () => {
   test("git pointer file resolves authoritative root", () => {
-    const root = tempDir("decant-worktree-git-");
+    const root = tempDir("agent-benchmarks-worktree-git-");
     const wt = join(root, "feature-api");
     mkdirSync(wt, { recursive: true });
     writeFileSync(wt.concat("/.git"), "gitdir: /Users/dev/acme/app/.git/worktrees/feature-api\n");
@@ -311,18 +311,18 @@ describe("git worktree pointer resolution", () => {
   });
 
   test("git directory missing or non-worktree returns null", () => {
-    const main = tempDir("decant-main-git-");
+    const main = tempDir("agent-benchmarks-main-git-");
     mkdirSync(join(main, ".git"), { recursive: true });
     expect(resolveGitRoot(main)).toBeNull();
 
-    const missing = tempDir("decant-missing-git-");
+    const missing = tempDir("agent-benchmarks-missing-git-");
     expect(resolveGitRoot(missing)).toBeNull();
     writeFileSync(join(missing, ".git"), "gitdir: ../.git/modules/foo\n");
     expect(resolveGitRoot(missing)).toBeNull();
   });
 
   test("git pointer behind a symlink and `..` is read where the kernel resolves it", () => {
-    const root = tempDir("decant-symlink-git-");
+    const root = tempDir("agent-benchmarks-symlink-git-");
     mkdirSync(join(root, "actual", "sub"), { recursive: true });
     symlinkSync(join(root, "actual", "sub"), join(root, "alias"));
     writeFileSync(
@@ -337,7 +337,7 @@ describe("git worktree pointer resolution", () => {
   });
 
   test("git pointer in external container infers container tool", () => {
-    const root = tempDir("decant-warp-git-");
+    const root = tempDir("agent-benchmarks-warp-git-");
     const wt = join(root, ".warp-worktrees", "dosu-feature-api");
     mkdirSync(wt, { recursive: true });
     writeFileSync(join(wt, ".git"), "gitdir: /Users/dev/acme/app/.git/worktrees/feature-api\n");
@@ -348,7 +348,7 @@ describe("git worktree pointer resolution", () => {
   });
 
   test("git pointer unusual forms", () => {
-    const root = tempDir("decant-pointer-");
+    const root = tempDir("agent-benchmarks-pointer-");
     const wt = join(root, "wt");
     mkdirSync(wt, { recursive: true });
 
@@ -379,7 +379,7 @@ describe("git worktree pointer resolution", () => {
 
 describe("resolveWorktreeRoots", () => {
   test("does not block on a .git that never answers", () => {
-    const dir = tempDir("decant-worktree-fifo-");
+    const dir = tempDir("agent-benchmarks-worktree-fifo-");
     makeFifo(join(dir, ".git"));
     const child = runProbeChild("git-root", [dir]) as { result: { root: unknown } } | null;
     expect(child).not.toBeNull();
@@ -457,7 +457,7 @@ describe("resolveWorktreeRoots", () => {
   });
 
   test("uses on-disk git worktree pointer", () => {
-    const root = tempDir("decant-real-git-");
+    const root = tempDir("agent-benchmarks-real-git-");
     const wt = join(root, "feature-api");
     mkdirSync(wt, { recursive: true });
     writeFileSync(wt.concat("/.git"), "gitdir: /Users/dev/acme/app/.git/worktrees/feature-api\n");

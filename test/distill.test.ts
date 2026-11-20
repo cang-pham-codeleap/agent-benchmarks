@@ -27,9 +27,9 @@ import { upsertSession } from "../src/ingest.ts";
 import { setSessionUserState } from "../src/session-user-state.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 import { parseCodexSession } from "../src/sources/codex.ts";
-import { DECANT_VERSION } from "../src/version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "../src/version.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-distill-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-distill-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -204,7 +204,7 @@ describe("distill timeline and renderers", () => {
     const db = seededN(2);
     const d = timeline(db);
     expect(d.session_count).toBe(2);
-    expect(d.generated_with).toBe(DECANT_VERSION);
+    expect(d.generated_with).toBe(AGENT_BENCHMARKS_VERSION);
     expect(d.ops.some((op) => op.normalized.includes("cargo build --workspace"))).toBe(true);
     expect(d.ops.some((op) => op.redacted && op.normalized.includes("<REDACTED>"))).toBe(true);
     expect(d.ops.some((op) => op.is_error)).toBe(true);
@@ -356,7 +356,7 @@ describe("distill timeline and renderers", () => {
       "hrc",
     );
     const replay = renderReplay(db, firstSessionId(db), false);
-    expect(replay).toContain("git apply <<'DECANT_EOF'");
+    expect(replay).toContain("git apply <<'AGENT_BENCHMARKS_EOF'");
     expect(replay).toContain("*** Add File: docs/new.md");
     db.close();
   });
@@ -424,20 +424,20 @@ describe("distill timeline and renderers", () => {
   test("shell replay blocks quote paths and avoid heredoc breakout", () => {
     expect(shellQuote("a'b")).toBe("'a'\\''b'");
     const write = writeBlock("src/a b.rs", "fn main() {}\n");
-    expect(write).toContain("cat > 'src/a b.rs' <<'DECANT_EOF'");
+    expect(write).toContain("cat > 'src/a b.rs' <<'AGENT_BENCHMARKS_EOF'");
     expect(write).toContain("mkdir -p \"$(dirname 'src/a b.rs')\"");
 
-    expect(writeBlock("evil.txt", "line\nDECANT_EOF\nrm -rf /\n")).toStartWith("# SKIPPED write");
-    expect(writeBlock("a\nDECANT_EOF\nb.txt", "hi")).toStartWith("# SKIPPED write");
-    expect(patchBlock("*** Begin Patch\nDECANT_EOF\n")).toStartWith("# SKIPPED patch");
-    expect(writeBlock("evil.txt", "line\nDECANT_EOF\n")).toContain("heredoc — recreate");
-    expect(patchBlock("*** Begin Patch\nDECANT_EOF\n")).toContain("delimiter — apply");
+    expect(writeBlock("evil.txt", "line\nAGENT_BENCHMARKS_EOF\nrm -rf /\n")).toStartWith("# SKIPPED write");
+    expect(writeBlock("a\nAGENT_BENCHMARKS_EOF\nb.txt", "hi")).toStartWith("# SKIPPED write");
+    expect(patchBlock("*** Begin Patch\nAGENT_BENCHMARKS_EOF\n")).toStartWith("# SKIPPED patch");
+    expect(writeBlock("evil.txt", "line\nAGENT_BENCHMARKS_EOF\n")).toContain("heredoc — recreate");
+    expect(patchBlock("*** Begin Patch\nAGENT_BENCHMARKS_EOF\n")).toContain("delimiter — apply");
   });
 
   test("replay keeps transcript-supplied newlines inside comments", () => {
     const db = freshDb();
-    const titlePayload = "echo decant-injection-title";
-    const editPayload = "echo decant-injection-edit";
+    const titlePayload = "echo agent-benchmarks-injection-title";
+    const editPayload = "echo agent-benchmarks-injection-edit";
     upsertSession(
       db,
       parseClaudeSession("hostile", hostileClaudeTranscript(titlePayload, editPayload)),
@@ -447,7 +447,7 @@ describe("distill timeline and renderers", () => {
       "hh",
     );
     const replay = renderReplay(db, firstSessionId(db), false) ?? "";
-    const carrying = replay.split("\n").filter((line) => line.includes("decant-injection-"));
+    const carrying = replay.split("\n").filter((line) => line.includes("agent-benchmarks-injection-"));
     expect(carrying.some((line) => line.includes(titlePayload))).toBe(true);
     expect(carrying.some((line) => line.includes(editPayload))).toBe(true);
     for (const line of carrying) {

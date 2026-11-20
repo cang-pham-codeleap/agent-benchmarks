@@ -2,7 +2,7 @@
 
 Each directory is one GitHub Copilot CLI session as it appears under
 `~/.copilot/session-state/<session id>/`, holding only the `events.jsonl`
-journal Decant reads. All of it is invented.
+journal Agent Benchmarks reads. All of it is invented.
 
 - `sample` is a two-model session with reasoning, file edits, a failing shell
   call, an MCP call, a compaction, an abort, and a shutdown usage summary.

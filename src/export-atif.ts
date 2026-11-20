@@ -152,8 +152,8 @@ function addUsage(into: Usage, from: Usage): void {
 }
 
 /** ATIF counts `prompt_tokens` inclusive of cached input and has no cache-write
- * field. Decant stores input net of cache reads and writes, so the prompt is
- * the same sum Decant uses for context occupancy, and the write share travels
+ * field. Agent Benchmarks stores input net of cache reads and writes, so the prompt is
+ * the same sum Agent Benchmarks uses for context occupancy, and the write share travels
  * in `extra` under fast-agent's key. */
 function stepMetrics(usage: Usage): AtifMetrics {
   return {
@@ -173,7 +173,7 @@ function toIso(raw: string | null): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-/** ATIF requires `arguments` to be an object. Decant stores tool input as
+/** ATIF requires `arguments` to be an object. Agent Benchmarks stores tool input as
  * canonical JSON, so a string input arrives as a JSON string literal: Codex
  * function_call arguments are themselves serialized JSON, and custom tools
  * (exec, apply_patch) carry free text. Unwrap once, and file anything that is
@@ -432,7 +432,7 @@ function buildTrajectory(db: Database, detail: SessionDetail, state: BuildState)
           agent.reasoning.push(text);
         } else if (block.block_type === "tool_use") {
           callSites += 1;
-          const original = block.tool_use_id ?? `decant-${id}-${callSites}`;
+          const original = block.tool_use_id ?? `agent-benchmarks-${id}-${callSites}`;
           if (block.tool_use_id == null) {
             report.tool_call_ids_synthesized += 1;
           }
@@ -631,7 +631,7 @@ function buildTrajectory(db: Database, detail: SessionDetail, state: BuildState)
     }
   }
 
-  const rootExtra: JsonObject = { exporter: "decant", decant_tool: summary.tool };
+  const rootExtra: JsonObject = { exporter: "agent-benchmarks", agentBenchmarks_tool: summary.tool };
   const optional: [string, string | null][] = [
     ["title", summary.title],
     ["cwd", row?.cwd ?? null],

@@ -3,7 +3,7 @@
     "tool": "pi",
     "source_session_id": "f0e10000-0000-4000-8000-000000000002",
     "title": "Rename the greeting in hello.txt to say hi.",
-    "project_path": "/decant-fixture/pi-example",
+    "project_path": "/agent-benchmarks-fixture/pi-example",
     "model": "claude-sonnet-5",
     "reasoning_effort": "medium",
     "total_reasoning_tokens": 0,
@@ -34,7 +34,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "medium"
     ]
@@ -43,7 +43,7 @@
     "tool": "pi",
     "source_session_id": "5a1e0000-0000-4000-8000-000000000001",
     "title": "Rename the greeting in hello.txt to say hi.",
-    "project_path": "/decant-fixture/pi-example",
+    "project_path": "/agent-benchmarks-fixture/pi-example",
     "model": "gpt-5.4",
     "reasoning_effort": "mixed",
     "total_reasoning_tokens": 140,
@@ -74,7 +74,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "medium",
       "high"
@@ -84,7 +84,7 @@
     "tool": "opencode",
     "source_session_id": "ses_v1_sample",
     "title": "Read the example notes and search the docs.",
-    "project_path": "/decant-fixture/example",
+    "project_path": "/agent-benchmarks-fixture/example",
     "model": "glm-5.3-flash",
     "reasoning_effort": "max",
     "total_reasoning_tokens": 10,
@@ -115,7 +115,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 1,
     "dosu_mcp_tree_calls": 1,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "max"
     ]
@@ -124,7 +124,7 @@
     "tool": "opencode",
     "source_session_id": "ses_mcp",
     "title": "Search the knowledge base for the example topic.",
-    "project_path": "/decant-fixture/example",
+    "project_path": "/agent-benchmarks-fixture/example",
     "model": "meta/muse-wonder",
     "reasoning_effort": "high",
     "total_reasoning_tokens": 25,
@@ -155,7 +155,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 2,
     "dosu_mcp_tree_calls": 2,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "high"
     ]
@@ -164,7 +164,7 @@
     "tool": "hermes",
     "source_session_id": "20261101_090000_a1b2c3",
     "title": "Read notes.txt and summarize it.",
-    "project_path": "/decant-fixture/example",
+    "project_path": "/agent-benchmarks-fixture/example",
     "model": "anthropic/claude-sonnet-5-5",
     "reasoning_effort": null,
     "total_reasoning_tokens": 60,
@@ -195,14 +195,14 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
     "tool": "opencode",
     "source_session_id": "ses_sample",
     "title": "Read the example file and summarize it.",
-    "project_path": "/decant-fixture/example",
+    "project_path": "/agent-benchmarks-fixture/example",
     "model": "glm-5.3-flash",
     "reasoning_effort": "max",
     "total_reasoning_tokens": 10,
@@ -233,7 +233,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "max"
     ]
@@ -273,7 +273,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "medium"
     ]
@@ -313,7 +313,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "high"
     ]
@@ -353,7 +353,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -391,7 +391,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "high"
     ]
@@ -431,7 +431,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -469,7 +469,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "medium",
       "high"
@@ -510,7 +510,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -548,7 +548,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -586,7 +586,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -624,7 +624,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "high"
     ]
@@ -664,7 +664,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 2,
     "dosu_mcp_tree_calls": 2,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "medium"
     ]
@@ -704,7 +704,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -742,7 +742,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -780,7 +780,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "high"
     ]
@@ -820,7 +820,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -858,7 +858,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": [
       "high"
     ]
@@ -898,7 +898,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   },
   {
@@ -936,7 +936,7 @@
     "informational_ingest_issue_count": 0,
     "dosu_mcp_direct_calls": 0,
     "dosu_mcp_tree_calls": 0,
-    "cost_source": "decant",
+    "cost_source": "agent-benchmarks",
     "reasoning_effort_levels": []
   }
 ]

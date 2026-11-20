@@ -7,7 +7,7 @@ import { type Archive, type CliRunOptions, createContext, type Io } from "../src
 import { CliError } from "../src/cli/errors.ts";
 import { closeDb, openDb } from "../src/db.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-cli-context-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cli-context-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;
@@ -90,7 +90,7 @@ describe("withArchive", () => {
       flagged.ctx.withArchive(sessionCount, { sync: true, overrides: flagged.overrides }),
     ).toBe(0);
 
-    const envGated = harness([], { env: { DECANT_NO_SYNC: "1" } });
+    const envGated = harness([], { env: { AGENT_BENCHMARKS_NO_SYNC: "1" } });
     expect(
       envGated.ctx.withArchive(sessionCount, { sync: true, overrides: envGated.overrides }),
     ).toBe(0);
@@ -116,11 +116,11 @@ describe("withArchive and a missing archive", () => {
       exitCode: 1,
       details: { path: dbPath },
     });
-    expect((error as CliError).message).toContain(`no Decant archive at ${dbPath} (from --db)`);
+    expect((error as CliError).message).toContain(`no Agent Benchmarks archive at ${dbPath} (from --db)`);
     expect(existsSync(dbPath)).toBe(false);
   });
 
-  test("refuses a DECANT_DB path the same way and names the variable", () => {
+  test("refuses a AGENT_BENCHMARKS_DB path the same way and names the variable", () => {
     const dir = mkdtempSync(join(workDir, "env-db-"));
     const dbPath = join(dir, "nested", "archive.db");
     const io: Io = { stdout: "", stderr: "", writeOut() {}, writeErr() {} };
@@ -129,12 +129,12 @@ describe("withArchive and a missing archive", () => {
     const ctx = createContext(
       program,
       io,
-      { homeDir: dir, env: { DECANT_DB: dbPath, DECANT_NO_SYNC: "1" } },
+      { homeDir: dir, env: { AGENT_BENCHMARKS_DB: dbPath, AGENT_BENCHMARKS_NO_SYNC: "1" } },
       () => {},
     );
     const error = thrownBy(() => ctx.withArchive(sessionCount, { sync: true }));
     expect(error).toMatchObject({ code: "archive_not_found" });
-    expect((error as CliError).message).toContain(`${dbPath} (from DECANT_DB)`);
+    expect((error as CliError).message).toContain(`${dbPath} (from AGENT_BENCHMARKS_DB)`);
     expect(existsSync(join(dir, "nested"))).toBe(false);
   });
 
@@ -151,7 +151,7 @@ describe("withArchive and a missing archive", () => {
     program.parse(["--no-sync"], { from: "user" });
     const ctx = createContext(program, io, { homeDir: dir, env: {} }, () => {});
     expect(ctx.withArchive(sessionCount, { sync: true })).toBe(0);
-    expect(existsSync(join(dir, ".decant", "decant.db"))).toBe(true);
+    expect(existsSync(join(dir, ".agent-benchmarks", "agent-benchmarks.db"))).toBe(true);
   });
 
   test("names the path when the file is not an archive", () => {

@@ -25,7 +25,7 @@ import { mcpUsage, toolUsage } from "../src/stats.ts";
 import { preview } from "../src/tools.ts";
 import { syntheticOpenCodeSession } from "./opencode-session.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-query-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-query-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;
@@ -1221,8 +1221,8 @@ describe("query reads", () => {
     db.exec(`
       INSERT INTO project(id, path, name, is_worktree, root_path, worktree_label, worktree_tool, root_source)
       VALUES
-        (1, '/repo/decant', 'decant', 0, '/repo/decant', NULL, NULL, 'self'),
-        (2, '/repo/decant/.claude-worktrees/feature-auth', 'feature-auth', 1, '/repo/decant', 'feature-auth', 'claude', 'intree');
+        (1, '/repo/agent-benchmarks', 'agent-benchmarks', 0, '/repo/agent-benchmarks', NULL, NULL, 'self'),
+        (2, '/repo/agent-benchmarks/.claude-worktrees/feature-auth', 'feature-auth', 1, '/repo/agent-benchmarks', 'feature-auth', 'claude', 'intree');
       INSERT INTO session(tool, source_session_id, project_id, estimated_cost_usd, is_subagent, model)
       VALUES
         ('claude_code', 'root', 1, 1.25, 0, NULL),
@@ -1230,7 +1230,7 @@ describe("query reads", () => {
         ('claude_code', 'worktree', 2, 0.5, 0, NULL);
     `);
 
-    const root = listProjects(db).find((project) => project.path === "/repo/decant");
+    const root = listProjects(db).find((project) => project.path === "/repo/agent-benchmarks");
     const worktree = listProjects(db).find((project) => project.is_worktree);
     expect(root).toMatchObject({
       sessions: 1,
@@ -1240,7 +1240,7 @@ describe("query reads", () => {
     });
     expect(worktree).toMatchObject({
       is_worktree: true,
-      root_path: "/repo/decant",
+      root_path: "/repo/agent-benchmarks",
       worktree_label: "feature-auth",
       worktree_tool: "claude",
       root_source: "intree",
@@ -1313,7 +1313,7 @@ describe("cost source", () => {
     const db = seeded();
     const ingest = (id: string, requests: Parameters<typeof syntheticOpenCodeSession>[1]) =>
       upsertSession(db, syntheticOpenCodeSession(id, requests), `/tmp/opencode.db#${id}`, 1, 0, id);
-    const decant = ingest("ses_decant", [
+    const agentBenchmarks = ingest("ses_agentBenchmarks", [
       { model: "glm-5.3-flash", cost: 0.1, input: 100, output: 10 },
     ]);
     const reported = ingest("ses_reported", [
@@ -1323,8 +1323,8 @@ describe("cost source", () => {
       { model: "glm-5.3-flash", cost: 0.1, input: 100, output: 10 },
       { model: "example-unpriced", cost: 0.3, input: 100, output: 10 },
     ]);
-    expect(getSessionSummary(db, decant)).toMatchObject({
-      cost_source: "decant",
+    expect(getSessionSummary(db, agentBenchmarks)).toMatchObject({
+      cost_source: "agent-benchmarks",
       model_provider: "example",
     });
     expect(getSessionSummary(db, reported)).toMatchObject({
@@ -1333,12 +1333,12 @@ describe("cost source", () => {
     });
     expect(getSessionSummary(db, mixed)).toMatchObject({ cost_source: "mixed" });
     const claude = listSessions(db, { tool: "claude_code" })[0];
-    expect(claude).toMatchObject({ cost_source: "decant", model_provider: null });
+    expect(claude).toMatchObject({ cost_source: "agent-benchmarks", model_provider: null });
     expect(
       Object.fromEntries(
         listSessions(db, { tool: "opencode" }).map((s) => [s.source_session_id, s.cost_source]),
       ),
-    ).toEqual({ ses_decant: "decant", ses_reported: "reported", ses_mixed: "mixed" });
+    ).toEqual({ ses_agentBenchmarks: "agent-benchmarks", ses_reported: "reported", ses_mixed: "mixed" });
     db.close();
   });
 
@@ -1368,7 +1368,7 @@ describe("cost source", () => {
       ingest("ses_list_price", [{ model: "glm-5.3-flash", cost: 0.1, input: 100, output: 10 }]),
     );
     const priced = getSessionSummary(db, allNowPriced);
-    expect(priced?.cost_source).toBe("decant");
+    expect(priced?.cost_source).toBe("agent-benchmarks");
     expect(priced?.estimated_cost_usd).toBe(listPrice?.estimated_cost_usd ?? Number.NaN);
     expect(listPrice?.estimated_cost_usd).toBeGreaterThan(0);
     expect(getSessionSummary(db, partlyNowPriced)?.cost_source).toBe("mixed");

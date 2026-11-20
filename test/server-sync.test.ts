@@ -15,7 +15,7 @@ import {
 } from "../src/server.ts";
 import { SyncStatusStore } from "../src/watch.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-server-sync-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-server-sync-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;

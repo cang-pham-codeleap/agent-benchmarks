@@ -5,10 +5,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Skeleton } from "@/components/ui/skeleton";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
-import dosuOfficialUrl from "../assets/dosu-official.svg";
 import { copyTextToClipboard } from "../clipboard.ts";
 import { EmptyState } from "../common.tsx";
-import { dosuLink } from "../dosu-links.ts";
 import { field, formatInt, isPresent, shortDate } from "../format.ts";
 import { Icon } from "../icons.tsx";
 import type { IconName, Recommendation, SettingsInfo } from "../types.ts";
@@ -328,7 +326,7 @@ export function PromptPreview({
           <p className="text-sm text-muted-foreground">
             Run adds one last line that asks the agent to mark this insight done when it has
             verified the work:
-            <code className="block">decant recommendations mark {row.key}</code>
+            <code className="block">agent-benchmarks recommendations mark {row.key}</code>
           </p>
         ) : null}
         </CollapsibleContent>
@@ -605,9 +603,6 @@ export function InsightsView({
             </div>
           </div>
         ))}
-        <div className="grid gap-3">
-          <DosuInsightsRow />
-        </div>
       </section>
 
       {implementedRows.length > 0 ? (
@@ -645,37 +640,6 @@ export function InsightsSignalsSkeleton() {
   );
 }
 
-export function DosuInsightsRow() {
-  return (
-    <article className="rounded-xl border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-start gap-4 p-4">
-        <span className="w-10 rounded-md bg-muted p-2">
-          <img alt="" src={dosuOfficialUrl} />
-        </span>
-        <div className="grid flex-1 gap-1">
-          <span className="text-sm text-muted-foreground">Optional · Dosu</span>
-          <strong className="font-semibold">
-            Make these patterns available to every coding agent
-          </strong>
-          <span className="text-sm text-muted-foreground">
-            Dosu turns repeated fixes and project conventions into durable context your agents can
-            retrieve when they need it.
-          </span>
-        </div>
-        <a
-          aria-label="See how Dosu works with your agents (opens in a new tab)"
-          className="flex items-center gap-1 text-sm font-medium"
-          href={dosuLink("insights_card")}
-          rel="noopener"
-          target="_blank"
-        >
-          <span>See how</span>
-          <Icon name="chevronRight" />
-        </a>
-      </div>
-    </article>
-  );
-}
 
 export function ImplementedRecommendationCard({ row }: { row: Recommendation }) {
   const implementedLabel =

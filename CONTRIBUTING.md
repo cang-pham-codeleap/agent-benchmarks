@@ -1,6 +1,6 @@
-# Contributing to Decant
+# Contributing to Agent Benchmarks
 
-Thanks for improving Decant. Bug reports, feature proposals, documentation
+Thanks for improving Agent Benchmarks. Bug reports, feature proposals, documentation
 fixes, and code contributions are welcome.
 
 Before sharing logs or fixtures, remember that coding-agent transcripts can
@@ -9,7 +9,7 @@ only. See [Security and privacy](#security-and-privacy) below.
 
 ## Report a bug or propose a feature
 
-Use the repository's issue templates. Paste the output of `decant doctor`,
+Use the repository's issue templates. Paste the output of `agent-benchmarks doctor`,
 which reports the version, install method, platform, schema versions,
 discovery counts for each source, and archived session counts without any
 transcript content. Add the exact
@@ -30,8 +30,8 @@ Requirements:
   installs dependencies, in each new worktree.
 
 ```sh
-git clone https://github.com/dosu-ai/decant.git
-cd decant
+cd /path/to/agent-lens
+bun install --frozen-lockfile
 bun run dev
 ```
 
@@ -51,11 +51,8 @@ commit, and the test suite runs on `git push`.
 
 Review time is limited, so agree on the problem before writing a large change:
 
-- Bug fixes, pricing updates, and documentation fixes can go straight to a
-  pull request. Link the issue if one exists.
-- New sources, new commands, new UI features, and changes to existing behavior
-  need an issue or a [discussion](https://github.com/dosu-ai/decant/discussions)
-  first, where a maintainer agrees on the direction and scope.
+- Bug fixes, pricing updates, and documentation fixes can go straight into the local worktree.
+- New sources, commands, UI features, and behavior changes need an explicit scope decision before implementation.
 - Solve one problem per pull request. A second fix or an unrelated cleanup
   goes in its own pull request.
 
@@ -83,10 +80,10 @@ Useful contribution paths:
 - UI: include a screenshot or short recording in the pull request.
 
 When testing against a scratch archive, pass `--no-sync` or set
-`DECANT_NO_SYNC` so it is not populated from your real session directories:
+`AGENT_BENCHMARKS_NO_SYNC` so it is not populated from your real session directories:
 
 ```sh
-bun run src/cli.ts --db /tmp/decant-dev.db --no-sync serve --no-open
+bun run src/cli.ts --db /tmp/agent-benchmarks-dev.db --no-sync serve --no-open
 ```
 
 ## Validate
@@ -110,12 +107,8 @@ real home-directory path, email address, or key-shaped string. Add the
 doc update. Locally, set `PR_LABELS=docs-not-needed` before `just check` or
 `just policy` to do the same.
 
-`just check` also runs `scripts/dist-check.ts`, which builds and installs staged
-native/npm artifacts, so it needs network access. It validates that the
-compiled binary ships React's production build and passes distribution smoke
-tests. If
-Docker is in scope and available, also run a local image build and `--help`
-smoke.
+`just check` runs the local TypeScript and full test gates. If Docker is in
+scope and available, also run a local image build and `--help` smoke.
 
 Do not weaken or remove tests to make a change pass.
 
@@ -139,14 +132,14 @@ needs a maintainer's review. Maintainers squash-merge pull requests.
 - Never commit real Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI,
   GitHub Copilot CLI, or Copilot Chat in VS Code sessions (including
   OpenCode's `opencode.db`, Cursor's `store.db`, Copilot CLI's `events.jsonl`,
-  and VS Code's `chatSessions` files), a personal Decant archive,
+  and VS Code's `chatSessions` files), a personal Agent Benchmarks archive,
   exported real sessions, tokens, keys, or `.env` files. Do not put content from
   these sources in fixtures or issues without sanitising it first.
 - Write fixtures from scratch using invented prompts, paths, tool results, and
   identifiers. Editing a real transcript does not make it synthetic.
 - Keep logs and issue output redacted. Prefer record shapes, counts, and field
   names over content.
-- Decant stays offline at runtime. Features that require hosted services,
+- Agent Benchmarks stays offline at runtime. Features that require hosted services,
   outbound runtime calls, or LLM calls are out of scope.
 
 ## License

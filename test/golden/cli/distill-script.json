@@ -138,5 +138,5 @@
       "success_rate": 1
     }
   ],
-  "artifact": "#!/usr/bin/env bash\n# Distilled by Decant 0.0.0-dev from all sessions\n# 27 session(s) (2025-07-14..2026-11-02). Commands you actually ran, ranked by frequency × success.\n# REVIEW before running. Secrets are best-effort redacted.\nset -euo pipefail\nPROJECT_ROOT=\"${PROJECT_ROOT:-$(git rev-parse --show-toplevel)}\"\n\n# (no recurring commands met the frequency threshold)\n"
+  "artifact": "#!/usr/bin/env bash\n# Distilled by Agent Benchmarks 0.0.0-dev from all sessions\n# 27 session(s) (2025-07-14..2026-11-02). Commands you actually ran, ranked by frequency × success.\n# REVIEW before running. Secrets are best-effort redacted.\nset -euo pipefail\nPROJECT_ROOT=\"${PROJECT_ROOT:-$(git rev-parse --show-toplevel)}\"\n\n# (no recurring commands met the frequency threshold)\n"
 }

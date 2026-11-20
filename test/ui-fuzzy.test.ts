@@ -10,7 +10,7 @@ const sessions: SessionSearchIndexRow[] = [
   {
     id: 41,
     title: "Fix schema migration",
-    project: "/workspace/decant",
+    project: "/workspace/agent-benchmarks",
     tool: "codex",
     model: "gpt-5.6",
     started_at: "2026-07-29T12:00:00Z",
@@ -18,7 +18,7 @@ const sessions: SessionSearchIndexRow[] = [
   {
     id: 42,
     title: "Investigate analytics regression",
-    project: "/workspace/decant",
+    project: "/workspace/agent-benchmarks",
     tool: "claude_code",
     model: "claude-opus-4-1",
     started_at: "2026-07-29T11:00:00Z",
@@ -83,8 +83,8 @@ describe("session fuzzy search", () => {
     const index = createSessionSearchIndex(sessions);
 
     expect(index.size).toBe(3);
-    expect(index.search("decant").map((match) => match.id)).toEqual([41, 42]);
-    expect(index.search("analytics decant").map((match) => match.id)).toEqual([42]);
+    expect(index.search("agent-benchmarks").map((match) => match.id)).toEqual([41, 42]);
+    expect(index.search("analytics agent-benchmarks").map((match) => match.id)).toEqual([42]);
     expect(index.search("archive").map((match) => match.id)).toEqual([43]);
     expect(index.search("   ")).toEqual([]);
     expect(index.search("codex", 1)).toHaveLength(1);
@@ -123,7 +123,7 @@ describe("session fuzzy search", () => {
   test("uses endpoint order as the deterministic tiebreaker", () => {
     const tied = {
       title: "Same exact title",
-      project: "/workspace/decant",
+      project: "/workspace/agent-benchmarks",
       tool: "codex",
       model: "gpt-5.6",
       started_at: "2026-07-29T12:00:00Z",
@@ -158,7 +158,7 @@ describe("session fuzzy search", () => {
       (_, index): SessionSearchIndexRow => ({
         id: index,
         title: `Codex session ${index}`,
-        project: "/workspace/decant",
+        project: "/workspace/agent-benchmarks",
         tool: "codex",
         model: "gpt-5.6",
         started_at: "2026-07-29T12:00:00Z",
@@ -301,7 +301,7 @@ describe("session fuzzy search", () => {
       {
         id: 1,
         title: "Archive session state",
-        project: "/workspace/decant",
+        project: "/workspace/agent-benchmarks",
         tool: "codex",
         model: "gpt-5.6",
         started_at: "2026-07-29T12:00:00Z",
@@ -381,7 +381,7 @@ describe("session fuzzy search", () => {
       (_, index): SessionSearchIndexRow => ({
         id: index,
         title: `Review feature branch ${index}`,
-        project: "/workspace/decant",
+        project: "/workspace/agent-benchmarks",
         tool: "codex",
         model: "gpt-5.6",
         started_at: "2026-07-29T12:00:00Z",
@@ -400,7 +400,7 @@ describe("session fuzzy search", () => {
       (_, index): SessionSearchIndexRow => ({
         id: index,
         title: `Review feature branch ${index}`,
-        project: "/workspace/decant",
+        project: "/workspace/agent-benchmarks",
         tool: "codex",
         model: "gpt-5.6",
         started_at: "2026-07-29T12:00:00Z",
@@ -421,7 +421,7 @@ describe("session fuzzy search", () => {
       (_, index): SessionSearchIndexRow => ({
         id: index,
         title: `one two three four five six session ${index}`,
-        project: "/workspace/decant",
+        project: "/workspace/agent-benchmarks",
         tool: "codex",
         model: "gpt-5.6",
         started_at: "2026-07-29T12:00:00Z",

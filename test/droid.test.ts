@@ -6,7 +6,7 @@ import { closeDb, openDb } from "../src/db.ts";
 import { sync } from "../src/ingest.ts";
 import { parseDroidSession } from "../src/sources/droid.ts";
 
-const dir = realpathSync(mkdtempSync(join(tmpdir(), "decant-droid-test-")));
+const dir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-droid-test-")));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 const fixture = (name: string) => readFileSync(join(import.meta.dir, "..", "fixtures", "droid", name), "utf8");
 

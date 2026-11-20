@@ -151,7 +151,7 @@ export function assertFormatSupported(commandPath: string, format: OutputFormat 
   const expected = OUTPUT_FORMATS.filter((value) => value !== "md");
   throw usageError(
     "invalid_argument",
-    `option '--format <format>' argument 'md' is invalid for 'decant ${commandPath}'. ` +
+    `option '--format <format>' argument 'md' is invalid for 'agent-benchmarks ${commandPath}'. ` +
       `expected: ${expected.join(" | ")}`,
     { option: "--format", value: "md", expected, command: commandPath },
   );

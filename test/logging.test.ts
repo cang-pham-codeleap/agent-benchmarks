@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { resetSync } from "@logtape/logtape";
 import {
   configureLogging,
-  getDecantLogger,
+  getAgentBenchmarksLogger,
   logHttpRequest,
   logWatchEvent,
   type StructuredLogRecord,
@@ -18,8 +18,8 @@ describe("structured logging", () => {
       write: (line) => lines.push(line),
     });
 
-    getDecantLogger("test").info("Archive sync completed.", {
-      "event.name": "decant.sync.completed",
+    getAgentBenchmarksLogger("test").info("Archive sync completed.", {
+      "event.name": "agent-benchmarks.sync.completed",
       "sync.reason": "startup",
       "sync.ingested": 3,
     });
@@ -28,10 +28,10 @@ describe("structured logging", () => {
     const record = JSON.parse(lines[0] ?? "") as StructuredLogRecord;
     expect(record).toMatchObject({
       level: "INFO",
-      logger: "decant.test",
+      logger: "agent-benchmarks.test",
       message: "Archive sync completed.",
-      "service.name": "decant",
-      "event.name": "decant.sync.completed",
+      "service.name": "agent-benchmarks",
+      "event.name": "agent-benchmarks.sync.completed",
       "sync.reason": "startup",
       "sync.ingested": 3,
     });
@@ -44,7 +44,7 @@ describe("structured logging", () => {
       level: "warn",
       write: (line) => warnLines.push(line),
     });
-    const warnLogger = getDecantLogger("test");
+    const warnLogger = getAgentBenchmarksLogger("test");
     warnLogger.info("Filtered.");
     warnLogger.warning("Kept.");
     expect(warnLines).toHaveLength(1);
@@ -61,7 +61,7 @@ describe("structured logging", () => {
     });
     expect(JSON.parse(invalidLines[0] ?? "")).toMatchObject({
       level: "WARN",
-      "event.name": "decant.logging.configuration.invalid",
+      "event.name": "agent-benchmarks.logging.configuration.invalid",
       "log.level.requested": "verbose",
       "log.level.fallback": "info",
     });
@@ -74,7 +74,7 @@ describe("structured logging", () => {
       write: (line) => lines.push(line),
     });
 
-    getDecantLogger("test").trace("Detailed flow.");
+    getAgentBenchmarksLogger("test").trace("Detailed flow.");
 
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0] ?? "")).toMatchObject({
@@ -90,7 +90,7 @@ describe("structured logging", () => {
       write: (line) => lines.push(line),
     });
 
-    logWatchEvent(getDecantLogger("watch"), {
+    logWatchEvent(getAgentBenchmarksLogger("watch"), {
       type: "ready",
       dirs: ["/private/transcript-a", "/private/transcript-b"],
       status: {
@@ -106,7 +106,7 @@ describe("structured logging", () => {
     expect(lines).toHaveLength(1);
     const record = JSON.parse(lines[0] ?? "") as StructuredLogRecord;
     expect(record).toMatchObject({
-      "event.name": "decant.watch.ready",
+      "event.name": "agent-benchmarks.watch.ready",
       "source.directory.count": 2,
     });
     expect(lines[0]).not.toContain("/private/transcript");
@@ -119,7 +119,7 @@ describe("structured logging", () => {
       write: (line) => lines.push(line),
     });
     logHttpRequest(
-      getDecantLogger("server").with({ "request.id": "req-test" }),
+      getAgentBenchmarksLogger("server").with({ "request.id": "req-test" }),
       new Request("http://127.0.0.1:3000/api/health?private=do-not-log"),
       new Response(null, { status: 200 }),
       4.25,
@@ -145,7 +145,7 @@ describe("structured logging", () => {
       level: "info",
       write: (line) => lines.push(line),
     });
-    const logger = getDecantLogger("server");
+    const logger = getAgentBenchmarksLogger("server");
     const routes = [
       ["/api/sessions/42", "/api/sessions/{id}"],
       ["/api/sessions/42/token-economics", "/api/sessions/{id}/token-economics"],
@@ -175,7 +175,7 @@ describe("structured logging", () => {
       level: "info",
       write: (line) => lines.push(line),
     });
-    const logger = getDecantLogger("server");
+    const logger = getAgentBenchmarksLogger("server");
 
     logHttpRequest(logger, new Request("http://localhost/"), new Response(), 1);
     logHttpRequest(logger, new Request("https://localhost/"), new Response(), 1);

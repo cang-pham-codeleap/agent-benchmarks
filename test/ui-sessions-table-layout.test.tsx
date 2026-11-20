@@ -21,7 +21,7 @@ const session: SessionSummary = {
   total_output_tokens: 0,
   usage_available: true,
   estimated_cost_usd: 1124.88,
-  cost_source: "decant",
+  cost_source: "agent-benchmarks",
   model_provider: null,
   user_state: null,
   is_user_archived: false,

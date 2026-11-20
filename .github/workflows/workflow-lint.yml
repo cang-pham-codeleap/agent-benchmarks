@@ -41,8 +41,6 @@ jobs:
       - name: actionlint
         run: actionlint -color -shellcheck=shellcheck
 
-      - name: shellcheck install.sh
-        run: shellcheck -s sh install.sh
 
       # Annotations, not SARIF: zizmor exits 0 in SARIF mode.
       - name: zizmor

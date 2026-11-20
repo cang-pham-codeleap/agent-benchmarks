@@ -16,7 +16,7 @@ sed -n '25,40p' docs/analytics-methodology.md
 sed -n '45,78p' test/day-series.test.ts
 ```
 
-Repository: dosu-ai/decant
+Repository: dosu-ai/agent-benchmarks
 
 Length of output: 8705
 
@@ -29,7 +29,7 @@ git diff --stat b564a635d9601b840fde6fa4c69e3a25b6b70eb8 b58e307548d7e970b7c1ba6
 rg -n -F -e 'buildDaySeries(' -e 'usage_sessions' -e 'unknown cost' -e 'lack usage' -- src test docs
 ```
 
-Repository: dosu-ai/decant
+Repository: dosu-ai/agent-benchmarks
 
 Length of output: 10980
 
@@ -48,7 +48,7 @@ nl -ba src/ui/views/analytics.tsx | sed -n '110,210p;300,410p;1030,1175p'
 nl -ba test/day-series.test.ts | sed -n '1,90p'
 ```
 
-Repository: dosu-ai/decant
+Repository: dosu-ai/agent-benchmarks
 
 Length of output: 44840
 
@@ -65,7 +65,7 @@ rg -n -F -e 'AnalyticsChart' -e 'connectNulls' -- src/ui
 nl -ba docs/analytics-methodology.md | sed -n '25,36p;314,326p'
 ```
 
-Repository: dosu-ai/decant
+Repository: dosu-ai/agent-benchmarks
 
 Length of output: 13794
 
@@ -80,7 +80,7 @@ nl -ba src/stats.ts | sed -n '883,910p'
 nl -ba src/ui/data-slices.ts | sed -n '90,106p'
 ```
 
-Repository: dosu-ai/decant
+Repository: dosu-ai/agent-benchmarks
 
 Length of output: 7229
 
@@ -160,7 +160,7 @@ subagent-only days, and keep idle weeks at zero while weeks with sessions and no
 known cost remain gaps.
 
 After applying the fix, consider running `coderabbit review --agent` for local
-review. Visit https://docs.coderabbit.ai/cli?utm_source=ghpr
+review. Visit https://docs.coderabbit.ai/cli
 ```
 
 

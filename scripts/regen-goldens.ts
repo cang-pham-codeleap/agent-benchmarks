@@ -14,7 +14,7 @@ import { runCli } from "../src/cli.ts";
 import { closeDb, openDb } from "../src/db.ts";
 import { type IngestConfig, sync } from "../src/ingest.ts";
 import { compareCodePoints } from "../src/order.ts";
-import { DECANT_VERSION } from "../src/version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "../src/version.ts";
 import { buildCursorChat } from "../test/cursor-fixture.ts";
 import { decodeGoldenRows, GOLDEN_NOW, ROW_QUERIES } from "../test/golden-rows.ts";
 import { buildHermesFixtureDb } from "../test/hermes-fixture.ts";
@@ -56,7 +56,7 @@ function stageFixtures(caseDir: string, fixtures: string[]): IngestConfig {
     "pi",
     "agent",
     "sessions",
-    "--decant-fixture-pi-example--",
+    "--agent-benchmarks-fixture-pi-example--",
   );
   mkdirSync(claudeDir, { recursive: true });
   mkdirSync(join(codexDir, "sessions"), { recursive: true });
@@ -150,7 +150,7 @@ function canonicalizeRows(value: unknown, caseDir: string): unknown {
 }
 
 function normalizeCliGolden(name: string, value: unknown): unknown {
-  const normalized = stripGoldenVolatility(value, DECANT_VERSION);
+  const normalized = stripGoldenVolatility(value, AGENT_BENCHMARKS_VERSION);
   if (name !== "ls" || !Array.isArray(normalized)) return normalized;
   return [...normalized].sort((left, right) => {
     const a = left as Record<string, unknown>;
@@ -181,7 +181,7 @@ function writeJson(path: string, value: unknown): void {
 async function regenerate(): Promise<void> {
   requireReviewedDiff();
   const meta = (await Bun.file(join(goldenDir, "meta.json")).json()) as GoldenMeta;
-  const caseDir = mkdtempSync(join(tmpdir(), "decant-regen-goldens-"));
+  const caseDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-regen-goldens-"));
   const dbPath = join(caseDir, "archive.db");
   try {
     const db = openDb(dbPath);

@@ -33,7 +33,7 @@ export function timingSessionRow(): OpenCodeSessionRow {
     fork_session_id: null,
     fork_boundary: null,
     slug: "timing",
-    directory: "/decant-fixture/example",
+    directory: "/agent-benchmarks-fixture/example",
     title: "Timing example",
     version: "2.0.27",
     cost: 0,
@@ -80,7 +80,7 @@ export function timingMessageRows(): OpenCodeMessageRow[] {
           name: "read",
           state: {
             status: "completed",
-            input: { path: "/decant-fixture/example/notes.txt" },
+            input: { path: "/agent-benchmarks-fixture/example/notes.txt" },
             content: [{ type: "text", text: "hello" }],
           },
           time: { created: T.toolCreated, ran: T.toolRan, completed: T.toolCompleted },

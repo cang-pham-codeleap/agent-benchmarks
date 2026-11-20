@@ -15,7 +15,7 @@ import { type OpenCodeLegacyLoadedSession, OpenCodeStore } from "../src/sources/
 import { buildOpenCodeV1FixtureDb } from "./opencode-fixture.ts";
 import { STEP_TIMES } from "./opencode-timing.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-opencode-legacy-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-opencode-legacy-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const context: OpenCodeParseContext = {
@@ -69,7 +69,7 @@ function sessionRow(overrides: Partial<OpenCodeLegacySessionRow> = {}): OpenCode
     project_id: "prj_inline",
     parent_id: null,
     slug: "inline",
-    directory: "/decant-fixture/example",
+    directory: "/agent-benchmarks-fixture/example",
     title: "Inline session",
     version: "1.18.35",
     cost: 0,
@@ -161,7 +161,7 @@ describe("parseOpenCodeLegacySession", () => {
     expect(first?.blocks[1]).toMatchObject({
       toolName: "read",
       toolUseId: "call_v1_read",
-      toolInput: { filePath: "/decant-fixture/example/notes.txt" },
+      toolInput: { filePath: "/agent-benchmarks-fixture/example/notes.txt" },
     });
     expect(first?.blocks[2]).toMatchObject({
       toolName: "mcp__dosu__search",
@@ -231,8 +231,8 @@ describe("parseOpenCodeLegacySession", () => {
     expect(session).toMatchObject({
       tool: "opencode",
       sourceSessionId: "ses_v1_sample",
-      projectPath: "/decant-fixture/example",
-      cwd: "/decant-fixture/example",
+      projectPath: "/agent-benchmarks-fixture/example",
+      cwd: "/agent-benchmarks-fixture/example",
       title: "Read the example notes",
       model: "glm-5.3-flash",
       provider: "opencode-go",
@@ -599,7 +599,7 @@ describe("OpenCode 1.x step timing", () => {
           tool: "read",
           state: {
             status: "completed",
-            input: { filePath: "/decant-fixture/example/notes.txt" },
+            input: { filePath: "/agent-benchmarks-fixture/example/notes.txt" },
             output: "hello",
             title: "notes.txt",
             metadata: {},

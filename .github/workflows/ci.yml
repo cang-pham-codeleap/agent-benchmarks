@@ -40,14 +40,8 @@ jobs:
       - name: Test
         run: bun test
 
-      - name: Build release binary matrix
-        run: bun run scripts/build-binaries.ts --target all --out-dir /tmp/decant-bin --version 0.0.0-ci
-
-      - name: Stage npm package matrix
-        run: bun run scripts/build-npm.ts --target all --binary-dir /tmp/decant-bin --out-dir /tmp/decant-npm --no-build --clean --version 0.0.0-ci
-
-      - name: Smoke native binary and npm install (dist-check)
-        run: bun run scripts/dist-check.ts
+      - name: Build native binary
+        run: bun run scripts/build-binaries.ts --target native --out-dir /tmp/agent-benchmarks-bin --version 0.0.0-ci
 
   docker:
     name: Docker (multi-arch)
@@ -77,23 +71,23 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build local amd64 image
-        run: docker build --platform linux/amd64 -t decant:ci .
+        run: docker build --platform linux/amd64 -t agent-benchmarks:ci .
 
       - name: Smoke CLI
-        run: docker run --rm decant:ci --help
+        run: docker run --rm agent-benchmarks:ci --help
 
       - name: Smoke distroless identity and CLI
         run: |
           set -euo pipefail
-          test "$(docker image inspect decant:ci --format '{{.Config.User}}')" = '999:999'
-          docker run --rm --entrypoint /usr/local/bin/decant decant:ci --version
-          container="$(docker create decant:ci)"
-          docker cp "$container:/etc/passwd" /tmp/decant-passwd
-          docker cp "$container:/etc/group" /tmp/decant-group
-          docker export "$container" -o /tmp/decant-rootfs.tar
+          test "$(docker image inspect agent-benchmarks:ci --format '{{.Config.User}}')" = '999:999'
+          docker run --rm --entrypoint /usr/local/bin/agent-benchmarks agent-benchmarks:ci --version
+          container="$(docker create agent-benchmarks:ci)"
+          docker cp "$container:/etc/passwd" /tmp/agent-benchmarks-passwd
+          docker cp "$container:/etc/group" /tmp/agent-benchmarks-group
+          docker export "$container" -o /tmp/agent-benchmarks-rootfs.tar
           python3 - <<'PYTHON'
           import tarfile
-          with tarfile.open('/tmp/decant-rootfs.tar') as archive:
+          with tarfile.open('/tmp/agent-benchmarks-rootfs.tar') as archive:
               entries = {entry.name.removeprefix('./'): entry for entry in archive}
               for source in ('claude', 'codex', 'gemini', 'cursor', 'copilot', 'vscode', 'atif'):
                   directory = entries[f'sources/{source}']
@@ -101,54 +95,54 @@ jobs:
               assert 'bin/sh' not in entries and 'usr/bin/apt' not in entries
           PYTHON
           docker rm -v "$container"
-          grep -Fx 'decant:x:999:999::/var/lib/decant:/sbin/nologin' /tmp/decant-passwd
-          grep -Fx 'decant:x:999:' /tmp/decant-group
+          grep -Fx 'agent-benchmarks:x:999:999::/var/lib/agent-benchmarks:/sbin/nologin' /tmp/agent-benchmarks-passwd
+          grep -Fx 'agent-benchmarks:x:999:' /tmp/agent-benchmarks-group
 
       - name: Prepare a volume with the previous runtime's ownership
         run: |
           set -euo pipefail
-          docker volume create decant-data
-          docker run --rm -v decant-data:/data \
+          docker volume create agent-benchmarks-data
+          docker run --rm -v agent-benchmarks-data:/data \
             debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 \
-            sh -ec 'groupadd --system decant
-              useradd --system --gid decant --home-dir /var/lib/decant --create-home decant
-              test "$(id -u decant):$(id -g decant)" = "999:999"
-              chown decant:decant /data
+            sh -ec 'groupadd --system agent-benchmarks
+              useradd --system --gid agent-benchmarks --home-dir /var/lib/agent-benchmarks --create-home agent-benchmarks
+              test "$(id -u agent-benchmarks):$(id -g agent-benchmarks)" = "999:999"
+              chown agent-benchmarks:agent-benchmarks /data
               chmod 700 /data'
 
-      - name: Smoke /api/* through the bridge (DECANT_TRUST_DEFAULT_GATEWAY)
+      - name: Smoke /api/* through the bridge (AGENT_BENCHMARKS_TRUST_DEFAULT_GATEWAY)
         run: |
           set -euo pipefail
-          docker run -d --name decant-smoke -v decant-data:/var/lib/decant -p 127.0.0.1:3000:3000 decant:ci
+          docker run -d --name agent-benchmarks-smoke -v agent-benchmarks-data:/var/lib/agent-benchmarks -p 127.0.0.1:3000:3000 agent-benchmarks:ci
           http_status=""
           for _ in $(seq 1 30); do
-            http_status="$(curl -sS -o /tmp/decant-health-body.json -w '%{http_code}' http://127.0.0.1:3000/api/health || true)"
+            http_status="$(curl -sS -o /tmp/agent-benchmarks-health-body.json -w '%{http_code}' http://127.0.0.1:3000/api/health || true)"
             if [ "$http_status" = "200" ]; then
               break
             fi
             if [ "$http_status" = "403" ]; then
-              echo "::error::/api/health answered 403 through the published port — the bridge-gateway derivation (DECANT_TRUST_DEFAULT_GATEWAY) did not resolve to a trusted peer on this runner"
+              echo "::error::/api/health answered 403 through the published port — the bridge-gateway derivation (AGENT_BENCHMARKS_TRUST_DEFAULT_GATEWAY) did not resolve to a trusted peer on this runner"
               docker network inspect bridge --format '{{range .IPAM.Config}}gateway={{.Gateway}}{{end}}' || true
-              cat /tmp/decant-health-body.json || true
+              cat /tmp/agent-benchmarks-health-body.json || true
               echo
-              docker logs decant-smoke || true
-              docker rm -f decant-smoke
+              docker logs agent-benchmarks-smoke || true
+              docker rm -f agent-benchmarks-smoke
               exit 1
             fi
             sleep 1
           done
           if [ "$http_status" != "200" ]; then
             echo "::error::/api/health never answered 200 through the published port"
-            docker logs decant-smoke || true
-            docker rm -f decant-smoke
+            docker logs agent-benchmarks-smoke || true
+            docker rm -f agent-benchmarks-smoke
             exit 1
           fi
-          cat /tmp/decant-health-body.json
+          cat /tmp/agent-benchmarks-health-body.json
           echo
-          docker cp decant-smoke:/var/lib/decant/decant.db /tmp/decant-smoke.db
-          test "$(head -c 15 /tmp/decant-smoke.db)" = 'SQLite format 3'
-          docker rm -f decant-smoke
-          docker volume rm decant-data
+          docker cp agent-benchmarks-smoke:/var/lib/agent-benchmarks/agent-benchmarks.db /tmp/agent-benchmarks-smoke.db
+          test "$(head -c 15 /tmp/agent-benchmarks-smoke.db)" = 'SQLite format 3'
+          docker rm -f agent-benchmarks-smoke
+          docker volume rm agent-benchmarks-data
 
       - name: Validate multi-arch Docker build
         run: docker buildx build --platform linux/amd64,linux/arm64 --output=type=cacheonly .

@@ -289,7 +289,7 @@ export function catalog(): Recommendation[] {
       "Export archived sessions as trajectory-v1 records, the token-lean transcript format memory and evaluation pipelines consume. Your archive keeps sessions the CLIs have already pruned.",
       "https://github.com/letta-ai/trajectory",
       "trajectory format",
-      "Using `decant export --all --as trajectory --out <dir>` (add --project or date filters via ls to curate), export the sessions I care about and wire them into my memory/evaluation tooling of choice.",
+      "Using `agent-benchmarks export --all --as trajectory --out <dir>` (add --project or date filters via ls to curate), export the sessions I care about and wire them into my memory/evaluation tooling of choice.",
     ),
   ];
 }
@@ -883,8 +883,8 @@ function errorHotspot(
         ? "You cannot fix a remote connector. Have agents check their input before calling it, or use another tool for the same job, and record that as a user-level Skill or instruction."
         : "Find the common failure, then record the fix as a user-level Skill or instruction so agents stop repeating it.",
       prompt: connector
-        ? `${failing} It runs on a remote connector that I cannot change, so do not try to fix the server. Use the decant search command to find sessions that called it and work out which inputs fail. Then write a Skill or guardrail that has agents validate the input first, wrap the call with its recovery steps, or use another tool for the same job. ${USER_LEVEL} ${UNTRUSTED_NOTE}`
-        : `${failing} Use the decant search command to find sessions that called it and work out the common failure. Then record the fix as a reusable Skill or guardrail so agents handle it the same way everywhere. ${USER_LEVEL} ${UNTRUSTED_NOTE}`,
+        ? `${failing} It runs on a remote connector that I cannot change, so do not try to fix the server. Use the agent-benchmarks search command to find sessions that called it and work out which inputs fail. Then write a Skill or guardrail that has agents validate the input first, wrap the call with its recovery steps, or use another tool for the same job. ${USER_LEVEL} ${UNTRUSTED_NOTE}`
+        : `${failing} Use the agent-benchmarks search command to find sessions that called it and work out the common failure. Then record the fix as a reusable Skill or guardrail so agents handle it the same way everywhere. ${USER_LEVEL} ${UNTRUSTED_NOTE}`,
       url: SKILLS_URL,
       link_label: "Skills guide",
       icon: "hero-exclamation-triangle",
@@ -1084,8 +1084,8 @@ function hotContextFiles(
           category: null,
           title: `Agents re-read ${path} in ${fmtInt(readers)} ${name} sessions this month`,
           detail: `${fmtInt(readers)} distinct sessions in ${name} read it in the last 30 days and almost none edited it. That is stable context agents pay tokens to re-derive each time.`,
-          suggestion: `Distill what agents need from ${path} into the AGENTS.md (or a Skill) of ${name} so they stop re-reading it. Scaffold a starting point with \`decant distill skill --kind agents\` (scope with --project).`,
-          prompt: `${projectLead(project)} Agents read ${path} in ${fmtInt(readers)} separate sessions there over the last 30 days while barely editing it. Scaffold a deterministic starting point with \`decant distill skill --kind agents\`${scope}. Then read ${path}, distill the parts agents need (contracts, invariants, gotchas) into AGENTS.md or a focused Skill, and keep the summary maintainable. Follow this repo's conventions. ${UNTRUSTED_NOTE}`,
+          suggestion: `Distill what agents need from ${path} into the AGENTS.md (or a Skill) of ${name} so they stop re-reading it. Scaffold a starting point with \`agent-benchmarks distill skill --kind agents\` (scope with --project).`,
+          prompt: `${projectLead(project)} Agents read ${path} in ${fmtInt(readers)} separate sessions there over the last 30 days while barely editing it. Scaffold a deterministic starting point with \`agent-benchmarks distill skill --kind agents\`${scope}. Then read ${path}, distill the parts agents need (contracts, invariants, gotchas) into AGENTS.md or a focused Skill, and keep the summary maintainable. Follow this repo's conventions. ${UNTRUSTED_NOTE}`,
           url: SKILLS_URL,
           link_label: "Skills guide",
           icon: "hero-book-open",
@@ -1266,8 +1266,8 @@ function abandonedRate(
       title: `${pct}% of recent sessions end abandoned`,
       detail: `${fmtInt(abandoned)} of ${fmtInt(row.classified)} classified sessions in the last 30 days ended mid-flight (interrupted, unanswered, or stopped between tool calls).${most}`,
       suggestion:
-        "Review where sessions stall: unclear prompts, missing context, or work that should be decomposed. `decant stats --by outcome` shows the outcome mix.",
-      prompt: `${pct}% of my coding-agent sessions in the last 30 days ended abandoned (${fmtInt(abandoned)} of ${fmtInt(row.classified)}).${most} A session counts as abandoned when it stops on an interruption, an unanswered question, or between tool calls. Decant reports the outcome mix with \`decant stats --by outcome\` but cannot list sessions by outcome, so read how recent sessions ended: \`decant ls\` lists them and \`decant show <id>\` prints one. Find the common stall points and propose concrete fixes, such as clearer standing instructions, smaller tasks, or Skills for the repeated parts. ${USER_LEVEL}${most === "" ? "" : ` ${UNTRUSTED_NOTE}`}`,
+        "Review where sessions stall: unclear prompts, missing context, or work that should be decomposed. `agent-benchmarks stats --by outcome` shows the outcome mix.",
+      prompt: `${pct}% of my coding-agent sessions in the last 30 days ended abandoned (${fmtInt(abandoned)} of ${fmtInt(row.classified)}).${most} A session counts as abandoned when it stops on an interruption, an unanswered question, or between tool calls. Agent Benchmarks reports the outcome mix with \`agent-benchmarks stats --by outcome\` but cannot list sessions by outcome, so read how recent sessions ended: \`agent-benchmarks ls\` lists them and \`agent-benchmarks show <id>\` prints one. Find the common stall points and propose concrete fixes, such as clearer standing instructions, smaller tasks, or Skills for the repeated parts. ${USER_LEVEL}${most === "" ? "" : ` ${UNTRUSTED_NOTE}`}`,
       url: null,
       link_label: null,
       icon: "hero-hand-raised",
@@ -1313,10 +1313,10 @@ function ingestHealth(db: Database, visibleSession: string, since: string): Reco
       title: `${counts.affected} recent sessions ingested with diagnostics`,
       detail: `${pct}% of the last 30 days' sessions carry ingest diagnostics (unknown record types or tool-linkage anomalies). A source CLI likely changed its transcript format.`,
       suggestion:
-        "Update Decant to the latest release; if the diagnostics persist, file an issue with the output of `decant sync --json` (it includes per-code counts, no transcript content).",
+        "Inspect the failing source formats with `agent-benchmarks sync --json` and update the parser. The output includes per-code counts and no transcript content.",
       prompt: null,
-      url: "https://github.com/dosu-ai/decant/issues",
-      link_label: "Report a format change",
+      url: null,
+      link_label: null,
       icon: "hero-exclamation-triangle",
       tone: "warning",
       impact_label: `${pct}% affected`,
@@ -1344,7 +1344,7 @@ function promotionCard(rec: StoredRecommendation): PromotionCard {
   const evidence =
     rec.detail ??
     (rec.kind === "catalog"
-      ? "Evergreen recommendation from Decant's coding-agent catalog."
+      ? "Evergreen recommendation from Agent Benchmarks's coding-agent catalog."
       : "Data-derived signal from the local session archive.");
   const action =
     rec.suggestion ?? rec.prompt ?? "Review the recommendation and promote the durable lesson.";

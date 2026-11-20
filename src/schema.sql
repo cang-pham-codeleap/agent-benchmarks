@@ -1,4 +1,4 @@
--- decant:schema_version=32
+-- agent-benchmarks:schema_version=32
 CREATE TABLE schema_migrations(
             version INTEGER PRIMARY KEY,
             applied_at TEXT NOT NULL

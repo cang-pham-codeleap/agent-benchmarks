@@ -6,7 +6,7 @@ import { closeDb, openDb } from "../src/db.ts";
 import { listSessions } from "../src/query.ts";
 
 const repoRoot = join(import.meta.dir, "..");
-const workDir = mkdtempSync(join(tmpdir(), "decant-watch-process-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-watch-process-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 interface SyncCompleted {
@@ -24,26 +24,28 @@ function sourceDirs(root: string): Record<string, string> {
     copilot: join(root, "copilot"),
     "vscode-copilot": join(root, "vscode", "User"),
     atif: join(root, "atif"),
+    omp: join(root, "omp"),
+    droid: join(root, "droid"),
   };
   for (const dir of Object.values(dirs)) mkdirSync(dir, { recursive: true });
   return dirs;
 }
 
-describe("decant watch process", () => {
+describe("agent-benchmarks watch process", () => {
   test("stays running, ingests a later change, and exits on SIGTERM", async () => {
     const dirs = sourceDirs(workDir);
     const dbPath = join(workDir, "archive.db");
     const env: Record<string, string | undefined> = {
       ...process.env,
-      DECANT_CONFIG_DIR: join(workDir, "config"),
-      DECANT_LOG_LEVEL: "info",
+      AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "config"),
+      AGENT_BENCHMARKS_LOG_LEVEL: "info",
     };
-    delete env.DECANT_DB;
-    delete env.DECANT_NO_SYNC;
+    delete env.AGENT_BENCHMARKS_DB;
+    delete env.AGENT_BENCHMARKS_NO_SYNC;
     delete env.OPENCODE_DB;
     delete env.OPENCODE_CONFIG;
     delete env.OPENCODE_CONFIG_DIR;
-    delete env.DECANT_OPENCODE_CONFIG;
+    delete env.AGENT_BENCHMARKS_OPENCODE_CONFIG;
     const proc = Bun.spawn(
       [
         "bun",
@@ -90,7 +92,7 @@ describe("decant watch process", () => {
         await Bun.sleep(25);
       }
     };
-    const completed = () => events.filter((e) => e["event.name"] === "decant.sync.completed");
+    const completed = () => events.filter((e) => e["event.name"] === "agent-benchmarks.sync.completed");
 
     try {
       await waitFor(() => completed().length > 0, "the startup sync");
@@ -108,7 +110,7 @@ describe("decant watch process", () => {
       proc.kill("SIGTERM");
       expect(await proc.exited).toBe(0);
       await reading;
-      expect(events.some((e) => e["event.name"] === "decant.watch.stopped")).toBe(true);
+      expect(events.some((e) => e["event.name"] === "agent-benchmarks.watch.stopped")).toBe(true);
     } finally {
       clearTimeout(kill);
       proc.kill("SIGKILL");

@@ -12,7 +12,7 @@ import { parseInteger } from "../parse.ts";
 export function registerServiceCommands(ctx: CliContext): void {
   const service = ctx.program
     .command("service")
-    .description("run Decant in the background: start it at login and keep it running");
+    .description("run Agent Benchmarks in the background: start it at login and keep it running");
 
   service
     .command("status", { isDefault: true })
@@ -26,7 +26,7 @@ export function registerServiceCommands(ctx: CliContext): void {
 
   service
     .command("install")
-    .description("start Decant at login and now, serving the UI and syncing in the background")
+    .description("start Agent Benchmarks at login and now, serving the UI and syncing in the background")
     .option("--port <n>", "port the service serves the UI on", parseInteger, DEFAULT_SERVE_PORT)
     .action((commandOptions: { port?: number }) =>
       ctx.run(async () => {
@@ -38,9 +38,9 @@ export function registerServiceCommands(ctx: CliContext): void {
           );
           ctx.output(status, () =>
             [
-              `Decant now runs in the background at ${status.url ?? "its configured port"}.`,
-              "It starts when you log in. A `decant serve` already using that port keeps it until it stops.",
-              "Stop it with: decant service uninstall",
+              `Agent Benchmarks now runs in the background at ${status.url ?? "its configured port"}.`,
+              "It starts when you log in. A `agent-benchmarks serve` already using that port keeps it until it stops.",
+              "Stop it with: agent-benchmarks service uninstall",
             ].join("\n"),
           );
         } catch (error) {
@@ -61,8 +61,8 @@ export function registerServiceCommands(ctx: CliContext): void {
         const status = await uninstallService(ctx.serviceOptions);
         ctx.output(status, () =>
           status.running
-            ? "Removed the login item, but the service is still running. Check `decant service status`."
-            : "Decant no longer runs in the background. Run `decant` to start it by hand.",
+            ? "Removed the login item, but the service is still running. Check `agent-benchmarks service status`."
+            : "Agent Benchmarks no longer runs in the background. Run `agent-benchmarks` to start it by hand.",
         );
       }),
     );
@@ -81,7 +81,7 @@ function renderStatus(status: ServiceStatus): string {
     lines.push(`  Unit file: ${status.unitPath}`);
   }
   if (!status.installed) {
-    lines.push("  Turn it on with: decant service install");
+    lines.push("  Turn it on with: agent-benchmarks service install");
   }
   return lines.join("\n");
 }

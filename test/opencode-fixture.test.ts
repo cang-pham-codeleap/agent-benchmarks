@@ -10,7 +10,7 @@ import {
   opencodeFixtureSql,
 } from "./opencode-fixture.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-opencode-fixture-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-opencode-fixture-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let counter = 0;

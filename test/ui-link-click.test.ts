@@ -41,7 +41,7 @@ describe("shouldInterceptLinkClick", () => {
   });
 
   test("never intercepts external or protocol-relative URLs", () => {
-    expect(shouldInterceptLinkClick(plain, { href: "https://github.com/dosu-ai/decant" })).toBe(
+    expect(shouldInterceptLinkClick(plain, { href: "https://example.com/agent-benchmarks" })).toBe(
       false,
     );
     expect(shouldInterceptLinkClick(plain, { href: "//example.com/path" })).toBe(false);

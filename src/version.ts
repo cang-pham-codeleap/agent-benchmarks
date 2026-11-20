@@ -2,8 +2,8 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 // This direct access is intentionally kept at module scope so `bun build
-// --compile --env=DECANT_BUILD_VERSION*` can replace it in release binaries.
-const INLINED_BUILD_VERSION = process.env.DECANT_BUILD_VERSION;
+// --compile --env=AGENT_BENCHMARKS_BUILD_VERSION*` can replace it in release binaries.
+const INLINED_BUILD_VERSION = process.env.AGENT_BENCHMARKS_BUILD_VERSION;
 
 export interface VersionResolutionOptions {
   env?: Record<string, string | undefined>;
@@ -25,9 +25,9 @@ function describeCheckout(checkoutDir: string): string | null {
   }
 }
 
-export function resolveDecantVersion(options: VersionResolutionOptions = {}): string {
+export function resolveAgentBenchmarksVersion(options: VersionResolutionOptions = {}): string {
   const builtVersion = (
-    options.env == null ? INLINED_BUILD_VERSION : options.env.DECANT_BUILD_VERSION
+    options.env == null ? INLINED_BUILD_VERSION : options.env.AGENT_BENCHMARKS_BUILD_VERSION
   )?.trim();
   if (builtVersion != null && builtVersion !== "") {
     return builtVersion;
@@ -37,4 +37,4 @@ export function resolveDecantVersion(options: VersionResolutionOptions = {}): st
   return (options.describe ?? describeCheckout)(checkoutDir) ?? "dev";
 }
 
-export const DECANT_VERSION = resolveDecantVersion();
+export const AGENT_BENCHMARKS_VERSION = resolveAgentBenchmarksVersion();

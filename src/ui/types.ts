@@ -29,7 +29,7 @@ export type SessionSummary = {
   total_output_tokens: number;
   usage_available: boolean;
   estimated_cost_usd: number;
-  cost_source: "decant" | "reported" | "mixed";
+  cost_source: "agent-benchmarks" | "reported" | "mixed";
   model_provider: string | null;
   user_state: "archived" | null;
   is_user_archived: boolean;
@@ -265,20 +265,8 @@ export type UserSettings = {
   agent: string;
   terminal: string;
   ide: string;
-  updateCheck: boolean;
 };
 
-export type UpdateStatus = {
-  enabled: boolean;
-  envOverride: boolean;
-  current: string;
-  latest: string | null;
-  updateAvailable: boolean;
-  checkedAt: string | null;
-  channel: string;
-  command: string;
-  error: string | null;
-};
 
 export type BackgroundStatus = {
   supported: boolean;
@@ -318,7 +306,6 @@ export type DashboardData = {
   recommendations: Recommendation[];
   config: ConfigView | null;
   settings: SettingsInfo | null;
-  update: UpdateStatus | null;
   activity: Activity | null;
   modelSparklines: ModelSparklines | null;
   tokenEconomics: TokenEconomics | null;

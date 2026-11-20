@@ -66,7 +66,7 @@ function isAllowedWriteRequest(request: Request, url: URL, boundToLoopback: bool
 const DEFAULT_PORTS: Record<string, string> = { "http:": "80", "https:": "443" };
 
 // Any loopback port can host another dev server, so a loopback origin alone does
-// not prove the page came from Decant. The Host header is compared rather than
+// not prove the page came from Agent Benchmarks. The Host header is compared rather than
 // the bound port because port mappings such as `docker run -p 8080:3000` change
 // what the browser sees without changing the Host/Origin pairing.
 function isSameAuthorityLoopbackOrigin(origin: string, request: Request, url: URL): boolean {

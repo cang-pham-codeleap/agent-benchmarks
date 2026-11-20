@@ -23,7 +23,7 @@ import {
 } from "../src/sources/vscode-copilot.ts";
 import { totals as statsTotals } from "../src/stats.ts";
 
-const workDir = realpathSync(mkdtempSync(join(tmpdir(), "decant-vscode-copilot-test-")));
+const workDir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-vscode-copilot-test-")));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const fixtureUser = join(import.meta.dir, "..", "fixtures", "vscode-copilot", "User");

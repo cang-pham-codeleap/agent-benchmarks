@@ -38,7 +38,7 @@ afterAll(() => {
 
 function scratch(): string {
   // Discovery resolves symlinks, such as macOS's /var to /private/var.
-  const root = realpathSync(mkdtempSync(join(tmpdir(), "decant-hermes-test-")));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-hermes-test-")));
   roots.push(root);
   return root;
 }
@@ -73,7 +73,7 @@ function sessionSql(id: string, columns: Record<string, string | number | null> 
     id,
     source: "cli",
     started_at: 1791790000,
-    cwd: "/decant-fixture/example",
+    cwd: "/agent-benchmarks-fixture/example",
     ...columns,
   };
   const names = Object.keys(all);
@@ -153,8 +153,8 @@ describe("parseHermesSession", () => {
     const { session } = sample;
     expect(session).toMatchObject({
       title: "Summarize the example notes",
-      projectPath: "/decant-fixture/example",
-      cwd: "/decant-fixture/example",
+      projectPath: "/agent-benchmarks-fixture/example",
+      cwd: "/agent-benchmarks-fixture/example",
       gitBranch: "main",
       model: "anthropic/claude-sonnet-5-5",
       startedAt: "2026-10-12T06:20:00.000Z",
@@ -424,7 +424,7 @@ describe("parseHermesSession", () => {
 });
 
 describe("normalizeHermesToolName", () => {
-  test("rewrites Hermes's MCP prefix to Decant's form and leaves built-ins alone", () => {
+  test("rewrites Hermes's MCP prefix to Agent Benchmarks's form and leaves built-ins alone", () => {
     expect(normalizeHermesToolName("mcp_github_create_issue")).toBe("mcp__github__create_issue");
     expect(normalizeHermesToolName("mcp_docs_search")).toBe("mcp__docs__search");
     expect(normalizeHermesToolName("mcp_only")).toBe("mcp_only");
@@ -694,7 +694,7 @@ describe("Hermes discovery and ingest", () => {
       (_message, properties) => events.push(properties["event.name"]),
     );
     expect(files).toEqual([]);
-    expect(events).toEqual(["decant.ingest.hermes_open_failed"]);
+    expect(events).toEqual(["agent-benchmarks.ingest.hermes_open_failed"]);
   });
 
   test("ingests sessions, links the subagent, prices by model, and skips unchanged sessions", () => {
@@ -791,7 +791,7 @@ describe("Hermes discovery and ingest", () => {
           .all(SAMPLE),
       ).toEqual([
         { path: "notes.txt", operation: "read" },
-        { path: "/decant-fixture/example/notes.txt", operation: "edit" },
+        { path: "/agent-benchmarks-fixture/example/notes.txt", operation: "edit" },
       ]);
 
       expect(sync(db, config)).toMatchObject({ ingested: 0, skipped: 3 });
@@ -978,7 +978,7 @@ describe("Hermes discovery and ingest", () => {
         try {
           const events: unknown[] = [];
           discover(config, (_message, properties) => events.push(properties["event.name"]));
-          expect(events).toEqual(["decant.ingest.hermes_profiles_unlisted"]);
+          expect(events).toEqual(["agent-benchmarks.ingest.hermes_profiles_unlisted"]);
           expect(sync(db, config)).toMatchObject({ ingested: 0, failed: 1 });
         } finally {
           chmodSync(profiles, 0o755);
@@ -1029,7 +1029,7 @@ describe("Hermes discovery and ingest", () => {
         try {
           const events: unknown[] = [];
           discover(config, (_message, properties) => events.push(properties["event.name"]));
-          expect(events).toEqual(["decant.ingest.hermes_open_failed"]);
+          expect(events).toEqual(["agent-benchmarks.ingest.hermes_open_failed"]);
           expect(sync(db, config)).toMatchObject({ ingested: 0, failed: 1 });
         } finally {
           chmodSync(workDir, 0o755);

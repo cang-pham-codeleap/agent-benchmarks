@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { dayRangePredicate, sessionDatePredicate } from "../src/date-filter.ts";
 import { openDb } from "../src/db.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-date-filter-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-date-filter-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const TIMESTAMPS = [

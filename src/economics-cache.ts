@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { DateFilter } from "./date-filter.ts";
-import { exceptionAttributes, getDecantLogger } from "./logging.ts";
+import { exceptionAttributes, getAgentBenchmarksLogger } from "./logging.ts";
 import {
   aggregateEconomicsVectors,
   economicsVectorMatchesFilter,
@@ -9,7 +9,7 @@ import {
 } from "./token-economics.ts";
 import { workerError, workerUrl } from "./worker-runtime.ts";
 
-const logger = getDecantLogger("economics-cache");
+const logger = getAgentBenchmarksLogger("economics-cache");
 
 export interface ComputeVectorsOptions {
   signal: AbortSignal;
@@ -129,7 +129,7 @@ export class EconomicsCache {
       .catch((error) => {
         if (!abort.signal.aborted && !this.#disposed) {
           logger.warning("Token economics rebuild failed; keeping the previous model.", {
-            "event.name": "decant.economics.rebuild_failed",
+            "event.name": "agent-benchmarks.economics.rebuild_failed",
             ...exceptionAttributes(error),
           });
         }

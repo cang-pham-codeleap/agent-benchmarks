@@ -8,7 +8,7 @@
  *
  * Codex creates a thread and writes its rollout's session_meta before the
  * first prompt, so a new or duplicated chat that is never used leaves a rollout
- * with no turns. Codex hides those threads itself; so does Decant until the
+ * with no turns. Codex hides those threads itself; so does Agent Benchmarks until the
  * rollout gains a message.
  *
  * The block join is pinned: with no planner statistics SQLite starts from

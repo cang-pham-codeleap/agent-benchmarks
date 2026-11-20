@@ -6,7 +6,7 @@ import type { Config } from "../src/config.ts";
 import { closeDb, openDb } from "../src/db.ts";
 import type { SyncReport } from "../src/ingest.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-sqlite-workers-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-sqlite-workers-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;

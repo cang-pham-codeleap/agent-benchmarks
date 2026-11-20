@@ -36,8 +36,8 @@ describe("theme tokens", () => {
   test("the theme toggle applies .dark and persists explicit choices", () => {
     expect(main).toContain('root.classList.toggle("dark", prefersDark)');
     expect(main).toContain('root.classList.toggle("dark", theme === "dark")');
-    expect(main).toContain('writeStorage("decant-theme", theme)');
-    expect(main).toContain('removeStorage("decant-theme")');
+    expect(main).toContain('writeStorage("agent-benchmarks-theme", theme)');
+    expect(main).toContain('removeStorage("agent-benchmarks-theme")');
   });
 
 

@@ -1,7 +1,7 @@
--- Synthetic Hermes Agent storage: the tables and columns Decant reads, as
+-- Synthetic Hermes Agent storage: the tables and columns Agent Benchmarks reads, as
 -- NousResearch/hermes-agent declares them in SCHEMA_SQL
 -- (hermes_state_common.py, SCHEMA_VERSION 33). Hermes's other tables, its FTS
--- indexes, and the columns Decant does not read are left out. Applied before
+-- indexes, and the columns Agent Benchmarks does not read are left out. Applied before
 -- every session script in fixtures/hermes/.
 CREATE TABLE schema_version (
     version INTEGER NOT NULL

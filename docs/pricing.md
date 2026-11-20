@@ -1,6 +1,6 @@
 # Pricing estimates
 
-Decant estimates token costs at ingest using published first-party API rates.
+Agent Benchmarks estimates token costs at ingest using published first-party API rates.
 Gemini 4 Neon rates were verified on November 18, 2026, against Google's
 standard Gemini Developer API pricing.
 GPT-6.2 Astra and Sol rates were verified on November 17, 2026, against
@@ -24,7 +24,7 @@ Z.ai GLM, Meta Muse, DeepSeek, Moonshot Kimi, MiniMax, Xiaomi MiMo, Alibaba
 Qwen, StepFun, Tencent Hy, and Reflection Beam rates were verified on October
 26, 2026. The open-weight models in that list were chosen from the
 [Artificial Analysis open-weight leaderboard](https://artificialanalysis.ai/models/open-source),
-which Decant uses only to decide which models to price, never as the source of
+which Agent Benchmarks uses only to decide which models to price, never as the source of
 a rate. Kimi K3.1 Pro rates were verified on October 25, 2026.
 
 - [Anthropic model and prompt-cache pricing](https://platform.claude.com/docs/en/about-claude/pricing)
@@ -182,38 +182,38 @@ OpenAI cache writes before GPT-5.6 have no additional fee. The GPT-5.6, GPT-6,
 GPT-6.1, and GPT-6.2 models above bill cache writes at 1.25 times the
 uncached-input rate, which OpenAI lists as the 30-minute cache write. OpenAI
 also lists a 12-hour cache write at $20.00 for GPT-6.2 Astra and $5.00 for
-GPT-6.2 Sol. Codex does not report which retention a write used, so Decant
+GPT-6.2 Sol. Codex does not report which retention a write used, so Agent Benchmarks
 bills every write at the 30-minute rate. For Gemini models with explicit
-caching, Google bills cache storage by the token-hour. Decant approximates
+caching, Google bills cache storage by the token-hour. Agent Benchmarks approximates
 that charge at the input rate for typical session-length holds. Gemini 4 Neon
 uses implicit caching. If an imported record reports Neon tokens separately as
-cache writes, Decant values them at the input rate with no storage surcharge.
+cache writes, Agent Benchmarks values them at the input rate with no storage surcharge.
 The `low`, `medium`, `high`, and `xhigh` Neon IDs use the same standard API
 rates.
 
-Z.ai and Meta charge no separate cache-write fee, so Decant bills cache writes
+Z.ai and Meta charge no separate cache-write fee, so Agent Benchmarks bills cache writes
 for GLM and Muse models at the input rate. Z.ai lists cached-input storage as
-free for a limited time, so Decant adds no holding charge. Z.ai publishes
-GLM-4.7-Flash and GLM-4.5-Flash as free, so Decant prices them at zero rather
+free for a limited time, so Agent Benchmarks adds no holding charge. Z.ai publishes
+GLM-4.7-Flash and GLM-4.5-Flash as free, so Agent Benchmarks prices them at zero rather
 than leaving them unpriced. The HighSpeed GLM models are only offered through
 the GLM Coding Plan, and GLM-5-Turbo and GLM-5V-Turbo are absent from Z.ai's
 pricing page, so they stay unpriced. Muse Wonder Full is only available
 through a Muse Code subscription, and Muse Glimmer only through third-party
 routers, so neither has a first-party API rate. OpenRouter's unversioned
-`meta/muse-wonder` bills at Muse Wonder 1.0's rates, so Decant maps it there.
+`meta/muse-wonder` bills at Muse Wonder 1.0's rates, so Agent Benchmarks maps it there.
 Router prefixes such as `z-ai/` and `meta/`, hosted routing suffixes such as
 OpenRouter's `:free` and Ollama's `:cloud`, and promotional `-free` copies are
 priced at the model's list rate. Other tags, such as an Ollama or LM Studio
-quantization like `:q4_K_M`, name a local build with no API spend, so Decant
+quantization like `:q4_K_M`, name a local build with no API spend, so Agent Benchmarks
 leaves them unpriced. The same rules apply to the DeepSeek, Kimi, MiniMax,
 MiMo, Qwen, StepFun, Hy, Grok, and Beam IDs, so `moonshotai/kimi-k2.6`,
 `x-ai/grok-4.7`, and `deepseek-v4-pro:cloud` reach the list rate and
 `qwen3.8:27b` stays unpriced. Meta lists Muse Ember 1.0's rate above for
-prompts up to 200,000 tokens and three times it for longer prompts. Decant
+prompts up to 200,000 tokens and three times it for longer prompts. Agent Benchmarks
 applies the shorter-prompt rate only, so estimates for longer requests are low.
 
 DeepSeek charges the rates above during peak hours, 01:00 to 04:00 and 06:00
-to 10:00 UTC on weekdays, and half those rates at all other times. Decant
+to 10:00 UTC on weekdays, and half those rates at all other times. Agent Benchmarks
 prices every DeepSeek request at the peak rate, so its estimates are an upper
 bound. DeepSeek now serves `deepseek-v4-flash` and
 `deepseek-v4-flash-vision-exp` as `deepseek-flash` at the Flash rate.
@@ -223,13 +223,13 @@ and `deepseek-v4-pro-0813` at the V4 Pro rate. `deepseek-chat` and
 `deepseek-reasoner` were scheduled for discontinuation on July 24, 2026 and no
 longer appear on the pricing page, so they stay unpriced. DeepSeek's
 Anthropic-compatible endpoint maps Claude model names to DeepSeek models.
-Decant prices any request recorded under a Claude ID at Claude rates, which
+Agent Benchmarks prices any request recorded under a Claude ID at Claude rates, which
 for those requests is far above what DeepSeek bills.
 
 MiniMax describes the MiniMax-M3 rates above as a permanent 50% discount from
-its list price, and Decant uses the discounted rates it actually charges.
+its list price, and Agent Benchmarks uses the discounted rates it actually charges.
 Prompts above 512,000 tokens bill at twice those rates, and the Priority
-service tier at 1.5 times. Decant applies neither modifier, so estimates for
+service tier at 1.5 times. Agent Benchmarks applies neither modifier, so estimates for
 those requests are low. MiniMax lists no cache-write fee for
 MiniMax-M3.1-Flash. Moonshot's Kimi K2 models do not support cache writes,
 and Moonshot retires all K2 models by the end of December 2026. Kimi K3 and
@@ -237,14 +237,14 @@ K3.1 are not open-weight and are not yet priced. Kimi K3.1 Pro has its own
 published rates and is priced above.
 
 Xiaomi lists MiMo cache writes as free for a limited time with no end date, so
-Decant bills them at zero. Alibaba prices Qwen at the international
+Agent Benchmarks bills them at zero. Alibaba prices Qwen at the international
 (Singapore) rates above. Implicit cache hits bill at the cached rate, and only
 explicit caching creates a cache entry, at 125% of input. The Qwen3.5 and
 Qwen3.6 open models do not support caching, so any cache reads reported for
 them bill at the input rate. Qwen3.8-Flash-Next has no first-party API, and
 the hosted `qwen3.8-flash` built on it is a commercial model, so neither is
 priced. Qwen4-Max, released November 16, 2026, is the first Qwen flagship
-without open weights. Decant prices it because it is Alibaba's current
+without open weights. Agent Benchmarks prices it because it is Alibaba's current
 flagship. Its implicit and explicit cache reads both bill at $0.075, and
 explicit cache writes bill by TTL. Its preview, `qwen4-max-preview`, was
 offered only through Alibaba's Token Plan with no per-token rate, so it stays
@@ -253,22 +253,22 @@ has not named or priced them.
 
 Tencent lists the Hy4 and Hy4 flash rates above as list prices and charges
 half of them for usage through December 31, 2026 for Hy4 and through
-November 30, 2026 for Hy4 flash, both on Beijing time. Decant prices them at
+November 30, 2026 for Hy4 flash, both on Beijing time. Agent Benchmarks prices them at
 list rate, so estimates for usage during those promotions are twice what
 Tencent bills. StepFun's cache-miss input price includes writing to the cache.
 
 xAI bills every token in a request at twice the rates above once the prompt
 reaches 200,000 tokens, and charges 1.1 times for its US regional endpoint.
-Decant applies neither modifier. xAI retired `grok-code-fast-1` on May 15,
+Agent Benchmarks applies neither modifier. xAI retired `grok-code-fast-1` on May 15,
 2026 and now routes its requests to Grok Build 0.1 without saying what they
 bill, so that ID and its aliases stay unpriced.
 
-Reflection's Beam API is free during its beta, subject to daily limits, so Decant prices `Beam-1.0-501B-A23B` at zero. The preview ID
+Reflection's Beam API is free during its beta, subject to daily limits, so Agent Benchmarks prices `Beam-1.0-501B-A23B` at zero. The preview ID
 `Beam-501B-A23B` is not documented as an alias and stays unpriced.
 
 Several open-weight models with high Artificial Analysis scores have no USD
 per-token first-party rate. Ant Group publishes Ling 3.1 Flash prices only in
-CNY, and Decant does not convert currencies. Meta does not serve Muse Spark
+CNY, and Agent Benchmarks does not convert currencies. Meta does not serve Muse Spark
 Open on its Model API, and it is a separate model from Muse Spark 1.3. NVIDIA
 offers Nemotron only through free trial endpoints and per-GPU licenses. The
 Institute of Foundation Models publishes no price for K2 Horizon.
@@ -291,10 +291,10 @@ OpenAI describes the
 current GPT-5.6 Sol rate as promotional through November 30, 2026. GPT-6 Cyber
 and GPT-5.5 Cyber Preview are available only through OpenAI's Daybreak trusted
 access program. GPT-5.5 Cyber Preview lists no cache-write fee and has its own
-rate, so Decant no longer bills it at GPT-5.5's rate.
+rate, so Agent Benchmarks no longer bills it at GPT-5.5's rate.
 Google prices Gemini 4 Argon and Gemini 4 Carbon at $2.00 input, $0.10 cached,
 and $10.00 output through November 30, 2026. The rate above applies from
-December 1, 2026, and Decant reprices stored Argon and Carbon usage at it on
+December 1, 2026, and Agent Benchmarks reprices stored Argon and Carbon usage at it on
 the next sync, as it does for every rate change. Gemini 4 Hydrogen launched on
 November 12, 2026 with no promotion. The Gemini 4 models support implicit
 caching only.
@@ -302,32 +302,32 @@ Google's Gemini 3.8 Flash, 3.7 Flash, and 3.6 Flash listed above carry a promoti
 through December 31, 2026; they rise to $1.50 input / $0.15 cached / $7.50
 output on January 1, 2027. Google deprecated Gemini 3.7 Flash and Gemini 3.5
 Flash on October 8, 2026 and routes their requests to Gemini 3.8 Flash and
-3.6 Flash. It does not say what routed requests bill, so Decant keeps each
+3.6 Flash. It does not say what routed requests bill, so Agent Benchmarks keeps each
 model's last published rate. Google no longer lists the Gemini 2.0 line or Gemini 3
 Pro Preview on the pricing page, and Gemini versions without a published rate stay unpriced
 rather than inheriting a neighbor's rate.
 
 Claude 3 model IDs such as `claude-3-5-haiku-20241022` place the tier after
-the version, so Decant recognizes that form as well as tier-first IDs like
+the version, so Agent Benchmarks recognizes that form as well as tier-first IDs like
 `claude-haiku-4-5`. Anthropic's pricing page no longer lists the fully retired
-Claude Opus 3, Sonnet 3.7, Sonnet 3.5, Sonnet 3, or Haiku 3, so Decant leaves
+Claude Opus 3, Sonnet 3.7, Sonnet 3.5, Sonnet 3, or Haiku 3, so Agent Benchmarks leaves
 them unpriced instead of assigning a current tier's rate. Haiku 3.5, Opus 4.1,
 Opus 4, and Sonnet 4 are retired on the Claude API but remain listed because
 partner clouds still serve them.
 
 `codex-auto-review` is a hidden routing slug, not a public billable model ID.
-OpenAI does not document which underlying model or rate applies. Decant leaves
+OpenAI does not document which underlying model or rate applies. Agent Benchmarks leaves
 it and other unpublished Codex slugs unpriceable instead of guessing a nearby
 model's price.
 
-For `gpt-3.5-turbo-0301`, Decant uses the final published GPT-3.5 Turbo rate
+For `gpt-3.5-turbo-0301`, Agent Benchmarks uses the final published GPT-3.5 Turbo rate
 of $1.50 input and $2.00 output. OpenAI's current deprecations table displays
 $15.00 and $20.00, but those figures conflict with the contemporaneous launch
 and June 2023 pricing announcements linked above.
 
 ## Request tiers
 
-Decant prices each API request at the model that served it, and applies two
+Agent Benchmarks prices each API request at the model that served it, and applies two
 request-level modifiers where the source records what they need:
 
 - **Fast mode.** A Claude request whose usage reports `speed: "fast"` is billed
@@ -351,7 +351,7 @@ only the last call's prompt, so a turn with tool calls leaves its earlier
 prompts uncounted. VS Code writes no cache split, so cached prompt tokens are
 charged at the full input rate. Builds from April and May 2026 record output
 but no prompt size, so their turns are priced on output alone. Sessions from
-earlier builds record no usage, and Decant shows their tokens and cost as
+earlier builds record no usage, and Agent Benchmarks shows their tokens and cost as
 unavailable, not free. These costs are rough API list-price estimates, not
 Copilot premium requests or credits. See
 [token and cost totals](analytics-methodology.md#token-and-cost-totals).
@@ -368,7 +368,7 @@ subscription charges or premium requests.
 
 OpenAI applies long-context rates above 272,000 prompt tokens for eligible API
 models. Codex reports cumulative session usage rather than per-request usage,
-so Decant cannot tell whether an individual request crossed that threshold.
+so Agent Benchmarks cannot tell whether an individual request crossed that threshold.
 These estimates use short-context rates and may be low for qualifying
 requests. Claude 4.6 and later models other than Haiku 5.5 include their full
 context window at the standard rate.
@@ -379,18 +379,18 @@ stale session costs and persisted activity cost components together without
 rereading transcripts or replacing user metadata. Later syncs leave matching
 costs untouched.
 
-OpenCode sessions are priced with Decant's first-party rates whenever the model
+OpenCode sessions are priced with Agent Benchmarks's first-party rates whenever the model
 is supported, including the GLM, Muse, and other lab rates above. For a model
-Decant cannot price, Decant falls back to the per-request cost OpenCode
+Agent Benchmarks cannot price, Agent Benchmarks falls back to the per-request cost OpenCode
 recorded (the reported cost). A recorded cost of 0 leaves the model unpriced,
-and a model that later gains a Decant rate switches back to Decant pricing.
+and a model that later gains a Agent Benchmarks rate switches back to Agent Benchmarks pricing.
 Each session carries a `cost_source` label:
 
-- `decant`: priced entirely with Decant's rates.
+- `agent-benchmarks`: priced entirely with Agent Benchmarks's rates.
 - `reported`: priced only with costs OpenCode recorded.
-- `mixed`: some models priced by Decant and others by reported cost.
+- `mixed`: some models priced by Agent Benchmarks and others by reported cost.
 
-Aggregate dollar totals therefore include Decant's estimates for supported
-models, plus reported costs for OpenCode sessions with models Decant cannot
+Aggregate dollar totals therefore include Agent Benchmarks's estimates for supported
+models, plus reported costs for OpenCode sessions with models Agent Benchmarks cannot
 price. Reported costs are not first-party estimates, and token-economics totals
 report them separately as `reported_cost_usd`.

@@ -92,7 +92,7 @@ export async function launchAgent(
   // pre-plant a symlink at a predictable /tmp name or read the prompt; the
   // file itself is 0600 and the launched shell removes the whole directory
   // after consuming it.
-  const promptDir = mkdtempSync(join(tmpdir(), "decant-launch-"));
+  const promptDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-launch-"));
   const promptFile = join(promptDir, options.tempName?.() ?? "prompt.txt");
   writeFileSync(promptFile, fullPrompt, { mode: 0o600 });
   const launchCommand =
@@ -116,7 +116,7 @@ export async function launchAgent(
 async function resolveLaunchDir(
   options: LaunchOptions,
 ): Promise<{ dir: string; missing: string | null }> {
-  const override = options.env?.DECANT_SKILLS_DIR ?? process.env.DECANT_SKILLS_DIR;
+  const override = options.env?.AGENT_BENCHMARKS_SKILLS_DIR ?? process.env.AGENT_BENCHMARKS_SKILLS_DIR;
   if (override != null) {
     return { dir: override, missing: null };
   }
@@ -148,7 +148,7 @@ async function isDirectoryWithin(path: string): Promise<boolean> {
 function withMissingDirNote(prompt: string, missing: string | null, dir: string): string {
   return missing == null
     ? prompt
-    : `${prompt}\n\nDecant could not find that project directory on this machine, so this session started in ${dir} instead. Locate the repository before changing anything.`;
+    : `${prompt}\n\nAgent Benchmarks could not find that project directory on this machine, so this session started in ${dir} instead. Locate the repository before changing anything.`;
 }
 
 export async function openIde(
@@ -229,8 +229,8 @@ function createWarpLaunch(
   cmd: string,
   dir: string,
 ): { configDir: string; cwd: string; uri: string } {
-  const configDir = mkdtempSync(join(tmpdir(), "decant-warp-"));
-  const configPath = join(configDir, "decant.yaml");
+  const configDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-warp-"));
+  const configPath = join(configDir, "agent-benchmarks.yaml");
   const cwd = resolve(dir);
   // Warp accepts a percent-encoded absolute launch-config path. Delete the
   // private config before starting the interactive command: disappearance is
@@ -238,10 +238,10 @@ function createWarpLaunch(
   // config behind for a long-lived agent process.
   const cleanupCommand = `rm -rf ${shellQuote(configDir)}; ${cmd}`;
   const config = `---
-name: decant agent
+name: agent-benchmarks agent
 windows:
   - tabs:
-      - title: decant
+      - title: agent-benchmarks
         layout:
           cwd: ${JSON.stringify(cwd)}
           commands:
@@ -268,7 +268,7 @@ async function sweepStaleLaunchDirs(now = Date.now()): Promise<void> {
     return;
   }
   for (const entry of entries) {
-    if (!entry.startsWith("decant-launch-") && !entry.startsWith("decant-warp-")) {
+    if (!entry.startsWith("agent-benchmarks-launch-") && !entry.startsWith("agent-benchmarks-warp-")) {
       continue;
     }
     const path = join(root, entry);
@@ -304,7 +304,7 @@ export async function runCommand(bin: string, args: string[]): Promise<LaunchRes
 function withMarkInstruction(prompt: string, key: string | null): string {
   return key == null || key === ""
     ? prompt
-    : `${prompt}\n\nWhen you have completed and verified this, run: decant recommendations mark ${key}`;
+    : `${prompt}\n\nWhen you have completed and verified this, run: agent-benchmarks recommendations mark ${key}`;
 }
 
 function terminalAppScript(cmd: string): string {

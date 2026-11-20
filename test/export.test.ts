@@ -8,7 +8,7 @@ import { upsertSession } from "../src/ingest.ts";
 import { getSession } from "../src/query.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-export-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-export-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 test("toMarkdown renders a full transcript", () => {

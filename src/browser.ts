@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 
 export interface OpenEnv {
   BROWSER?: string;
-  DECANT_NO_OPEN?: string;
+  AGENT_BENCHMARKS_NO_OPEN?: string;
   CI?: string;
 }
 
@@ -49,8 +49,8 @@ export function decideOpen(input: {
   if (!input.enabled) {
     return { open: false, reason: "--no-open" };
   }
-  if (input.env.DECANT_NO_OPEN != null) {
-    return { open: false, reason: "DECANT_NO_OPEN" };
+  if (input.env.AGENT_BENCHMARKS_NO_OPEN != null) {
+    return { open: false, reason: "AGENT_BENCHMARKS_NO_OPEN" };
   }
   const browser = input.env.BROWSER;
   if (browser === "none") {

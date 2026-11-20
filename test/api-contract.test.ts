@@ -11,7 +11,7 @@ import { eventClientCount, eventStream, MAX_EVENT_CLIENTS } from "../src/server/
 import { serve, serviceStartingResponse } from "../src/server.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 import { parseCodexSession } from "../src/sources/codex.ts";
-import { DECANT_VERSION } from "../src/version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "../src/version.ts";
 import { syntheticOpenCodeSession } from "./opencode-session.ts";
 
 type HttpMethod = "get" | "post";
@@ -54,9 +54,9 @@ const HTTP_METHODS = new Set(["delete", "get", "head", "options", "patch", "post
 
 describe("local API OpenAPI contract", () => {
   test("boots a fixture archive and validates every documented operation response", async () => {
-    const root = mkdtempSync(join(tmpdir(), "decant-api-contract-"));
-    const priorConfigDir = process.env.DECANT_CONFIG_DIR;
-    process.env.DECANT_CONFIG_DIR = join(root, "config");
+    const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-api-contract-"));
+    const priorConfigDir = process.env.AGENT_BENCHMARKS_CONFIG_DIR;
+    process.env.AGENT_BENCHMARKS_CONFIG_DIR = join(root, "config");
     const config = fixtureConfig(root);
     seed(config);
     let launchdLoaded = false;
@@ -69,8 +69,8 @@ describe("local API OpenAPI contract", () => {
         env: {},
         homeDir: join(root, "home"),
         uid: 501,
-        install: { channel: "installer", binaryPath: "/opt/test/decant" },
-        execPath: "/opt/test/decant",
+        install: { channel: "standalone", binaryPath: "/opt/test/agent-benchmarks" },
+        execPath: "/opt/test/agent-benchmarks",
         run: async (argv) => {
           if (argv[1] === "bootstrap") launchdLoaded = true;
           if (argv[1] === "bootout") launchdLoaded = false;
@@ -96,7 +96,7 @@ describe("local API OpenAPI contract", () => {
       const documentResponse = await fetch(`${baseUrl}/api/openapi.json`);
       expect(documentResponse.status).toBe(200);
       const document = (await documentResponse.json()) as OpenApiDocument;
-      expect(document.info.version).toBe(DECANT_VERSION);
+      expect(document.info.version).toBe(AGENT_BENCHMARKS_VERSION);
 
       const sessions = (await fetchJson(`${baseUrl}/api/sessions?limit=1`)) as {
         id: number;
@@ -125,7 +125,6 @@ describe("local API OpenAPI contract", () => {
         { path: "/api/config", method: "get", url: "/api/config" },
         { path: "/api/settings", method: "get", url: "/api/settings" },
         { path: "/api/settings", method: "post", url: "/api/settings", body: {} },
-        { path: "/api/update", method: "get", url: "/api/update" },
         { path: "/api/background", method: "get", url: "/api/background" },
         {
           path: "/api/background",
@@ -248,6 +247,11 @@ describe("local API OpenAPI contract", () => {
           path: "/api/analytics/activity",
           method: "get",
           url: "/api/analytics/activity",
+        },
+        {
+          path: "/api/analytics/compare",
+          method: "get",
+          url: "/api/analytics/compare",
         },
         {
           path: "/api/analytics/model-sparklines",
@@ -411,7 +415,7 @@ describe("local API OpenAPI contract", () => {
         strict: false,
         validateFormats: false,
       });
-      ajv.addSchema(document, "decant-openapi");
+      ajv.addSchema(document, "agent-benchmarks-openapi");
       expect(validateDocumentSchemas(ajv, document)).toBeGreaterThan(100);
       expect(parameterNames(document, "/api/sessions", "get")).toEqual([
         "from",
@@ -420,11 +424,13 @@ describe("local API OpenAPI contract", () => {
         "limit",
         "model",
         "offset",
+        "outcome",
         "project",
         "repo",
         "to",
         "tool",
         "with_subagents",
+        "work_type",
       ]);
       expect(parameterNames(document, "/api/stats/summary", "get")).toEqual([
         "from",
@@ -562,9 +568,9 @@ describe("local API OpenAPI contract", () => {
     } finally {
       await server.stop(true);
       if (priorConfigDir == null) {
-        delete process.env.DECANT_CONFIG_DIR;
+        delete process.env.AGENT_BENCHMARKS_CONFIG_DIR;
       } else {
-        process.env.DECANT_CONFIG_DIR = priorConfigDir;
+        process.env.AGENT_BENCHMARKS_CONFIG_DIR = priorConfigDir;
       }
       rmSync(root, { recursive: true, force: true });
     }
@@ -667,7 +673,7 @@ function validateDocumentSchemas(ajv: Ajv2020, document: OpenApiDocument): numbe
       return;
     }
     try {
-      ajv.compile({ $ref: `decant-openapi#${pointer}` });
+      ajv.compile({ $ref: `agent-benchmarks-openapi#${pointer}` });
     } catch (error) {
       throw new Error(
         `invalid OpenAPI schema at ${pointer}: ${
@@ -761,7 +767,7 @@ function compileRequestValidator(ajv: Ajv2020, path: string, method: HttpMethod)
   }
   return ajv.compile({
     $ref:
-      `decant-openapi#/paths/${jsonPointer(path)}/${method}/requestBody/content/` +
+      `agent-benchmarks-openapi#/paths/${jsonPointer(path)}/${method}/requestBody/content/` +
       `${jsonPointer("application/json")}/schema`,
   });
 }
@@ -773,7 +779,7 @@ function compileSseEventValidator(ajv: Ajv2020, event: string): ValidateFunction
   }
   return ajv.compile({
     $ref:
-      `decant-openapi#/paths/${jsonPointer("/api/events")}/get/` +
+      `agent-benchmarks-openapi#/paths/${jsonPointer("/api/events")}/get/` +
       `${jsonPointer("x-sse-events")}/${jsonPointer(event)}`,
   });
 }
@@ -808,19 +814,19 @@ function compileResponseValidator(
   if (documentedResponse?.$ref != null) {
     return ajv.compile({
       $ref:
-        `decant-openapi${documentedResponse.$ref}/content/` + `${jsonPointer(mediaType)}/schema`,
+        `agent-benchmarks-openapi${documentedResponse.$ref}/content/` + `${jsonPointer(mediaType)}/schema`,
     });
   }
   return ajv.compile({
     $ref:
-      `decant-openapi#/paths/${jsonPointer(path)}/${method}/responses/${status}/content/` +
+      `agent-benchmarks-openapi#/paths/${jsonPointer(path)}/${method}/responses/${status}/content/` +
       `${jsonPointer(mediaType)}/schema`,
   });
 }
 
 function openApiFromAjv(ajv: Ajv2020): OpenApiDocument {
   return (
-    (ajv.getSchema("decant-openapi")?.schema as OpenApiDocument | undefined) ??
+    (ajv.getSchema("agent-benchmarks-openapi")?.schema as OpenApiDocument | undefined) ??
     ({} as OpenApiDocument)
   );
 }

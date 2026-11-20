@@ -66,9 +66,9 @@ describe("Codex injected context", () => {
   });
 
   test("counts only typed prompts as turns and their gaps as waiting on the user", () => {
-    const dir = mkdtempSync(join(tmpdir(), "decant-codex-injected-"));
+    const dir = mkdtempSync(join(tmpdir(), "agent-benchmarks-codex-injected-"));
     try {
-      const db = openDb(join(dir, "decant.db"));
+      const db = openDb(join(dir, "agent-benchmarks.db"));
       upsertSession(
         db,
         parseCodexSession("fallback", rollout, new Map()),

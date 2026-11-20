@@ -1,6 +1,6 @@
 ---
 name: add-source
-description: Add or extend a Decant source parser for another coding-agent CLI's session logs. Use when adding a new tool under src/sources/, changing how an existing parser normalizes records, or touching discovery, watch roots, or parser fixtures and goldens.
+description: Add or extend a Agent Benchmarks source parser for another coding-agent CLI's session logs. Use when adding a new tool under src/sources/, changing how an existing parser normalizes records, or touching discovery, watch roots, or parser fixtures and goldens.
 ---
 
 # Add a source parser
@@ -47,5 +47,5 @@ editing; this skill only lists the steps that are easy to miss.
 ## Done
 
 `bun test`, `bunx tsc --noEmit`, and `bunx biome check .` pass, then
-`just check`. Use `DECANT_DB=<scratch> ... --no-sync` for manual runs so the
+`just check`. Use `AGENT_BENCHMARKS_DB=<scratch> ... --no-sync` for manual runs so the
 real archive is never touched.

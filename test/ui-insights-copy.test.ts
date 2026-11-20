@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readUiSource, sourceBetween, sourceFrom } from "./ui-source.ts";
 
 const main = readUiSource();
-const insightsView = sourceBetween(main, "function InsightsView(", "function DosuInsightsRow()");
+const insightsView = sourceBetween(main, "function InsightsView(", "export function InsightsSignalsSkeleton(");
 
 describe("Insights information hierarchy", () => {
   test("explains how archive evidence becomes future-agent improvements", () => {
@@ -15,18 +15,6 @@ describe("Insights information hierarchy", () => {
     expect(main).not.toContain("Set up for future runs");
   });
 
-  test("keeps the Dosu suggestion explicitly optional", () => {
-    expect(main).toContain("Optional · Dosu");
-    expect(main).toContain("function DosuInsightsRow()");
-    expect(main).toContain('dosuLink("insights_card")');
-    expect(main).not.toContain("function DosuInsightsCard()");
-  });
-
-  test("always renders the Dosu suggestion without a settings gate", () => {
-    expect(insightsView).not.toContain("showDosuSuggestion");
-    expect(insightsView).not.toContain("dosuSuggestions");
-    expect(insightsView).toContain("<DosuInsightsRow />");
-  });
 
   test("uses expandable comparison rows instead of featured catalog cards", () => {
     expect(main).toContain('aria-expanded={expanded}');

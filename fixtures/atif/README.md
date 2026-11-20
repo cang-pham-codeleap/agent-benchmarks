@@ -9,8 +9,8 @@ real run.
   summarization subagent referenced by `trajectory_path`.
 - `jobs/synthetic-job/trial-1/agent/trajectory.summarization-1-summary.json`
   is that subagent. Its first two steps are marked `is_copied_context`, and
-  its model has no Decant rate, so the step's `cost_usd` stands.
-- `embedded.atif.json` is an ATIF-v1.7 document in the shape `decant export
+  its model has no Agent Benchmarks rate, so the step's `cost_usd` stands.
+- `embedded.atif.json` is an ATIF-v1.7 document in the shape `agent-benchmarks export
   --as atif` writes: Claude Code tool names, cache writes in
   `metrics.extra.cache_write_tokens`, a compaction boundary, a message written
   as content parts, and one subagent embedded in `subagent_trajectories` and

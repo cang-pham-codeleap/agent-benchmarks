@@ -5,7 +5,7 @@
 -- unknown_record_type ×2 (part:hologram, role:narrator).
 INSERT INTO `session` (`id`, `project_id`, `slug`, `directory`, `title`, `version`,
   `time_created`, `time_updated`)
-VALUES ('ses_v1_bad', 'prj_v1', 'v1-bad', '/decant-fixture/example', 'Malformed rows', '1.18.35',
+VALUES ('ses_v1_bad', 'prj_v1', 'v1-bad', '/agent-benchmarks-fixture/example', 'Malformed rows', '1.18.35',
   1791797000000, 1791797060000);
 
 INSERT INTO `message` (`id`, `session_id`, `time_created`, `time_updated`, `data`) VALUES

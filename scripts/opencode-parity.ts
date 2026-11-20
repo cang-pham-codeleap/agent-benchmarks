@@ -68,13 +68,13 @@ function fmt(value: number): string {
 }
 
 export function compareModelTotals(
-  decant: ModelTotals[],
+  agentBenchmarks: ModelTotals[],
   reference: ModelTotals[],
   label: string,
-  actualLabel = "Decant",
+  actualLabel = "Agent Benchmarks",
 ): ParityLine[] {
   const lines: ParityLine[] = [];
-  const byKey = new Map(decant.map((row) => [modelKey(row), row]));
+  const byKey = new Map(agentBenchmarks.map((row) => [modelKey(row), row]));
   const seen = new Set<string>();
   for (const expected of [...reference].sort((a, b) => modelKey(a).localeCompare(modelKey(b)))) {
     const key = modelKey(expected);
@@ -105,7 +105,7 @@ export function compareModelTotals(
         : { level: "mismatch", text: `${key}: ${diffs.join(", ")} (${actualLabel} vs ${label})` },
     );
   }
-  for (const row of decant) {
+  for (const row of agentBenchmarks) {
     if (!seen.has(modelKey(row))) {
       lines.push({
         level: "mismatch",
@@ -116,9 +116,9 @@ export function compareModelTotals(
   return lines;
 }
 
-export function compareRecordedCost(decant: ModelTotals[], reference: ModelTotals[]): ParityLine[] {
+export function compareRecordedCost(agentBenchmarks: ModelTotals[], reference: ModelTotals[]): ParityLine[] {
   const lines: ParityLine[] = [];
-  const byKey = new Map(decant.map((row) => [modelKey(row), row]));
+  const byKey = new Map(agentBenchmarks.map((row) => [modelKey(row), row]));
   for (const expected of [...reference].sort((a, b) => modelKey(a).localeCompare(modelKey(b)))) {
     const key = modelKey(expected);
     const actual = byKey.get(key);
@@ -129,26 +129,26 @@ export function compareRecordedCost(decant: ModelTotals[], reference: ModelTotal
       if (expected.cost <= 0 && actual.cost <= 0) {
         lines.push({
           level: "info",
-          text: `${key}: no Decant rate and no recorded cost (cost unavailable)`,
+          text: `${key}: no Agent Benchmarks rate and no recorded cost (cost unavailable)`,
         });
         continue;
       }
       const equal = Math.abs(actual.cost - expected.cost) <= FLOAT_SUMMATION_TOLERANCE;
       lines.push({
         level: equal ? "ok" : "mismatch",
-        text: `${key}: Decant reported ${fmt(actual.cost)} vs recorded ${fmt(expected.cost)} (no Decant rate)`,
+        text: `${key}: Agent Benchmarks reported ${fmt(actual.cost)} vs recorded ${fmt(expected.cost)} (no Agent Benchmarks rate)`,
       });
       continue;
     }
     if (!LIST_PRICE_PROVIDERS.has(expected.provider) || expected.cost <= 0) {
       lines.push({
         level: "info",
-        text: `${key}: recorded ${fmt(expected.cost)}, Decant ${fmt(actual.cost)} (not compared)`,
+        text: `${key}: recorded ${fmt(expected.cost)}, Agent Benchmarks ${fmt(actual.cost)} (not compared)`,
       });
       continue;
     }
     // Releases before 1.3.16 charged reasoning held inside output a second
-    // time; Decant charges it once, so that excess is taken off the record.
+    // time; Agent Benchmarks charges it once, so that excess is taken off the record.
     const excess =
       (expected.doubleCharged ?? 0) > 0
         ? estimateCost(
@@ -162,22 +162,22 @@ export function compareRecordedCost(decant: ModelTotals[], reference: ModelTotal
     const note = excess > 0 ? `, less ${fmt(excess)} reasoning charged twice before 1.3.16` : "";
     lines.push({
       level: gap <= COST_TOLERANCE ? "ok" : "mismatch",
-      text: `${key}: Decant ${fmt(actual.cost)} vs recorded ${fmt(expected.cost)}${note} (${(gap * 100).toFixed(2)}%)`,
+      text: `${key}: Agent Benchmarks ${fmt(actual.cost)} vs recorded ${fmt(expected.cost)}${note} (${(gap * 100).toFixed(2)}%)`,
     });
   }
   return lines;
 }
 
 export function compareSessionTotals(
-  decant: SessionTotals[],
+  agentBenchmarks: SessionTotals[],
   reference: SessionTotals[],
 ): ParityLine[] {
   const lines: ParityLine[] = [];
-  const byId = new Map(decant.map((row) => [row.sessionId, row]));
+  const byId = new Map(agentBenchmarks.map((row) => [row.sessionId, row]));
   for (const expected of [...reference].sort((a, b) => a.sessionId.localeCompare(b.sessionId))) {
     const actual = byId.get(expected.sessionId);
     if (actual == null) {
-      lines.push({ level: "mismatch", text: `${expected.sessionId}: missing in Decant` });
+      lines.push({ level: "mismatch", text: `${expected.sessionId}: missing in Agent Benchmarks` });
       continue;
     }
     const over: string[] = [];
@@ -193,7 +193,7 @@ export function compareSessionTotals(
     check("cacheWrite", actual.cacheWrite, expected.cacheWrite);
     lines.push(
       over.length === 0
-        ? { level: "ok", text: `${expected.sessionId}: Decant totals at or below session_v2` }
+        ? { level: "ok", text: `${expected.sessionId}: Agent Benchmarks totals at or below session_v2` }
         : expected.migrated === true
           ? {
               level: "info",
@@ -496,7 +496,7 @@ function legacyStepSums(
   return sums;
 }
 
-export function decantRuleModelTotals(rows: readonly OpenCodeAssistantRow[]): ModelTotals[] {
+export function agentBenchmarksRuleModelTotals(rows: readonly OpenCodeAssistantRow[]): ModelTotals[] {
   const totals = new Map<string, ModelTotals>();
   for (const row of rows) {
     if (row.legacyPreferred || row.inherited) {
@@ -613,7 +613,7 @@ function readOpenCodeSessionTotals(db: Database): SessionTotals[] {
   return rows.map((row) => ({ ...row, migrated: row.migrated === 1 }));
 }
 
-/** One 1.x session Decant reads from the 1.x tables. The aggregate columns
+/** One 1.x session Agent Benchmarks reads from the 1.x tables. The aggregate columns
  * arrived in later 1.x releases and read as NULL on older databases. */
 export interface LegacySession {
   id: string;
@@ -690,7 +690,7 @@ interface LegacyMessage {
   parts: JsonObject[];
 }
 
-/** The messages Decant reads, in OpenCode's order, each with its parts. 1.x
+/** The messages Agent Benchmarks reads, in OpenCode's order, each with its parts. 1.x
  * records no fork link: a fork copies its parent's messages with their
  * original creation time, so a message older than its session is inherited
  * history and is skipped. Unreadable rows are skipped too. */
@@ -788,16 +788,16 @@ export function readLegacySessionTotals(db: Database): SessionTotals[] {
  * include the usage it inherited, and sessions created before OpenCode
  * 1.14.49 were backfilled from each message's last-step tokens. */
 export function compareLegacySessionTotals(
-  decant: SessionTotals[],
+  agentBenchmarks: SessionTotals[],
   reference: SessionTotals[],
 ): ParityLine[] {
   const lines: ParityLine[] = [];
-  const byId = new Map(decant.map((row) => [row.sessionId, row]));
+  const byId = new Map(agentBenchmarks.map((row) => [row.sessionId, row]));
   let matched = 0;
   for (const expected of [...reference].sort((a, b) => a.sessionId.localeCompare(b.sessionId))) {
     const actual = byId.get(expected.sessionId);
     if (actual == null) {
-      lines.push({ level: "info", text: `${expected.sessionId}: not in Decant` });
+      lines.push({ level: "info", text: `${expected.sessionId}: not in Agent Benchmarks` });
       continue;
     }
     const diffs: string[] = [];
@@ -815,7 +815,7 @@ export function compareLegacySessionTotals(
       text:
         diffs.length === 0
           ? `${expected.sessionId}: input and cache match the session columns`
-          : `${expected.sessionId}: ${diffs.join(", ")} (Decant vs session columns)`,
+          : `${expected.sessionId}: ${diffs.join(", ")} (Agent Benchmarks vs session columns)`,
     });
   }
   lines.push({
@@ -907,17 +907,17 @@ export function lettaStructure(records: readonly NormalizedRecord[]): Transcript
   return structure;
 }
 
-/** Decant names an MCP call `mcp__<server>__<tool>`; OpenCode (and Letta)
+/** Agent Benchmarks names an MCP call `mcp__<server>__<tool>`; OpenCode (and Letta)
  * keep `<server>_<tool>`. A sanitized server name may itself hold `__`, so
  * every split is tried. */
-export function toolNamesMatch(decantName: string, lettaName: string): boolean {
-  if (decantName === lettaName) {
+export function toolNamesMatch(agentBenchmarksName: string, lettaName: string): boolean {
+  if (agentBenchmarksName === lettaName) {
     return true;
   }
-  if (!decantName.startsWith("mcp__")) {
+  if (!agentBenchmarksName.startsWith("mcp__")) {
     return false;
   }
-  const rest = decantName.slice("mcp__".length);
+  const rest = agentBenchmarksName.slice("mcp__".length);
   for (let at = rest.indexOf("__"); at > 0; at = rest.indexOf("__", at + 1)) {
     if (`${rest.slice(0, at)}_${rest.slice(at + 2)}` === lettaName) {
       return true;
@@ -928,15 +928,15 @@ export function toolNamesMatch(decantName: string, lettaName: string): boolean {
 
 export function compareStructure(
   sessionId: string,
-  decant: TranscriptStructure,
+  agentBenchmarks: TranscriptStructure,
   letta: TranscriptStructure,
 ): ParityLine[] {
   const lines: ParityLine[] = [];
-  const onlyLetta = [...letta.toolCalls.keys()].filter((id) => !decant.toolCalls.has(id));
-  const onlyDecant = [...decant.toolCalls.keys()].filter((id) => !letta.toolCalls.has(id));
+  const onlyLetta = [...letta.toolCalls.keys()].filter((id) => !agentBenchmarks.toolCalls.has(id));
+  const onlyAgentBenchmarks = [...agentBenchmarks.toolCalls.keys()].filter((id) => !letta.toolCalls.has(id));
   let names = 0;
   let outcomes = 0;
-  for (const [id, call] of decant.toolCalls) {
+  for (const [id, call] of agentBenchmarks.toolCalls) {
     const other = letta.toolCalls.get(id);
     if (other == null) {
       continue;
@@ -944,10 +944,10 @@ export function compareStructure(
     names += toolNamesMatch(call.name, other.name) ? 0 : 1;
     outcomes += call.outcome === other.outcome ? 0 : 1;
   }
-  if (onlyLetta.length > 0 || onlyDecant.length > 0) {
+  if (onlyLetta.length > 0 || onlyAgentBenchmarks.length > 0) {
     lines.push({
       level: "mismatch",
-      text: `${sessionId}: tool-call ids differ (${onlyLetta.length} only in Letta, ${onlyDecant.length} only in Decant)`,
+      text: `${sessionId}: tool-call ids differ (${onlyLetta.length} only in Letta, ${onlyAgentBenchmarks.length} only in Agent Benchmarks)`,
     });
   }
   if (names > 0) {
@@ -965,12 +965,12 @@ export function compareStructure(
   if (lines.length === 0) {
     lines.push({
       level: "ok",
-      text: `${sessionId}: ${decant.toolCalls.size} tool call(s) match Letta (ids, names, results)`,
+      text: `${sessionId}: ${agentBenchmarks.toolCalls.size} tool call(s) match Letta (ids, names, results)`,
     });
   }
   lines.push({
     level: "info",
-    text: `${sessionId}: records Decant/Letta user ${decant.user}/${letta.user}, assistant text ${decant.assistantText}/${letta.assistantText}, reasoning ${decant.reasoning}/${letta.reasoning}`,
+    text: `${sessionId}: records Agent Benchmarks/Letta user ${agentBenchmarks.user}/${letta.user}, assistant text ${agentBenchmarks.assistantText}/${letta.assistantText}, reasoning ${agentBenchmarks.reasoning}/${letta.reasoning}`,
   });
   return lines;
 }
@@ -990,7 +990,7 @@ function diagnosticsLine(sessionId: string, diagnostics: readonly Diagnostic[]):
   return { level: "info", text: `${sessionId}: Letta diagnostics ${text}` };
 }
 
-function readDecantStructure(db: Database, sessionId: string): TranscriptStructure | null {
+function readAgentBenchmarksStructure(db: Database, sessionId: string): TranscriptStructure | null {
   const session = db
     .query(
       `SELECT id FROM session WHERE tool = 'opencode' AND source_session_id = ?1 ORDER BY id LIMIT 1`,
@@ -1043,16 +1043,16 @@ function readDecantStructure(db: Database, sessionId: string): TranscriptStructu
   return structure;
 }
 
-function lettaCrossCheck(opencode: Database, decant: Database): ParityLine[] {
+function lettaCrossCheck(opencode: Database, agentBenchmarks: Database): ParityLine[] {
   const lines: ParityLine[] = [];
   for (const session of readLegacySessions(opencode)) {
     const { messages, parts } = loadLegacyRows(opencode, session.id);
     const document = buildLegacyExport(session, messages, parts);
-    const decantSide = readDecantStructure(decant, session.id);
-    if (decantSide == null) {
+    const agentBenchmarksSide = readAgentBenchmarksStructure(agentBenchmarks, session.id);
+    if (agentBenchmarksSide == null) {
       lines.push({
         level: document.messages.length > 0 ? "mismatch" : "info",
-        text: `${session.id}: missing in Decant`,
+        text: `${session.id}: missing in Agent Benchmarks`,
       });
       continue;
     }
@@ -1064,7 +1064,7 @@ function lettaCrossCheck(opencode: Database, decant: Database): ParityLine[] {
       lines.push({ level: "info", text: `${session.id}: Letta could not normalize it (${code})` });
       continue;
     }
-    lines.push(...compareStructure(session.id, decantSide, lettaStructure(result.records)));
+    lines.push(...compareStructure(session.id, agentBenchmarksSide, lettaStructure(result.records)));
     const diagnostics = diagnosticsLine(session.id, result.diagnostics);
     if (diagnostics != null) {
       lines.push(diagnostics);
@@ -1073,12 +1073,12 @@ function lettaCrossCheck(opencode: Database, decant: Database): ParityLine[] {
   return lines;
 }
 
-export interface DecantModelGroup extends Omit<ModelTotals, "reasoning" | "cost" | "costSource"> {
+export interface AgentBenchmarksModelGroup extends Omit<ModelTotals, "reasoning" | "cost" | "costSource"> {
   recorded: number;
 }
 
-export function costDecantModelGroups(
-  groups: readonly DecantModelGroup[],
+export function costAgentBenchmarksModelGroups(
+  groups: readonly AgentBenchmarksModelGroup[],
   reportedByModel: ReadonlyMap<string, number>,
 ): ModelTotals[] {
   const pricing = defaultPricing();
@@ -1118,7 +1118,7 @@ function shareOfReportedCost(
   return model.recorded > 0 ? (reported * groupRecorded) / model.recorded : reported / model.groups;
 }
 
-function readDecantModelTotals(db: Database): ModelTotals[] {
+function readAgentBenchmarksModelTotals(db: Database): ModelTotals[] {
   const groups = (
     db
       .query(
@@ -1157,7 +1157,7 @@ function readDecantModelTotals(db: Database): ModelTotals[] {
         GROUP BY u.model`,
     )
     .all() as Array<{ model: string; cost: number }>;
-  return costDecantModelGroups(
+  return costAgentBenchmarksModelGroups(
     groups,
     new Map(
       reported
@@ -1167,7 +1167,7 @@ function readDecantModelTotals(db: Database): ModelTotals[] {
   );
 }
 
-function readDecantSessionTotals(db: Database): SessionTotals[] {
+function readAgentBenchmarksSessionTotals(db: Database): SessionTotals[] {
   return db
     .query(
       `SELECT s.source_session_id AS sessionId,
@@ -1201,16 +1201,16 @@ function print(lines: ParityLine[]): number {
 }
 
 const USAGE =
-  "usage: bun run scripts/opencode-parity.ts <opencode.db> <decant.db> [stats.json] [--letta]";
+  "usage: bun run scripts/opencode-parity.ts <opencode.db> <agent-benchmarks.db> [stats.json] [--letta]";
 
 function main(): void {
   const args = process.argv.slice(2);
   const letta = args.includes("--letta");
   const positional = args.filter((arg) => arg !== "--letta");
-  const [opencodePath, decantPath, statsPath] = positional;
+  const [opencodePath, agentBenchmarksPath, statsPath] = positional;
   if (
     opencodePath == null ||
-    decantPath == null ||
+    agentBenchmarksPath == null ||
     positional.length > 3 ||
     positional.some((arg) => arg.startsWith("--"))
   ) {
@@ -1218,39 +1218,39 @@ function main(): void {
     process.exit(2);
   }
   const opencode = openReadOnly(opencodePath);
-  const decant = openReadOnly(decantPath);
+  const agentBenchmarks = openReadOnly(agentBenchmarksPath);
   try {
-    const decantModels = readDecantModelTotals(decant);
+    const agentBenchmarksModels = readAgentBenchmarksModelTotals(agentBenchmarks);
     const v2Rows = readOpenCodeAssistantRows(opencode);
     const legacyModels = readLegacyModelTotals(opencode);
-    const reference = mergeModelTotals(decantRuleModelTotals(v2Rows), legacyModels);
+    const reference = mergeModelTotals(agentBenchmarksRuleModelTotals(v2Rows), legacyModels);
     let mismatches = 0;
-    console.log(`== per provider/model: Decant vs ${opencodePath} (2.x and 1.x rows)`);
+    console.log(`== per provider/model: Agent Benchmarks vs ${opencodePath} (2.x and 1.x rows)`);
     mismatches += print(
-      compareModelTotals(decantModels, withReasoningInOutput(reference), "opencode.db"),
+      compareModelTotals(agentBenchmarksModels, withReasoningInOutput(reference), "opencode.db"),
     );
-    console.log("== Decant cost vs recorded cost");
-    mismatches += print(compareRecordedCost(decantModels, reference));
+    console.log("== Agent Benchmarks cost vs recorded cost");
+    mismatches += print(compareRecordedCost(agentBenchmarksModels, reference));
     const compaction = readOpenCodeCompaction(opencode);
     console.log(
-      `info     2.x compaction rows ${compaction.rows}: input ${compaction.input}, output ${compaction.output} (counted by Decant, not by opencode stats)`,
+      `info     2.x compaction rows ${compaction.rows}: input ${compaction.input}, output ${compaction.output} (counted by Agent Benchmarks, not by opencode stats)`,
     );
     const legacyCompaction = readLegacyCompaction(opencode);
     console.log(
-      `info     1.x compaction summaries ${legacyCompaction.rows}: input ${legacyCompaction.input}, output ${legacyCompaction.output} (counted by Decant)`,
+      `info     1.x compaction summaries ${legacyCompaction.rows}: input ${legacyCompaction.input}, output ${legacyCompaction.output} (counted by Agent Benchmarks)`,
     );
     const differences = openCodeRuleDifferences(v2Rows);
     const legacySteps = legacyModels.reduce((sum, row) => sum + row.steps, 0);
     console.log(
-      `info     Decant differs from opencode stats by design: ${differences.inheritedWithoutForkLink} inherited 2.x row(s) of forks without a fork link (skipped), ${differences.reasoningIncluded} 2.x row(s) whose output already includes reasoning (not added again), ${differences.stepSums} migrated 2.x row(s) read from their 1.x step-finish parts, ${differences.legacyPreferred} 2.x row(s) of sessions read from a newer 1.x copy, ${legacySteps} 1.x step(s)`,
+      `info     Agent Benchmarks differs from opencode stats by design: ${differences.inheritedWithoutForkLink} inherited 2.x row(s) of forks without a fork link (skipped), ${differences.reasoningIncluded} 2.x row(s) whose output already includes reasoning (not added again), ${differences.stepSums} migrated 2.x row(s) read from their 1.x step-finish parts, ${differences.legacyPreferred} 2.x row(s) of sessions read from a newer 1.x copy, ${legacySteps} 1.x step(s)`,
     );
-    const decantSessions = readDecantSessionTotals(decant);
-    console.log("== per session: Decant assistant-only vs session_v2");
-    mismatches += print(compareSessionTotals(decantSessions, readOpenCodeSessionTotals(opencode)));
+    const agentBenchmarksSessions = readAgentBenchmarksSessionTotals(agentBenchmarks);
+    console.log("== per session: Agent Benchmarks assistant-only vs session_v2");
+    mismatches += print(compareSessionTotals(agentBenchmarksSessions, readOpenCodeSessionTotals(opencode)));
     const legacySessions = readLegacySessionTotals(opencode);
     if (legacySessions.length > 0) {
-      console.log("== per session: Decant vs 1.x session columns (informational)");
-      mismatches += print(compareLegacySessionTotals(decantSessions, legacySessions));
+      console.log("== per session: Agent Benchmarks vs 1.x session columns (informational)");
+      mismatches += print(compareLegacySessionTotals(agentBenchmarksSessions, legacySessions));
     }
     if (statsPath != null) {
       const stats = parseStatsJson(readFileSync(statsPath, "utf8"));
@@ -1267,13 +1267,13 @@ function main(): void {
       );
     }
     if (letta) {
-      console.log("== 1.x sessions: Decant vs Letta Trajectory (structure only)");
-      mismatches += print(lettaCrossCheck(opencode, decant));
+      console.log("== 1.x sessions: Agent Benchmarks vs Letta Trajectory (structure only)");
+      mismatches += print(lettaCrossCheck(opencode, agentBenchmarks));
     }
     console.log(`== ${mismatches} mismatch line(s)`);
     process.exitCode = mismatches === 0 ? 0 : 1;
   } finally {
-    decant.close();
+    agentBenchmarks.close();
     opencode.close();
   }
 }

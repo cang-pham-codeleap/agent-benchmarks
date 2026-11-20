@@ -7,7 +7,7 @@ import type { Config } from "../src/config.ts";
 import { openDb } from "../src/db.ts";
 import { handleRequest } from "../src/server.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-session-state-server-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-session-state-server-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;

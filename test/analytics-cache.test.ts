@@ -14,7 +14,7 @@ import {
   totals,
 } from "../src/stats.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-analytics-cache-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-analytics-cache-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let counter = 0;

@@ -10,7 +10,7 @@ import type { TokenUsage } from "../src/model.ts";
 import { setSessionUserState } from "../src/session-user-state.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-billed-requests-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-billed-requests-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;

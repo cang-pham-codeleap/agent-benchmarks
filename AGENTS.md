@@ -7,14 +7,14 @@ truth.
 
 ## Project overview
 
-Decant is a local-first Bun and TypeScript application that turns Claude Code,
+Agent Benchmarks is a local-first Bun and TypeScript application that turns Claude Code,
 Codex, Gemini CLI, GitHub Copilot CLI, and Pi JSONL session logs, OpenCode's
 SQLite session store, Cursor CLI's per-chat SQLite stores, Copilot Chat in
 VS Code's chat session files, Hermes Agent's SQLite `state.db`, and imported
 ATIF trajectory files into a
-normalized, full-text-searchable SQLite archive. The `decant` CLI owns
+normalized, full-text-searchable SQLite archive. The `agent-benchmarks` CLI owns
 parsing, ingest, reads, reports, distillation, recommendations, watch mode, and
-the React UI served by `decant serve`.
+the React UI served by `agent-benchmarks serve`.
 
 Start with these files and guides:
 
@@ -32,8 +32,6 @@ Start with these files and guides:
 - `docs/sources.md` lists each source's default location, overrides, and
   user-facing caveats.
 - `docs/api/openapi.yaml` defines the local API contract.
-- `docs/distribution.md` covers npm, installer, Homebrew, Docker, and source
-  builds.
 - `docs/adding-a-source.md` provides the parser contribution checklist.
 - `docs/contribution-triage.md` is the procedure for triaging outside pull
   requests.
@@ -49,12 +47,10 @@ only needed when validating the container image.
 - `bun test` runs the test suite.
 - `bunx tsc --noEmit` runs the type check.
 - `bunx biome check .` runs the formatting and lint check.
-- `just check` runs the full local gate, including the native distribution
-  staging smoke. It needs network access because the smoke packs and installs
-  the npm launcher packages.
+- `just check` runs the local test and typecheck gates.
 
-The default archive is `~/.decant/decant.db`. Override it with `DECANT_DB` or
-`--db`. Set `DECANT_NO_SYNC` or pass `--no-sync` whenever a command points at a
+The default archive is `~/.agent-benchmarks/agent-benchmarks.db`. Override it with `AGENT_BENCHMARKS_DB` or
+`--db`. Set `AGENT_BENCHMARKS_NO_SYNC` or pass `--no-sync` whenever a command points at a
 scratch archive, or automatic sync may populate it from the real Claude Code,
 Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, VS Code, Hermes
 Agent, and Pi directories.
@@ -68,9 +64,8 @@ A change is ready when:
 - `bunx biome check .` passes.
 - New behavior has focused tests. Do not weaken or delete tests to make a
   change pass.
-- Distribution changes get a native binary smoke test. Docker changes also get
-  a local `docker build` and `docker run --help` smoke when Docker is
-  available.
+- Standalone binary changes get a native smoke test. Docker changes also get
+  a local `docker build` and `docker run --help` smoke when Docker is available.
 - User-visible command, route, configuration, or metric changes update their
   corresponding public docs.
 
@@ -84,10 +79,7 @@ A change is ready when:
    opens the database behind a separate contract.
 3. **Runtime stays local-first.** Do not add outbound network calls, hosted
    service dependencies, or LLM calls. The only runtime networking is the local
-   UI and API served by `decant serve`, bound to loopback by default. The one
-   exception lives in `src/update.ts`, a once-a-day npm registry version check
-   that stays off until the user turns it on, and the release downloads
-   `decant update` makes when the user runs it. Neither sends archive data.
+   UI and API served by `agent-benchmarks serve`, bound to loopback by default.
 4. **Costs reflect current pricing.** `estimateCost` in `src/cost.ts` is applied
    when a session is written. Every sync reconciles stored session and activity
    costs with current rates, preserving transcripts and user state.
@@ -171,8 +163,7 @@ When changing:
 - a route, update `docs/api/openapi.yaml`, `docs/api/routes.md`, and contract
   tests.
 - an exit code, an error code, or what a flag accepts, update `docs/cli.md`.
-- install or packaging behavior, update `docs/distribution.md` and the npm
-  package README.
+- local install or container behavior, update `README.md` and the relevant lifecycle docs.
 - model rates, update `docs/pricing.md` with dated first-party sources.
 
 ## When stuck

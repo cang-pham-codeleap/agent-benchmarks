@@ -136,7 +136,7 @@ export function resolveListScope(
         1,
         `no project matches --project ${JSON.stringify(options.project)} ` +
           `(looked for ${match.tried.join(", ")})\n` +
-          "run `decant project ls` to see the stored paths, or use --repo " +
+          "run `agent-benchmarks project ls` to see the stored paths, or use --repo " +
           "to match a repository and its worktrees",
       );
     }
@@ -159,7 +159,7 @@ export function resolveListScope(
         1,
         `no repository matches --repo ${JSON.stringify(options.repo)} ` +
           `(looked for ${match.tried.join(", ")})\n` +
-          "run `decant project ls --fields path,root_path` to see the stored " +
+          "run `agent-benchmarks project ls --fields path,root_path` to see the stored " +
           "paths and their repository roots",
       );
     }

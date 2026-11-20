@@ -27,7 +27,7 @@ import {
 } from "../src/sources/copilot.ts";
 import { totals as statsTotals } from "../src/stats.ts";
 
-const workDir = realpathSync(mkdtempSync(join(tmpdir(), "decant-copilot-test-")));
+const workDir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-copilot-test-")));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;

@@ -19,7 +19,7 @@ import { openCodeUsage } from "../src/sources/opencode-usage.ts";
 import { buildOpenCodeFixtureDb } from "./opencode-fixture.ts";
 import { STEP_TIMES, timingMessageRows, timingSessionRow } from "./opencode-timing.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-opencode-parser-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-opencode-parser-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const T0 = Date.parse("2026-10-12T06:20:00.000Z");
@@ -38,7 +38,7 @@ function sessionRow(overrides: Partial<OpenCodeSessionRow> = {}): OpenCodeSessio
     fork_session_id: null,
     fork_boundary: null,
     slug: "inline",
-    directory: "/decant-fixture/example",
+    directory: "/agent-benchmarks-fixture/example",
     title: "Inline session",
     version: "2.0.27",
     cost: 0,
@@ -112,8 +112,8 @@ describe("parseOpenCodeSession", () => {
     expect(session).toMatchObject({
       tool: "opencode",
       sourceSessionId: "ses_sample",
-      projectPath: "/decant-fixture/example",
-      cwd: "/decant-fixture/example",
+      projectPath: "/agent-benchmarks-fixture/example",
+      cwd: "/agent-benchmarks-fixture/example",
       title: "Summarize the example file",
       model: "glm-5.3-flash",
       provider: "opencode-go",
@@ -163,7 +163,7 @@ describe("parseOpenCodeSession", () => {
         blockType: "tool_use",
         toolName: "read",
         toolUseId: "call_read_1",
-        toolInput: { path: "/decant-fixture/example/notes.txt" },
+        toolInput: { path: "/agent-benchmarks-fixture/example/notes.txt" },
       },
     ]);
     expect(session.messages[2]).toMatchObject({
@@ -678,7 +678,7 @@ describe("parseOpenCodeSession", () => {
         }),
         msg(2, "model-switched", { model: GLM, time: { created: T0 + 2000 } }),
         msg(3, "location-switched", {
-          location: "/decant-fixture/example",
+          location: "/agent-benchmarks-fixture/example",
           time: { created: T0 + 3000 },
         }),
         msg(4, "user", { text: "hello", time: { created: T0 + 4000 } }),
@@ -772,7 +772,7 @@ describe("parseOpenCodeSession", () => {
       name: "read",
       state: {
         status: "completed",
-        input: { path: "/decant-fixture/example/a" },
+        input: { path: "/agent-benchmarks-fixture/example/a" },
         content: [{ type: "text", text: "a" }],
       },
       time: { created: T0 },
@@ -832,7 +832,7 @@ describe("OpenCode 2.x step timing", () => {
       type: "tool",
       id,
       name: "read",
-      state: { status: "completed", input: { path: "/decant-fixture/example/a" }, content: [] },
+      state: { status: "completed", input: { path: "/agent-benchmarks-fixture/example/a" }, content: [] },
       time,
     });
     const { session } = parseOpenCodeSession(

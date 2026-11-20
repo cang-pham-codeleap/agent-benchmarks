@@ -20,8 +20,8 @@ import {
   compareRecordedCost,
   compareSessionTotals,
   compareStructure,
-  costDecantModelGroups,
-  decantRuleModelTotals,
+  costAgentBenchmarksModelGroups,
+  agentBenchmarksRuleModelTotals,
   type LegacySession,
   lettaStructure,
   type ModelTotals,
@@ -53,7 +53,7 @@ import {
   opencodeFixtureSql,
 } from "./opencode-fixture.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-opencode-parity-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-opencode-parity-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let counter = 0;
@@ -141,34 +141,34 @@ function model(overrides: Partial<ModelTotals>): ModelTotals {
 }
 
 describe("opencode parity comparisons", () => {
-  test("matches a model whose Decant output equals the reference output plus reasoning", () => {
-    const decant = [model({ output: 52, reasoning: 10, cost: 0.0000794 })];
+  test("matches a model whose Agent Benchmarks output equals the reference output plus reasoning", () => {
+    const agentBenchmarks = [model({ output: 52, reasoning: 10, cost: 0.0000794 })];
     const reference = [model({ output: 42, reasoning: 10 })];
-    const lines = compareModelTotals(decant, reference, "opencode.db");
+    const lines = compareModelTotals(agentBenchmarks, reference, "opencode.db");
     expect(lines.map((line) => line.level)).toEqual(["ok"]);
     expect(lines[0]?.text).toContain("opencode-go/glm-5.3-flash");
   });
 
   test("flags every field that differs, and models missing on either side", () => {
-    const decant = [model({ output: 52, cacheWrite: 0 })];
+    const agentBenchmarks = [model({ output: 52, cacheWrite: 0 })];
     const reference = [
       model({}),
       model({ provider: "openrouter", model: "meta/muse-wonder", steps: 1 }),
     ];
-    const lines = compareModelTotals(decant, reference, "stats.json");
+    const lines = compareModelTotals(agentBenchmarks, reference, "stats.json");
     expect(lines.map((line) => line.level)).toEqual(["mismatch", "mismatch"]);
     expect(lines[0]?.text).toContain("cacheWrite 0 vs 16");
     expect(lines[0]?.text).not.toContain("output");
-    expect(lines[1]?.text).toContain("missing in Decant");
+    expect(lines[1]?.text).toContain("missing in Agent Benchmarks");
   });
 
   test("compares list-price cost with the recorded cost within half a percent", () => {
     const reference = [model({ cost: 0.0000794 }), model({ provider: "zai-coding-plan", cost: 0 })];
-    const decant = [
+    const agentBenchmarks = [
       model({ output: 52, cost: 0.0000795 }),
       model({ provider: "zai-coding-plan", output: 52, cost: 0.0000794 }),
     ];
-    const lines = compareRecordedCost(decant, reference);
+    const lines = compareRecordedCost(agentBenchmarks, reference);
     expect(lines).toEqual([
       { level: "ok", text: expect.stringContaining("opencode-go/glm-5.3-flash") },
       { level: "info", text: expect.stringContaining("zai-coding-plan/glm-5.3-flash") },
@@ -190,7 +190,7 @@ describe("opencode parity comparisons", () => {
         doubleCharged: 20,
       }),
     ];
-    const decant = [
+    const agentBenchmarks = [
       model({
         input: 100,
         output: 50,
@@ -200,39 +200,39 @@ describe("opencode parity comparisons", () => {
         costSource: "list",
       }),
     ];
-    expect(compareRecordedCost(decant, reference)).toEqual([
+    expect(compareRecordedCost(agentBenchmarks, reference)).toEqual([
       {
         level: "ok",
-        text: "opencode-go/glm-5.3-flash: Decant 0.0000400 vs recorded 0.0000500, less 0.0000100 reasoning charged twice before 1.3.16 (0.00%)",
+        text: "opencode-go/glm-5.3-flash: Agent Benchmarks 0.0000400 vs recorded 0.0000500, less 0.0000100 reasoning charged twice before 1.3.16 (0.00%)",
       },
     ]);
     expect(
-      compareRecordedCost(decant, [{ ...(reference[0] as ModelTotals), doubleCharged: 0 }])[0]
+      compareRecordedCost(agentBenchmarks, [{ ...(reference[0] as ModelTotals), doubleCharged: 0 }])[0]
         ?.level,
     ).toBe("mismatch");
   });
 
-  test("compares a model Decant cannot price by its reported cost, for any provider", () => {
+  test("compares a model Agent Benchmarks cannot price by its reported cost, for any provider", () => {
     const unpriced = { provider: "example", model: "example-unpriced" };
     const reference = [
       model({ ...unpriced, cost: 0.0012345 }),
       model({ provider: "zai-coding-plan", cost: 0 }),
       model({ provider: "example", model: "example-free", cost: 0 }),
     ];
-    const decant = [
+    const agentBenchmarks = [
       model({ ...unpriced, cost: 0.0012345, costSource: "reported" }),
       model({ provider: "zai-coding-plan", cost: 0.0000794, costSource: "list" }),
       model({ provider: "example", model: "example-free", cost: 0, costSource: "reported" }),
     ];
-    expect(compareRecordedCost(decant, reference)).toEqual([
-      { level: "info", text: expect.stringContaining("example/example-free: no Decant rate") },
+    expect(compareRecordedCost(agentBenchmarks, reference)).toEqual([
+      { level: "info", text: expect.stringContaining("example/example-free: no Agent Benchmarks rate") },
       {
         level: "ok",
-        text: "example/example-unpriced: Decant reported 0.0012345 vs recorded 0.0012345 (no Decant rate)",
+        text: "example/example-unpriced: Agent Benchmarks reported 0.0012345 vs recorded 0.0012345 (no Agent Benchmarks rate)",
       },
       {
         level: "info",
-        text: "zai-coding-plan/glm-5.3-flash: recorded 0, Decant 0.0000794 (not compared)",
+        text: "zai-coding-plan/glm-5.3-flash: recorded 0, Agent Benchmarks 0.0000794 (not compared)",
       },
     ]);
     expect(
@@ -243,7 +243,7 @@ describe("opencode parity comparisons", () => {
     ).toBe("mismatch");
   });
 
-  test("costs Decant groups at list price or at the archive's reported cost", () => {
+  test("costs Agent Benchmarks groups at list price or at the archive's reported cost", () => {
     const group = {
       steps: 1,
       input: 320,
@@ -251,7 +251,7 @@ describe("opencode parity comparisons", () => {
       cacheRead: 100,
       cacheWrite: 16,
     };
-    const rows = costDecantModelGroups(
+    const rows = costAgentBenchmarksModelGroups(
       [
         { ...group, provider: "opencode-go", model: "glm-5.3-flash", recorded: 0.0000794 },
         { ...group, provider: "example", model: "example-unpriced", recorded: 0.006 },
@@ -273,7 +273,7 @@ describe("opencode parity comparisons", () => {
     expect(rows.every((row) => row.reasoning === 0)).toBe(true);
   });
 
-  test("allows Decant session totals at or below the recorded ones, never above", () => {
+  test("allows Agent Benchmarks session totals at or below the recorded ones, never above", () => {
     const base: SessionTotals = {
       sessionId: "ses_a",
       input: 320,
@@ -288,12 +288,12 @@ describe("opencode parity comparisons", () => {
       { ...base, sessionId: "ses_b", input: 400 },
       { ...base, sessionId: "ses_c", input: 400, migrated: true },
     ];
-    const decant: SessionTotals[] = [
+    const agentBenchmarks: SessionTotals[] = [
       base,
       { ...base, sessionId: "ses_b", input: 410 },
       { ...base, sessionId: "ses_c", input: 410 },
     ];
-    const lines = compareSessionTotals(decant, reference);
+    const lines = compareSessionTotals(agentBenchmarks, reference);
     expect(lines.map((line) => line.level)).toEqual(["ok", "mismatch", "info"]);
     expect(lines[1]?.text).toContain("input 410 > 400");
     expect(lines[2]?.text).toContain("migrated from 1.x");
@@ -350,7 +350,7 @@ describe("opencode parity: 1.x reference totals", () => {
     });
   }
 
-  test("sums step-finish usage per model under Decant's 1.x rules", () => {
+  test("sums step-finish usage per model under Agent Benchmarks's 1.x rules", () => {
     const path = freshPath();
     buildOpenCodeFixtureDb(path, MIXED);
     const totals = withDb(path, readLegacyModelTotals);
@@ -411,7 +411,7 @@ describe("opencode parity: 1.x reference totals", () => {
       expect(readLegacySessions(db).map((row) => row.id)).toEqual(["ses_shared", "ses_v1_only"]);
       const rows = shared(db);
       expect(rows.map((row) => row.legacyPreferred)).toEqual([true]);
-      expect(decantRuleModelTotals(rows)).toEqual([]);
+      expect(agentBenchmarksRuleModelTotals(rows)).toEqual([]);
       expect(statsRuleModelTotals(rows)[0]?.steps).toBe(1);
     });
     const writable = new Database(path, { strict: true });
@@ -477,17 +477,17 @@ describe("opencode parity: 2.x counting rules", () => {
     ...overrides,
   });
 
-  test("Decant skips every inherited row and keeps 1.x reasoning semantics", () => {
+  test("Agent Benchmarks skips every inherited row and keeps 1.x reasoning semantics", () => {
     const rows = [
       row({}),
       row({ version: "1.3.10" }),
       row({ inherited: true }),
       row({ inherited: true, forkLinked: true }),
     ];
-    const decant = decantRuleModelTotals(rows)[0];
+    const agentBenchmarks = agentBenchmarksRuleModelTotals(rows)[0];
     const stats = statsRuleModelTotals(rows)[0];
-    expect(decant).toMatchObject({ steps: 2, input: 200, reasoning: 40 });
-    expect((decant?.output ?? 0) + (decant?.reasoning ?? 0)).toBe(120);
+    expect(agentBenchmarks).toMatchObject({ steps: 2, input: 200, reasoning: 40 });
+    expect((agentBenchmarks?.output ?? 0) + (agentBenchmarks?.reasoning ?? 0)).toBe(120);
     expect(stats).toMatchObject({ steps: 3, input: 300, output: 150, reasoning: 60 });
     expect(openCodeRuleDifferences(rows)).toEqual({
       inheritedWithoutForkLink: 1,
@@ -497,7 +497,7 @@ describe("opencode parity: 2.x counting rules", () => {
     });
   });
 
-  test("Decant reads a migrated row from its 1.x step-finish parts", () => {
+  test("Agent Benchmarks reads a migrated row from its 1.x step-finish parts", () => {
     const path = freshPath();
     buildOpenCodeFixtureDb(path, ["v1/migrated.sql"]);
     const rows = withDb(path, readOpenCodeAssistantRows).filter(
@@ -507,7 +507,7 @@ describe("opencode parity: 2.x counting rules", () => {
       ["msg_mg_2", true, 250],
       ["msg_mg_6", true, null],
     ]);
-    expect(decantRuleModelTotals(rows)).toEqual([
+    expect(agentBenchmarksRuleModelTotals(rows)).toEqual([
       model({
         steps: 2,
         input: 310,
@@ -553,7 +553,7 @@ describe("opencode parity: 1.x session columns", () => {
     const path = freshPath();
     buildOpenCodeV1FixtureDb(path, ["v1-sample.sql", "v1/fork.sql"]);
     const reference = withDb(path, readLegacySessionTotals);
-    const decant: SessionTotals[] = [
+    const agentBenchmarks: SessionTotals[] = [
       {
         sessionId: "ses_v1_sample",
         input: 370,
@@ -573,10 +573,10 @@ describe("opencode parity: 1.x session columns", () => {
         cost: 0.0000185,
       },
     ];
-    const lines = compareLegacySessionTotals(decant, reference);
+    const lines = compareLegacySessionTotals(agentBenchmarks, reference);
     expect(lines.every((line) => line.level === "info")).toBe(true);
     expect(lines.map((line) => line.text)).toEqual([
-      "ses_v1_fork: input 90 vs 210, cacheRead 0 vs 40, cacheWrite 0 vs 16 (Decant vs session columns)",
+      "ses_v1_fork: input 90 vs 210, cacheRead 0 vs 40, cacheWrite 0 vs 16 (Agent Benchmarks vs session columns)",
       "ses_v1_sample: input and cache match the session columns",
       "1 of 2 1.x session(s) match on input/cache (fork and backfilled aggregates differ by design)",
     ]);
@@ -584,14 +584,14 @@ describe("opencode parity: 1.x session columns", () => {
 });
 
 describe("opencode parity: Letta structural cross-check", () => {
-  test("assembles the 1.x export layout from what Decant reads", () => {
+  test("assembles the 1.x export layout from what Agent Benchmarks reads", () => {
     const path = freshPath();
     buildOpenCodeV1FixtureDb(path, ["v1-sample.sql", "v1/fork.sql", "v1/compaction.sql"]);
     withDb(path, (db) => {
       const sample = exportOf(db, "ses_v1_sample");
       expect(sample.info).toEqual({
         id: "ses_v1_sample",
-        directory: "/decant-fixture/example",
+        directory: "/agent-benchmarks-fixture/example",
         time: { created: 1791790000000 },
       });
       expect(sample.messages.map((message) => message.info.id)).toEqual([
@@ -655,7 +655,7 @@ describe("opencode parity: Letta structural cross-check", () => {
       call_unanswered: { name: "read", outcome: "no-result" },
       call_unflagged: { name: "read", outcome: "result-without-status" },
     });
-    const decant: TranscriptStructure = {
+    const agentBenchmarks: TranscriptStructure = {
       toolCalls: new Map([
         ["call_unanswered", { name: "read", outcome: "no-result" as const }],
         ["call_unflagged", { name: "read", outcome: "no-result" as const }],
@@ -664,13 +664,13 @@ describe("opencode parity: Letta structural cross-check", () => {
       assistantText: 0,
       reasoning: 0,
     };
-    expect(compareStructure("ses_x", decant, letta)[0]).toEqual({
+    expect(compareStructure("ses_x", agentBenchmarks, letta)[0]).toEqual({
       level: "mismatch",
       text: "ses_x: 1 tool result flag(s) differ from Letta",
     });
   });
 
-  const decantSample = (): TranscriptStructure => ({
+  const agentBenchmarksSample = (): TranscriptStructure => ({
     toolCalls: new Map([
       ["call_v1_read", { name: "read", outcome: "ok" as const }],
       ["call_v1_mcp", { name: "mcp__dosu__search", outcome: "ok" as const }],
@@ -682,34 +682,34 @@ describe("opencode parity: Letta structural cross-check", () => {
     reasoning: 1,
   });
 
-  test("matches Decant's tool calls exactly, MCP names included", () => {
+  test("matches Agent Benchmarks's tool calls exactly, MCP names included", () => {
     const path = freshPath();
     buildOpenCodeV1FixtureDb(path, ["v1-sample.sql"]);
     const document = withDb(path, (db) => exportOf(db, "ses_v1_sample"));
     const letta = lettaStructure(
       normalizeTranscript({ source: "opencode", transcript: JSON.stringify(document) }).records,
     );
-    expect(compareStructure("ses_v1_sample", decantSample(), letta)).toEqual([
+    expect(compareStructure("ses_v1_sample", agentBenchmarksSample(), letta)).toEqual([
       { level: "ok", text: "ses_v1_sample: 4 tool call(s) match Letta (ids, names, results)" },
       {
         level: "info",
-        text: "ses_v1_sample: records Decant/Letta user 1/1, assistant text 1/1, reasoning 1/1",
+        text: "ses_v1_sample: records Agent Benchmarks/Letta user 1/1, assistant text 1/1, reasoning 1/1",
       },
     ]);
   });
 
   test("flags an extra id, a renamed tool, and a changed result flag", () => {
-    const letta = decantSample();
+    const letta = agentBenchmarksSample();
     letta.toolCalls.set("call_v1_mcp", { name: "dosu_search", outcome: "ok" });
-    const extra = decantSample();
+    const extra = agentBenchmarksSample();
     extra.toolCalls.set("call_v1_extra", { name: "read", outcome: "ok" });
     expect(compareStructure("ses_x", extra, letta).filter((l) => l.level === "mismatch")).toEqual([
       {
         level: "mismatch",
-        text: "ses_x: tool-call ids differ (0 only in Letta, 1 only in Decant)",
+        text: "ses_x: tool-call ids differ (0 only in Letta, 1 only in Agent Benchmarks)",
       },
     ]);
-    const changed = decantSample();
+    const changed = agentBenchmarksSample();
     changed.toolCalls.set("call_v1_bash", { name: "shell", outcome: "ok" });
     expect(
       compareStructure("ses_x", changed, letta)
@@ -721,7 +721,7 @@ describe("opencode parity: Letta structural cross-check", () => {
     ]);
   });
 
-  test("equates Decant's MCP names with OpenCode's server_tool names", () => {
+  test("equates Agent Benchmarks's MCP names with OpenCode's server_tool names", () => {
     expect(toolNamesMatch("mcp__dosu__search", "dosu_search")).toBe(true);
     expect(toolNamesMatch("mcp__my__server__run", "my__server_run")).toBe(true);
     expect(toolNamesMatch("mcp__dosu__search", "dosu_find")).toBe(false);
@@ -737,7 +737,7 @@ describe("opencode parity: Letta structural cross-check", () => {
         buildOpenCodeFixtureDb(path, ["sample.sql", "mcp.sql", ...V1_SESSIONS, "v1/migrated.sql"]),
     ],
   ] as const) {
-    test(`reports no mismatch for ${name} synced by Decant, with --letta`, () => {
+    test(`reports no mismatch for ${name} synced by Agent Benchmarks, with --letta`, () => {
       counter += 1;
       const dir = join(workDir, `e2e-${counter}`);
       const opencodeDir = join(dir, "opencode");
@@ -749,7 +749,7 @@ describe("opencode parity: Letta structural cross-check", () => {
         configPath,
         JSON.stringify({ mcp: { servers: { dosu: { type: "remote", url: "http://localhost" } } } }),
       );
-      const archivePath = join(dir, "decant.db");
+      const archivePath = join(dir, "agent-benchmarks.db");
       const archive = openDb(archivePath);
       try {
         expect(
@@ -779,7 +779,7 @@ describe("opencode parity: Letta structural cross-check", () => {
       const stdout = run.stdout.toString();
       expect(stdout.split("\n").filter((line) => line.startsWith("mismatch"))).toEqual([]);
       expect(stdout).toContain("== 0 mismatch line(s)");
-      expect(stdout).toContain("== 1.x sessions: Decant vs Letta Trajectory");
+      expect(stdout).toContain("== 1.x sessions: Agent Benchmarks vs Letta Trajectory");
       expect(run.exitCode).toBe(0);
     });
   }

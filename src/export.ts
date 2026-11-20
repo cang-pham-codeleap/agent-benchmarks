@@ -342,7 +342,7 @@ export function exportTrajectory(db: Database, sessionId: number): TrajectoryExp
         continue;
       }
       callSites += 1;
-      const original = block.tool_use_id ?? `decant-${sessionId}-${callSites}`;
+      const original = block.tool_use_id ?? `agent-benchmarks-${sessionId}-${callSites}`;
       if (block.tool_use_id == null) {
         report.tool_call_ids_synthesized += 1;
       }
@@ -442,7 +442,7 @@ export function exportTrajectory(db: Database, sessionId: number): TrajectoryExp
         records.push({ role: "reasoning", content: text, timestamp: timestamp() });
       } else if (block.block_type === "tool_use") {
         callEmit += 1;
-        const original = block.tool_use_id ?? `decant-${sessionId}-${callEmit}`;
+        const original = block.tool_use_id ?? `agent-benchmarks-${sessionId}-${callEmit}`;
         const emitted = callsEmittedByOriginalId.get(original) ?? 0;
         callsEmittedByOriginalId.set(original, emitted + 1);
         const assigned = assignedByOriginal.get(original)?.[emitted] ?? original;

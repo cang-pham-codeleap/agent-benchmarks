@@ -55,8 +55,8 @@ describe("decideOpen", () => {
     expect(decision.open).toBe(false);
   });
 
-  test("DECANT_NO_OPEN wins over BROWSER, even set to empty", () => {
-    expect(decideOpen({ ...base, env: { DECANT_NO_OPEN: "", BROWSER: "firefox" } }).open).toBe(
+  test("AGENT_BENCHMARKS_NO_OPEN wins over BROWSER, even set to empty", () => {
+    expect(decideOpen({ ...base, env: { AGENT_BENCHMARKS_NO_OPEN: "", BROWSER: "firefox" } }).open).toBe(
       false,
     );
   });

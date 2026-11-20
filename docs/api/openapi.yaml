@@ -1,14 +1,14 @@
 openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
-  title: Decant Local API
+  title: Agent Benchmarks Local API
   version: 0.0.0-dev
   description: |
-    The local API served by `decant serve`. Decant does not provide a hosted
+    The local API served by `agent-benchmarks serve`. Agent Benchmarks does not provide a hosted
     service and this API has no authentication layer: any process or trusted
     peer that can reach the listener can read or mutate the local archive.
 
-    The default listener is loopback-only. When Decant is bound to a
+    The default listener is loopback-only. When Agent Benchmarks is bound to a
     non-loopback host, requests are admitted only from loopback or from peers
     selected by the trusted-peer precedence documented in `docs/api/routes.md`.
     Browser-origin checks protect mutating routes from cross-site requests but
@@ -22,8 +22,8 @@ x-access-control:
   default_bind: 127.0.0.1
   trusted_peer_precedence:
     - serve --trusted-peer
-    - DECANT_TRUSTED_PEERS
-    - DECANT_TRUST_DEFAULT_GATEWAY=1
+    - AGENT_BENCHMARKS_TRUSTED_PEERS
+    - AGENT_BENCHMARKS_TRUST_DEFAULT_GATEWAY=1
   precedence_mode: replace
   host_header: The request URL hostname must be loopback, even on a non-loopback bind.
   write_origin: |
@@ -126,7 +126,7 @@ paths:
       summary: Read this API description as JSON
       responses:
         "200":
-          description: OpenAPI 3.1 document with the running Decant version
+          description: OpenAPI 3.1 document with the running Agent Benchmarks version
           content:
             application/json:
               schema:
@@ -198,37 +198,15 @@ paths:
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
 
-  /api/update:
-    get:
-      tags: [System]
-      operationId: getUpdateStatus
-      summary: Report whether a newer Decant release is available
-      description: >-
-        Reads the cached result of the daily release check. When the user has
-        turned update checks on and the cached answer is at least a day old,
-        the server first asks the npm registry for the latest `@dosu/decant`
-        version. With checks off, no request leaves the machine and `latest`
-        is null.
-      responses:
-        "200":
-          description: Update status
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UpdateStatus"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
 
   /api/background:
     get:
       tags: [Settings]
       operationId: getBackgroundService
-      summary: Report whether Decant runs as a background service
+      summary: Report whether Agent Benchmarks runs as a background service
       description: >-
         Reads the launchd LaunchAgent on macOS or the systemd user unit on
-        Linux that starts `decant serve` at login. `supported` is false on
+        Linux that starts `agent-benchmarks serve` at login. `supported` is false on
         other platforms, inside the official container, for source checkouts,
         and when no systemd user session is reachable.
       responses:
@@ -248,7 +226,7 @@ paths:
       summary: Turn the background service on or off
       description: >-
         Only a loopback peer may call this, even when trusted peers can reach
-        the API. Turning it on registers `decant serve` for this archive and
+        the API. Turning it on registers `agent-benchmarks serve` for this archive and
         this server's port, bound to loopback, and starts it. When the service
         will serve this server's port, `handoff` is true and this server stops
         shortly after answering so the service can bind the port. Turning it
@@ -300,7 +278,7 @@ paths:
         project, the agent starts in that project's directory (the row's
         `project_path`) when it exists and is a directory. Otherwise it
         starts in the home directory, and the prompt gains a note that the
-        project directory was not found. `DECANT_SKILLS_DIR` overrides both.
+        project directory was not found. `AGENT_BENCHMARKS_SKILLS_DIR` overrides both.
         The directory is read from the archive, never from the request.
         Success and launch-failure responses report it as `dir`.
       requestBody:
@@ -981,7 +959,7 @@ paths:
             Content-Disposition:
               schema:
                 type: string
-              example: attachment; filename="decant-analytics-report.html"
+              example: attachment; filename="agent-benchmarks-analytics-report.html"
           content:
             text/html:
               schema:
@@ -1712,7 +1690,7 @@ components:
       additionalProperties: true
     Config:
       type: object
-      required: [dbPath, claudeDir, codexDir, geminiDir, opencodeDir, cursorDir, copilotDir, vscodeCopilotDir, atifDir, hermesDir, piDir, version]
+      required: [dbPath, claudeDir, codexDir, geminiDir, opencodeDir, cursorDir, copilotDir, vscodeCopilotDir, atifDir, hermesDir, piDir, ompDir, droidDir, version]
       properties:
         dbPath:
           type: string
@@ -1739,6 +1717,12 @@ components:
         piDir:
           type: [string, "null"]
           description: Pi sessions directory, read recursively for session files. Null when the server's configuration names none.
+        ompDir:
+          type: [string, "null"]
+          description: Oh My Pi sessions directory, read recursively for session files. Null when the server's configuration names none.
+        droidDir:
+          type: [string, "null"]
+          description: Factory Droid sessions directory, read recursively for session files. Null when the server's configuration names none.
         version:
           type: string
       additionalProperties: false
@@ -1774,7 +1758,7 @@ components:
           description: Why the service cannot be used here, when `supported` is false.
         installed:
           type: boolean
-          description: The LaunchAgent or unit file exists, so Decant starts at login.
+          description: The LaunchAgent or unit file exists, so Agent Benchmarks starts at login.
         running:
           type: boolean
         unitPath:
@@ -1797,49 +1781,9 @@ components:
           type: boolean
           description: The answering server is the service and stops shortly after this response.
       additionalProperties: false
-    UpdateStatus:
-      type: object
-      required:
-        - enabled
-        - envOverride
-        - current
-        - latest
-        - updateAvailable
-        - checkedAt
-        - channel
-        - command
-        - error
-      properties:
-        enabled:
-          type: boolean
-          description: Whether daily update checks are on, from the setting or `DECANT_UPDATE_CHECK`.
-        envOverride:
-          type: boolean
-          description: True when `DECANT_UPDATE_CHECK` decided `enabled` instead of the saved setting.
-        current:
-          type: string
-        latest:
-          type: [string, "null"]
-          description: Newest release from the last check; null until a check succeeds or while checks are off.
-        updateAvailable:
-          type: boolean
-        checkedAt:
-          type: [string, "null"]
-          format: date-time
-        channel:
-          type: string
-          enum: [npm, npx, npm-local, homebrew, installer, standalone, docker, source]
-          description: How this copy of Decant was installed, which decides how it updates.
-        command:
-          type: string
-          description: The command that updates this install, such as `decant update`.
-        error:
-          type: [string, "null"]
-          description: Why the check this request made failed, if it made one.
-      additionalProperties: false
     UserSettings:
       type: object
-      required: [agent, terminal, ide, updateCheck]
+      required: [agent, terminal, ide]
       properties:
         agent:
           type: string
@@ -1850,14 +1794,6 @@ components:
         ide:
           type: string
           enum: [vscode, cursor, zed, sublime, intellij]
-        updateCheck:
-          type: boolean
-          description: Whether Decant checks the npm registry once a day for a newer release.
-        dosuSuggestions:
-          type: string
-          enum: [show, hide]
-          deprecated: true
-          description: Deprecated transitional field; clients should not depend on it.
       additionalProperties: false
     UserSettingsPatch:
       type: object
@@ -1871,13 +1807,6 @@ components:
         ide:
           type: string
           enum: [vscode, cursor, zed, sublime, intellij]
-        updateCheck:
-          type: boolean
-        dosuSuggestions:
-          type: string
-          enum: [show, hide]
-          deprecated: true
-          description: Deprecated transitional input; clients should omit it.
       additionalProperties: false
     LabeledOption:
       type: array
@@ -2294,10 +2223,10 @@ components:
           minimum: 0
         cost_source:
           type: string
-          enum: [decant, reported, mixed]
+          enum: [agent-benchmarks, reported, mixed]
           description: >-
-            Where estimated_cost_usd came from: Decant's rate table (decant),
-            the source's own recorded per-request cost for a model Decant
+            Where estimated_cost_usd came from: Agent Benchmarks's rate table (agent-benchmarks),
+            the source's own recorded per-request cost for a model Agent Benchmarks
             cannot price (reported; OpenCode records one), or a mix across the
             session's model rows (mixed).
         model_provider:
@@ -2969,7 +2898,7 @@ components:
               type: number
               minimum: 0
               description: >-
-                Cost taken from the source's own record for models Decant
+                Cost taken from the source's own record for models Agent Benchmarks
                 cannot price. Included in estimated_cost_usd and never split
                 into input_cost_usd or output_cost_usd.
             active_ms:

@@ -6,7 +6,7 @@ import type { HTMLBundle } from "bun";
 import { createUiFiles, UI_DOCUMENT_HEADERS, type UiBuilder } from "../src/server/ui.ts";
 
 function prebuiltBundle(): HTMLBundle {
-  const root = mkdtempSync(join(tmpdir(), "decant-ui-"));
+  const root = mkdtempSync(join(tmpdir(), "agent-benchmarks-ui-"));
   const index = join(root, "index-abc.html");
   const script = join(root, "chunk-def.js");
   writeFileSync(index, '<!doctype html><script type="module" src="/chunk-def.js"></script>');

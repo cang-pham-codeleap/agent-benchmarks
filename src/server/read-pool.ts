@@ -57,7 +57,7 @@ export class ReadPoolClosedError extends Error {
 
 export class ReadPoolBusyError extends Error {
   constructor() {
-    super("Decant is busy with other reads. Please try again.");
+    super("Agent Benchmarks is busy with other reads. Please try again.");
     this.name = "ReadPoolBusyError";
   }
 }

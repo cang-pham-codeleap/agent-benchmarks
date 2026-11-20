@@ -15,25 +15,25 @@ import { argvRequestsJson, fromErrorLine, toCliError } from "../src/cli/errors.t
 import { type CliResult, runCli } from "../src/cli.ts";
 import { SchemaTooNewError } from "../src/db.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-cli-errors-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-cli-errors-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 const home = join(workDir, "home");
 const claudeDir = join(workDir, "sources", "claude");
 const emptyDir = join(workDir, "sources", "empty");
 const sourceEnv = {
-  DECANT_CLAUDE_DIR: claudeDir,
-  DECANT_CODEX_DIR: emptyDir,
-  DECANT_GEMINI_DIR: emptyDir,
-  DECANT_OPENCODE_DIR: emptyDir,
-  DECANT_CURSOR_DIR: emptyDir,
-  DECANT_COPILOT_DIR: emptyDir,
-  DECANT_VSCODE_COPILOT_DIR: emptyDir,
-  DECANT_ATIF_DIR: emptyDir,
-  DECANT_HERMES_DIR: emptyDir,
-  DECANT_PI_DIR: emptyDir,
+  AGENT_BENCHMARKS_CLAUDE_DIR: claudeDir,
+  AGENT_BENCHMARKS_CODEX_DIR: emptyDir,
+  AGENT_BENCHMARKS_GEMINI_DIR: emptyDir,
+  AGENT_BENCHMARKS_OPENCODE_DIR: emptyDir,
+  AGENT_BENCHMARKS_CURSOR_DIR: emptyDir,
+  AGENT_BENCHMARKS_COPILOT_DIR: emptyDir,
+  AGENT_BENCHMARKS_VSCODE_COPILOT_DIR: emptyDir,
+  AGENT_BENCHMARKS_ATIF_DIR: emptyDir,
+  AGENT_BENCHMARKS_HERMES_DIR: emptyDir,
+  AGENT_BENCHMARKS_PI_DIR: emptyDir,
 };
-const noSyncEnv = { ...sourceEnv, DECANT_NO_SYNC: "1" };
+const noSyncEnv = { ...sourceEnv, AGENT_BENCHMARKS_NO_SYNC: "1" };
 const archive = join(workDir, "archive.db");
 const garbage = join(workDir, "garbage.db");
 
@@ -93,7 +93,7 @@ describe("an explicit archive path that does not exist", () => {
     ["db", "compact"],
   ];
 
-  test.each(commands)("decant %s %s %s fails and creates nothing", async (...command) => {
+  test.each(commands)("agent-benchmarks %s %s %s fails and creates nothing", async (...command) => {
     const args = command.filter((part) => part != null);
     const dir = mkdtempSync(join(workDir, "missing-"));
     const missing = join(dir, "nested", "typo.db");
@@ -102,8 +102,8 @@ describe("an explicit archive path that does not exist", () => {
     expect(human.code).toBe(1);
     expect(human.stdout).toBe("");
     expect(human.stderr).toBe(
-      `error: no Decant archive at ${missing} (from --db). Check the path, or create the ` +
-        `archive with: decant --db '${missing}' sync\n`,
+      `error: no Agent Benchmarks archive at ${missing} (from --db). Check the path, or create the ` +
+        `archive with: agent-benchmarks --db '${missing}' sync\n`,
     );
 
     const json = await run(["--db", missing, "--json", ...args]);
@@ -127,15 +127,15 @@ describe("an explicit archive path that does not exist", () => {
     expect(readdirSync(dir)).toEqual([]);
   });
 
-  test("DECANT_DB counts as explicit and is named in the message", async () => {
+  test("AGENT_BENCHMARKS_DB counts as explicit and is named in the message", async () => {
     const dir = mkdtempSync(join(workDir, "missing-env-"));
     const missing = join(dir, "typo.db");
-    const result = await run(["--json", "ls"], { ...noSyncEnv, DECANT_DB: missing });
+    const result = await run(["--json", "ls"], { ...noSyncEnv, AGENT_BENCHMARKS_DB: missing });
     expect(result.code).toBe(1);
     expect(result.stdout).toBe("");
     const { error } = lastErrorLine(result);
     expect(error.code).toBe("archive_not_found");
-    expect(error.message).toContain(`${missing} (from DECANT_DB)`);
+    expect(error.message).toContain(`${missing} (from AGENT_BENCHMARKS_DB)`);
     expect(readdirSync(dir)).toEqual([]);
   });
 
@@ -159,7 +159,7 @@ describe("an explicit archive path that does not exist", () => {
     const result = await runCli(["--json", "ls"], { env: sourceEnv, homeDir: firstHome });
     expect(result.code).toBe(0);
     expect(JSON.parse(result.stdout)).toHaveLength(2);
-    expect(existsSync(join(firstHome, ".decant", "decant.db"))).toBe(true);
+    expect(existsSync(join(firstHome, ".agent-benchmarks", "agent-benchmarks.db"))).toBe(true);
   });
 
   test("a file that is not an archive is reported with its path", async () => {
@@ -174,7 +174,7 @@ describe("an explicit archive path that does not exist", () => {
 
 describe("invalid flag values", () => {
   const TOOLS =
-    "claude_code | codex | gemini | opencode | cursor | copilot | vscode_copilot | atif | hermes | pi";
+    "claude_code | codex | gemini | opencode | cursor | copilot | vscode_copilot | atif | hermes | pi | omp | droid";
   const cases: { argv: string[]; message: string; details: Record<string, unknown> }[] = [
     {
       argv: ["ls", "--tool", "claude"],
@@ -204,13 +204,13 @@ describe("invalid flag values", () => {
     {
       argv: ["--format", "md", "ls"],
       message:
-        "option '--format <format>' argument 'md' is invalid for 'decant ls'. expected: table | json",
+        "option '--format <format>' argument 'md' is invalid for 'agent-benchmarks ls'. expected: table | json",
       details: { option: "--format", value: "md", expected: ["table", "json"], command: "ls" },
     },
     {
       argv: ["stats", "--format", "md"],
       message:
-        "option '--format <format>' argument 'md' is invalid for 'decant stats'. expected: table | json",
+        "option '--format <format>' argument 'md' is invalid for 'agent-benchmarks stats'. expected: table | json",
       details: { option: "--format", value: "md", command: "stats" },
     },
     {
@@ -253,7 +253,7 @@ describe("invalid flag values", () => {
     },
   ];
 
-  test.each(cases)("decant $argv is a usage error", async ({ argv, message, details }) => {
+  test.each(cases)("agent-benchmarks $argv is a usage error", async ({ argv, message, details }) => {
     const human = await run(["--db", archive, ...argv]);
     expect(human).toEqual({ code: 2, stdout: "", stderr: `error: ${message}\n` });
 
@@ -316,7 +316,7 @@ describe("errors under --json", () => {
     },
   ];
 
-  test.each(cases)("decant --json $argv", async ({ argv, exit, code, stdout }) => {
+  test.each(cases)("agent-benchmarks --json $argv", async ({ argv, exit, code, stdout }) => {
     const result = await run(["--db", archive, "--json", ...argv]);
     expect(result.code).toBe(exit);
     if (stdout === "result") {
@@ -328,7 +328,7 @@ describe("errors under --json", () => {
     expect(lastErrorLine(result).error.code).toBe(code);
   });
 
-  test.each(cases)("decant $argv without --json stays plain text", async ({ argv, exit }) => {
+  test.each(cases)("agent-benchmarks $argv without --json stays plain text", async ({ argv, exit }) => {
     const result = await run(["--db", archive, ...argv]);
     expect(result.code).toBe(exit);
     expect(result.stdout).toBe("");
@@ -348,7 +348,7 @@ describe("errors under --json", () => {
     });
 
     const group = await run(["--db", archive, "--json", "session"]);
-    expect(group.stderr).toContain("Usage: decant session");
+    expect(group.stderr).toContain("Usage: agent-benchmarks session");
     expect(lastErrorLine(group).error.code).toBe("usage_error");
   });
 
@@ -376,7 +376,7 @@ describe("errors under --json", () => {
     );
     const result = await run(["--db", join(dir, "archive.db"), "--json", "sync"], {
       ...sourceEnv,
-      DECANT_CLAUDE_DIR: source,
+      AGENT_BENCHMARKS_CLAUDE_DIR: source,
     });
     expect(result.code).toBe(3);
     expect(result.stderr).toBe("");
@@ -427,7 +427,7 @@ describe("help", () => {
     const help = await run(["--help"]);
     expect(help).toMatchObject({ code: 0, stderr: "" });
     expect(help.stdout).toContain("Examples:");
-    expect(help.stdout).toContain("decant ls --json --limit 20");
+    expect(help.stdout).toContain("agent-benchmarks ls --json --limit 20");
     expect(help.stdout).toContain("Exit codes:");
     for (const line of [
       "  0  success",
@@ -444,18 +444,18 @@ describe("help", () => {
   });
 
   test.each([["ls"], ["show"], ["search"], ["stats"], ["export"], ["sync"], ["serve"]])(
-    "decant %s --help ends with examples",
+    "agent-benchmarks %s --help ends with examples",
     async (command) => {
       const help = await run([command, "--help"]);
       expect(help).toMatchObject({ code: 0, stderr: "" });
-      expect(help.stdout).toContain(`Examples:\n  decant ${command}`);
+      expect(help.stdout).toContain(`Examples:\n  agent-benchmarks ${command}`);
     },
   );
 
   test("session ls and session show carry the same examples as ls and show", async () => {
     for (const command of ["ls", "show"]) {
       const help = await run(["session", command, "--help"]);
-      expect(help.stdout).toContain(`Examples:\n  decant ${command}`);
+      expect(help.stdout).toContain(`Examples:\n  agent-benchmarks ${command}`);
     }
   });
 

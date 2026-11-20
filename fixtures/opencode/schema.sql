@@ -1,4 +1,4 @@
--- Synthetic OpenCode 2.x storage: the tables Decant reads, mirroring the DDL
+-- Synthetic OpenCode 2.x storage: the tables Agent Benchmarks reads, mirroring the DDL
 -- of anomalyco/opencode v2.0.27 minus the project foreign key. Applied before
 -- every session script in fixtures/opencode/.
 CREATE TABLE `kv` (

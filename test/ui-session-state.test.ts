@@ -32,7 +32,7 @@ describe("session state UI", () => {
   test("delete confirmation does not promise more than a row delete gives", () => {
     expect(DELETE_SESSION_EXPLANATION).not.toContain("permanently");
     expect(DELETE_SESSION_EXPLANATION).toContain("may leave deleted text recoverable");
-    expect(DELETE_SESSION_EXPLANATION).toContain("decant db vacuum");
+    expect(DELETE_SESSION_EXPLANATION).toContain("agent-benchmarks db vacuum");
   });
 
   test("delete confirmation header says what the body says", () => {

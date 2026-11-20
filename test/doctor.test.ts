@@ -10,7 +10,7 @@ import { LATEST_SCHEMA_VERSION } from "../src/db.ts";
 import { CUSTOM_PATH, collectDoctorReport, displayPath } from "../src/doctor.ts";
 import type { SourceFile } from "../src/ingest.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-doctor-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-doctor-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let homeCount = 0;
@@ -20,7 +20,7 @@ function freshHome(): { home: string; env: Record<string, string> } {
   mkdirSync(home, { recursive: true });
   return {
     home,
-    env: { DECANT_CONFIG_DIR: join(home, ".config", "decant"), DECANT_NO_SYNC: "1" },
+    env: { AGENT_BENCHMARKS_CONFIG_DIR: join(home, ".config", "agent-benchmarks"), AGENT_BENCHMARKS_NO_SYNC: "1" },
   };
 }
 
@@ -39,8 +39,8 @@ describe("displayPath", () => {
 
   test("resolves dot segments before deciding a path is under home", () => {
     expect(displayPath("/home/dev/../client/archive.db", "/home/dev")).toBe(CUSTOM_PATH);
-    expect(displayPath("/home/dev/./a/../.decant/decant.db", "/home/dev")).toBe(
-      "~/.decant/decant.db",
+    expect(displayPath("/home/dev/./a/../.agent-benchmarks/agent-benchmarks.db", "/home/dev")).toBe(
+      "~/.agent-benchmarks/agent-benchmarks.db",
     );
   });
 });
@@ -82,6 +82,8 @@ describe("collectDoctorReport", () => {
       "atif",
       "hermes",
       "pi",
+      "omp",
+      "droid",
     ]);
     expect(report.sources.find((source) => source.tool === "pi")).toEqual({
       tool: "pi",
@@ -97,12 +99,12 @@ describe("collectDoctorReport", () => {
     });
     expect(report.sources.find((source) => source.tool === "atif")).toEqual({
       tool: "atif",
-      roots: ["~/.decant/atif"],
+      roots: ["~/.agent-benchmarks/atif"],
       exists: false,
       found: 0,
     });
-    expect(report.archive).toMatchObject({ path: "~/.decant/decant.db", exists: false });
-    expect(report.env).toEqual(["DECANT_CONFIG_DIR", "DECANT_NO_SYNC", "XDG_DATA_HOME"]);
+    expect(report.archive).toMatchObject({ path: "~/.agent-benchmarks/agent-benchmarks.db", exists: false });
+    expect(report.env).toEqual(["AGENT_BENCHMARKS_CONFIG_DIR", "AGENT_BENCHMARKS_NO_SYNC", "XDG_DATA_HOME"]);
     expect(report.supported_schema_version).toBe(LATEST_SCHEMA_VERSION);
     expect(JSON.stringify(report)).not.toContain(home);
     expect(JSON.stringify(report)).not.toContain("do-not-print");
@@ -150,8 +152,8 @@ describe("collectDoctorReport", () => {
 
   test("keeps only the error name when discovery or the archive fails", () => {
     const { home, env } = freshHome();
-    const dbPath = join(home, ".decant", "decant.db");
-    mkdirSync(join(home, ".decant"), { recursive: true });
+    const dbPath = join(home, ".agent-benchmarks", "agent-benchmarks.db");
+    mkdirSync(join(home, ".agent-benchmarks"), { recursive: true });
     writeFileSync(dbPath, "this is not a sqlite database, it is a long enough header to fail");
     const report = collectDoctorReport(resolveConfig({ env, homeDir: home }), {
       env,
@@ -171,8 +173,8 @@ describe("collectDoctorReport", () => {
 
   test("reports a non-integer schema version as unreadable without printing it", () => {
     const { home, env } = freshHome();
-    const dbPath = join(home, ".decant", "decant.db");
-    mkdirSync(join(home, ".decant"), { recursive: true });
+    const dbPath = join(home, ".agent-benchmarks", "agent-benchmarks.db");
+    mkdirSync(join(home, ".agent-benchmarks"), { recursive: true });
     const db = new Database(dbPath);
     db.exec("CREATE TABLE schema_migrations (version INTEGER)");
     db.query("INSERT INTO schema_migrations VALUES (?)").run("/private/customer/secret.db");
@@ -197,7 +199,7 @@ describe("collectDoctorReport", () => {
       install,
       discover: (_config, warn) => {
         warn?.("OpenCode database could not be opened.", {
-          "event.name": "decant.ingest.opencode_open_failed",
+          "event.name": "agent-benchmarks.ingest.opencode_open_failed",
           "file.path": join(home, "private-project", "opencode.db"),
           "error.message": "unable to open database file",
         });
@@ -207,7 +209,7 @@ describe("collectDoctorReport", () => {
     });
 
     expect(report.discovery_warnings).toEqual([
-      "decant.ingest.opencode_open_failed",
+      "agent-benchmarks.ingest.opencode_open_failed",
       "unknown warning",
     ]);
     expect(JSON.stringify(report)).not.toContain("private-project");
@@ -215,10 +217,10 @@ describe("collectDoctorReport", () => {
   });
 });
 
-describe("decant doctor", () => {
+describe("agent-benchmarks doctor", () => {
   test("reads an archive without migrating it and prints no transcript content", async () => {
     const { home, env } = freshHome();
-    const dbPath = join(home, ".decant", "decant.db");
+    const dbPath = join(home, ".agent-benchmarks", "agent-benchmarks.db");
     const fixture = join(import.meta.dir, "..", "fixtures", "claude", "sample.jsonl");
     const synced = await runCli(["--db", dbPath, "sync", "--path", fixture], {
       env,
@@ -229,11 +231,10 @@ describe("decant doctor", () => {
     const json = await runCli(["--db", dbPath, "--json", "doctor"], {
       env,
       homeDir: home,
-      update: { install },
     });
     expect(json.code).toBe(0);
     const report = JSON.parse(json.stdout);
-    expect(report.archive.path).toBe("~/.decant/decant.db");
+    expect(report.archive.path).toBe("~/.agent-benchmarks/agent-benchmarks.db");
     expect(report.archive.schema_version).toBe(LATEST_SCHEMA_VERSION);
     expect(report.archive.sessions.claude_code).toBeGreaterThan(0);
     expect(report.install_channel).toBe("source");
@@ -241,7 +242,6 @@ describe("decant doctor", () => {
     const human = await runCli(["--db", dbPath, "doctor"], {
       env,
       homeDir: home,
-      update: { install },
     });
     expect(human.code).toBe(0);
     expect(human.stdout).toContain(`supported v${LATEST_SCHEMA_VERSION}`);

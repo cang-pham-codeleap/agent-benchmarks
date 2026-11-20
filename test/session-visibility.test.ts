@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { closeDb, openDb } from "../src/db.ts";
 import { visibleSessionPredicate } from "../src/session-visibility.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-visibility-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-visibility-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 describe("visibleSessionPredicate", () => {

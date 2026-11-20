@@ -69,7 +69,7 @@ const KNOWN_SCHEMA_VERSIONS = new Set([
 ]);
 
 /** Cache writes have no ATIF field. Producers file them under these
- * `metrics.extra` keys: fast-agent, Decant, and Harbor's OpenCode converter
+ * `metrics.extra` keys: fast-agent, Agent Benchmarks, and Harbor's OpenCode converter
  * use the first; Harbor's Claude Code converter uses Anthropic's name. */
 const CACHE_WRITE_KEYS = [
   "cache_write_tokens",
@@ -557,18 +557,18 @@ export function usageFromMetrics(metrics: unknown): TokenUsage | null {
 }
 
 function sessionTotals(trajectory: JsonObject, stepSums: TokenUsage | null): TokenUsage {
-  const decant = decantSessionUsage(trajectory);
-  if (decant != null) {
-    if (decant.reasoning === 0 && stepSums != null) {
-      decant.reasoning = Math.min(stepSums.reasoning, decant.output);
+  const agentBenchmarks = agentBenchmarksSessionUsage(trajectory);
+  if (agentBenchmarks != null) {
+    if (agentBenchmarks.reasoning === 0 && stepSums != null) {
+      agentBenchmarks.reasoning = Math.min(stepSums.reasoning, agentBenchmarks.output);
     }
-    return decant;
+    return agentBenchmarks;
   }
   return stepSums ?? finalMetricsUsage(trajectory) ?? emptyUsage();
 }
 
-function decantSessionUsage(trajectory: JsonObject): TokenUsage | null {
-  if (get(trajectory.extra as Json | undefined, "exporter") !== "decant") {
+function agentBenchmarksSessionUsage(trajectory: JsonObject): TokenUsage | null {
+  if (get(trajectory.extra as Json | undefined, "exporter") !== "agent-benchmarks") {
     return null;
   }
   const final = trajectory.final_metrics;

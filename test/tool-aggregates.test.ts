@@ -14,7 +14,7 @@ import {
   toolUsage,
 } from "../src/stats.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-tool-aggregates-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-tool-aggregates-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;

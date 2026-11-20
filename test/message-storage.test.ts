@@ -19,7 +19,7 @@ import { parseClaudeSession } from "../src/sources/claude.ts";
 import { parseCodexSession } from "../src/sources/codex.ts";
 import { tokenEconomicsForSession } from "../src/token-economics.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-message-storage-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-message-storage-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 describe("message source storage", () => {

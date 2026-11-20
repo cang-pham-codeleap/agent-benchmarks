@@ -64,8 +64,7 @@ import {
   type StatsFilter,
   todayTotals,
 } from "../stats.ts";
-import { checkForUpdate } from "../update.ts";
-import { DECANT_VERSION } from "../version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "../version.ts";
 import { type Db, type RequestContext, withDb } from "./context.ts";
 import { errorResponse, isJsonObject, json } from "./http.ts";
 import { integerParam, isNonNegativeInteger, isValidSessionId, usageLimit } from "./params.ts";
@@ -158,7 +157,7 @@ function statsFilter({ url, dateFilter }: RouteContext, source: SessionSource | 
 
 export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
   "/api/health": { GET: () => json({ ok: true }) },
-  "/api/openapi.json": { GET: () => json(openApiDocument(DECANT_VERSION)) },
+  "/api/openapi.json": { GET: () => json(openApiDocument(AGENT_BENCHMARKS_VERSION)) },
   "/api/events": { GET: () => eventStream() },
   "/api/config": {
     GET: ({ config }) =>
@@ -176,7 +175,7 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
         piDir: config.piDir ?? null,
         ompDir: config.ompDir ?? null,
         droidDir: config.droidDir ?? null,
-        version: DECANT_VERSION,
+        version: AGENT_BENCHMARKS_VERSION,
       }),
   },
   "/api/settings": {
@@ -187,7 +186,6 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
         json({ ...settingsResponse(saveSettings(body as Record<string, unknown>)), saved: true }),
     },
   },
-  "/api/update": { GET: async () => json(await checkForUpdate()) },
   "/api/background": {
     GET: async ({ context }) =>
       json({ ...(await serviceStatus(context.service)), handoff: false, stopping: false }),

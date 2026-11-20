@@ -10,10 +10,10 @@ INSERT INTO `session` (`id`, `project_id`, `slug`, `directory`, `title`, `versio
   `tokens_input`, `tokens_output`, `tokens_reasoning`, `tokens_cache_read`, `tokens_cache_write`,
   `agent`, `model`, `time_created`, `time_updated`)
 VALUES
-('ses_v1_old', 'prj_v1', 'v1-old', '/decant-fixture/example', 'Think twice', '1.3.10',
+('ses_v1_old', 'prj_v1', 'v1-old', '/agent-benchmarks-fixture/example', 'Think twice', '1.3.10',
   0.0001, 200, 100, 40, 0, 0, NULL, NULL,
   1791793000000, 1791793060000),
-('ses_v1_new', 'prj_v1', 'v1-new', '/decant-fixture/example', 'Think once', '1.4.0',
+('ses_v1_new', 'prj_v1', 'v1-new', '/agent-benchmarks-fixture/example', 'Think once', '1.4.0',
   0.00004, 100, 30, 20, 0, 0, 'build',
   '{"id":"glm-5.3-flash","providerID":"opencode-go"}',
   1791793100000, 1791793160000);
@@ -22,13 +22,13 @@ INSERT INTO `message` (`id`, `session_id`, `time_created`, `time_updated`, `data
 ('msg_v1o_1', 'ses_v1_old', 1791793000000, 1791793000000,
  '{"role":"user","time":{"created":1791793000000},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash"}}'),
 ('msg_v1o_2', 'ses_v1_old', 1791793001000, 1791793003000,
- '{"role":"assistant","time":{"created":1791793001000,"completed":1791793003000},"parentID":"msg_v1o_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/decant-fixture/example","root":"/decant-fixture/example"},"cost":0.00005,"tokens":{"total":150,"input":100,"output":50,"reasoning":20,"cache":{"read":0,"write":0}},"finish":"stop"}'),
+ '{"role":"assistant","time":{"created":1791793001000,"completed":1791793003000},"parentID":"msg_v1o_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/agent-benchmarks-fixture/example","root":"/agent-benchmarks-fixture/example"},"cost":0.00005,"tokens":{"total":150,"input":100,"output":50,"reasoning":20,"cache":{"read":0,"write":0}},"finish":"stop"}'),
 ('msg_v1o_3', 'ses_v1_old', 1791793004000, 1791793006000,
- '{"role":"assistant","time":{"created":1791793004000,"completed":1791793006000},"parentID":"msg_v1o_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/decant-fixture/example","root":"/decant-fixture/example"},"cost":0.00005,"tokens":{"input":100,"output":50,"reasoning":20,"cache":{"read":0,"write":0}},"finish":"stop"}'),
+ '{"role":"assistant","time":{"created":1791793004000,"completed":1791793006000},"parentID":"msg_v1o_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/agent-benchmarks-fixture/example","root":"/agent-benchmarks-fixture/example"},"cost":0.00005,"tokens":{"input":100,"output":50,"reasoning":20,"cache":{"read":0,"write":0}},"finish":"stop"}'),
 ('msg_v1n_1', 'ses_v1_new', 1791793100000, 1791793100000,
  '{"role":"user","time":{"created":1791793100000},"agent":"build","model":{"providerID":"opencode-go","modelID":"glm-5.3-flash"}}'),
 ('msg_v1n_2', 'ses_v1_new', 1791793101000, 1791793103000,
- '{"role":"assistant","time":{"created":1791793101000,"completed":1791793103000},"parentID":"msg_v1n_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/decant-fixture/example","root":"/decant-fixture/example"},"cost":0.00004,"tokens":{"input":100,"output":30,"reasoning":20,"cache":{"read":0,"write":0}},"finish":"stop"}');
+ '{"role":"assistant","time":{"created":1791793101000,"completed":1791793103000},"parentID":"msg_v1n_1","modelID":"glm-5.3-flash","providerID":"opencode-go","mode":"build","agent":"build","path":{"cwd":"/agent-benchmarks-fixture/example","root":"/agent-benchmarks-fixture/example"},"cost":0.00004,"tokens":{"input":100,"output":30,"reasoning":20,"cache":{"read":0,"write":0}},"finish":"stop"}');
 
 INSERT INTO `part` (`id`, `message_id`, `session_id`, `time_created`, `time_updated`, `data`) VALUES
 ('prt_v1o_01', 'msg_v1o_1', 'ses_v1_old', 1791793000000, 1791793000000,

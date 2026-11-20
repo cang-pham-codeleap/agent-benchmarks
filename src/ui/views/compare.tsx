@@ -43,9 +43,9 @@ const METRICS = {
 type MetricKey = keyof typeof METRICS;
 const defaultMetrics: MetricKey[] = ["cost", "median", "p90", "outputPerDollar", "cacheShare", "subagentShare", "completed", "unpriced"];
 const metricKeys: MetricKey[] = [...defaultMetrics, ...(Object.keys(METRICS) as MetricKey[]).filter((key) => !defaultMetrics.includes(key))];
-const columnsStorageKey = "decant-compare-columns-v1";
-const toolsStorageKey = "decant-compare-tools-v1";
-const modelsStorageKey = "decant-compare-models-v2";
+const columnsStorageKey = "agent-benchmarks-compare-columns-v1";
+const toolsStorageKey = "agent-benchmarks-compare-tools-v1";
+const modelsStorageKey = "agent-benchmarks-compare-models-v2";
 
 function savedList(key: string): string[] {
   try {

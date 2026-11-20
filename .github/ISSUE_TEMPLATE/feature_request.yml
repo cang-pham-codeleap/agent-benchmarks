@@ -1,11 +1,11 @@
 name: Feature request
-description: Propose a change to what decant does.
+description: Propose a change to what agent-benchmarks does.
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        decant is local-first and offline: it makes no outbound runtime network calls
+        agent-benchmarks is local-first and offline: it makes no outbound runtime network calls
         and no LLM calls. Proposals that need either are out of scope. Everything else
         is fair game.
 
@@ -13,7 +13,7 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: What are you trying to do that decant makes hard or impossible today?
+      description: What are you trying to do that agent-benchmarks makes hard or impossible today?
     validations:
       required: true
 
@@ -21,7 +21,7 @@ body:
     id: proposal
     attributes:
       label: Proposed solution
-      description: What should decant do instead? A command sketch or example output helps.
+      description: What should agent-benchmarks do instead? A command sketch or example output helps.
     validations:
       required: true
 

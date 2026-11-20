@@ -225,7 +225,7 @@ function withTruncationMarkers(detail: SessionDetail): SessionDetail {
 
 export function readInvocation(globals: { db?: string; sync?: boolean }): string {
   return [
-    "decant",
+    "agent-benchmarks",
     ...(globals.db == null ? [] : ["--db", shellWord(globals.db)]),
     ...(globals.sync === false ? ["--no-sync"] : []),
   ].join(" ");

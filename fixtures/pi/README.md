@@ -2,7 +2,7 @@
 
 Each `.jsonl` file is one invented Pi coding agent session, in the format Pi
 writes to `~/.pi/agent/sessions/--<cwd>--/<timestamp>_<session id>.jsonl`
-(session format version 3). Every path is under `/decant-fixture/pi-example`,
+(session format version 3). Every path is under `/agent-benchmarks-fixture/pi-example`,
 which no user can create.
 
 - `sample.jsonl` uses two models with reasoning, file reads and edits, a

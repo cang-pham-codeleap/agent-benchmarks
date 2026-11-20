@@ -2,16 +2,11 @@
 
 ## Supported versions
 
-Security fixes apply to the latest release and current `main`. Verify issues
-against one of those builds before reporting.
+Security fixes apply to the current private checkout. Reproduce issues against the latest local revision before reporting.
 
 ## Reporting a vulnerability
 
-Do not open a public issue for security vulnerabilities.
-
-Report privately through
-[GitHub's private vulnerability reporting flow](https://github.com/dosu-ai/decant/security/advisories/new),
-reachable from the repository's **Security** tab. Include:
+Do not open a public issue for security vulnerabilities. Report them privately to the owner of this fork and include:
 
 - a description of the issue and impact,
 - steps to reproduce or a proof of concept,
@@ -23,24 +18,16 @@ we investigate and prepare a fix.
 
 ## Scope and threat model
 
-Decant is a local-first tool. It reads CLI session logs that already exist on
+Agent Benchmarks is a local-first tool. It reads CLI session logs that already exist on
 disk (by default `~/.claude/projects`, `~/.codex`, `~/.gemini/tmp`, OpenCode's
 `~/.local/share/opencode`, `~/.cursor/chats`, `~/.copilot/session-state`,
 the chat session files in VS Code's `User` directory, Hermes Agent's
 `~/.hermes/state.db`, Pi's `~/.pi/agent/sessions`, and ATIF trajectories in
-`~/.decant/atif`)
-and writes a local SQLite archive. Its only outbound network requests are for
-updates, and none of them send session or archive data:
+`~/.agent-benchmarks/atif`) and writes a local SQLite archive. Runtime behavior
+makes no outbound network requests; only the local UI and API communicate with
+the `agent-benchmarks serve` process.
 
-- A daily version check against the npm registry. Checks are off by default.
-  Turn them on in Settings or with `DECANT_UPDATE_CHECK=1`.
-  `DECANT_UPDATE_CHECK=0` turns them off whatever Settings says.
-- `decant update`, which runs only when you start it. It always asks the npm
-  registry for the latest version, even with checks off and with `--check`.
-  It then updates through npm or Homebrew, or downloads the binary from GitHub
-  Releases, or from the mirror in `DECANT_BASE_URL` when that is set.
-
-`decant serve` is intended for local use and binds to `127.0.0.1` by default.
+`agent-benchmarks serve` is intended for local use and binds to `127.0.0.1` by default.
 
 In scope:
 
@@ -68,13 +55,13 @@ fixtures are synthetic, and `test/golden/` must stay derived from those fixtures
 only.
 
 The archive is a second, durable copy of your transcripts, and it is not
-encrypted. `~/.decant/decant.db` holds prompts, tool arguments, tool output, the
+encrypted. `~/.agent-benchmarks/agent-benchmarks.db` holds prompts, tool arguments, tool output, the
 canonicalized raw records for retained transcript messages, and absolute local
 paths. In practice that means source code, file contents, and any credentials
 that passed through a session.
-Decant creates it at mode `0600`, and creates `~/.decant` at `0700` when it
+Agent Benchmarks creates it at mode `0600`, and creates `~/.agent-benchmarks` at `0700` when it
 creates that directory; an existing directory keeps its own mode. Deleting a
 session removes its rows, but deleted text may remain recoverable in freed pages
-until `decant db vacuum` rewrites the archive. See
+until `agent-benchmarks db vacuum` rewrites the archive. See
 [What the archive stores](docs/data-lifecycle.md#what-the-archive-stores) for
 how to inspect and remove it.

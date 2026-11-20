@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { openDb } from "../src/db.ts";
 import { byDimension, totals } from "../src/stats.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-stats-rollups-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-stats-rollups-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;

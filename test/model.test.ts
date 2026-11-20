@@ -42,7 +42,7 @@ describe("model wire strings", () => {
     ]);
     expect(TOOL_KINDS).toEqual(["builtin", "mcp", "custom", "web_search", "tool_search"]);
     expect(REASONING_SOURCES).toEqual(["reported", "inferred", "none"]);
-    expect(COST_SOURCES).toEqual(["decant", "reported", "mixed"]);
+    expect(COST_SOURCES).toEqual(["agent-benchmarks", "reported", "mixed"]);
     expect(INGEST_ISSUE_CODES).toEqual([
       "unparsed_line",
       "unknown_record_type",

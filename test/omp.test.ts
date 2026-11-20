@@ -6,7 +6,7 @@ import { closeDb, openDb } from "../src/db.ts";
 import { sync } from "../src/ingest.ts";
 import { parseOmpSession } from "../src/sources/omp.ts";
 
-const dir = realpathSync(mkdtempSync(join(tmpdir(), "decant-omp-test-")));
+const dir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-omp-test-")));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 const sample = readFileSync(join(import.meta.dir, "..", "fixtures", "omp", "sample.jsonl"), "utf8");
 

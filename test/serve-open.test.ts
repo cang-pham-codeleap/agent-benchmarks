@@ -21,16 +21,16 @@ function startCli(
 ): CliProcess {
   const inherited = { ...process.env };
   delete inherited.BROWSER;
-  delete inherited.DECANT_NO_OPEN;
+  delete inherited.AGENT_BENCHMARKS_NO_OPEN;
   delete inherited.CI;
   const preloads = preload.flatMap((file) => ["--preload", file]);
   const child = spawn("bun", ["run", ...preloads, join(repoRoot, "src/cli.ts"), ...args], {
     env: {
       ...inherited,
-      DECANT_DB: join(scratch, "decant.db"),
-      DECANT_CONFIG_DIR: join(scratch, "config"),
-      DECANT_NO_SYNC: "1",
-      DECANT_LOG_LEVEL: "off",
+      AGENT_BENCHMARKS_DB: join(scratch, "agent-benchmarks.db"),
+      AGENT_BENCHMARKS_CONFIG_DIR: join(scratch, "config"),
+      AGENT_BENCHMARKS_NO_SYNC: "1",
+      AGENT_BENCHMARKS_LOG_LEVEL: "off",
       ...env,
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -90,7 +90,7 @@ function freePort(): Promise<number> {
 }
 
 function scratchDir(): string {
-  return mkdtempSync(join(tmpdir(), "decant-serve-open-"));
+  return mkdtempSync(join(tmpdir(), "agent-benchmarks-serve-open-"));
 }
 
 function spyBrowser(scratch: string): { script: string; log: string } {
@@ -204,14 +204,14 @@ describe("serve banner and auto-open", () => {
       });
       expect(code).toBe(1);
       expect(cli.stderr()).toContain(`port ${port} is already in use`);
-      expect(cli.stderr()).toContain("decant serve --port");
+      expect(cli.stderr()).toContain("agent-benchmarks serve --port");
     } finally {
       holder.close();
       rmSync(scratch, { recursive: true, force: true });
     }
   }, 30_000);
 
-  test("bare decant serves instead of printing help", async () => {
+  test("bare agent-benchmarks serves instead of printing help", async () => {
     const scratch = scratchDir();
     const cli = startCli([], scratch, { BROWSER: "none" });
     try {

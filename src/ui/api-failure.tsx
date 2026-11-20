@@ -22,7 +22,7 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
   if (!(error instanceof ApiError)) {
     return {
       detail:
-        "Agent Benchmarks could not reach the local server. Restart `decant serve` if needed, then retry.",
+        "Agent Benchmarks could not reach the local server. Restart `agent-benchmarks serve` if needed, then retry.",
       icon: "info",
       retry: true,
       title: "Request failed",
@@ -51,18 +51,15 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
           };
     case "schema_too_new":
       return {
-        actionHref: "https://github.com/dosu-ai/decant/releases",
-        actionLabel: "Update Agent Benchmarks",
-        detail:
-          "These session logs were indexed by a newer Agent Benchmarks build. Update Agent Benchmarks, then retry.",
+        actionLabel: "Rebuild from source",
+        detail: "These session logs were indexed by a newer Agent Benchmarks build. Update this checkout, then retry.",
         icon: "info",
         retry: true,
         title: "Agent Benchmarks is out of date",
       };
     case "schema_too_old":
       return {
-        actionHref: "https://github.com/dosu-ai/decant#configuration",
-        actionLabel: "View rebuild guide",
+        actionLabel: "Rebuild archive",
         detail:
           "The session log index predates the supported schema baseline. Back it up, rebuild it, and sync the source logs again.",
         icon: "info",
@@ -107,7 +104,7 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
     case "internal_error":
       return {
         detail:
-          "Agent Benchmarks hit an unexpected local error. Restart `decant serve`, then retry. If it continues, check the server log for the private diagnostic.",
+          "Agent Benchmarks hit an unexpected local error. Restart `agent-benchmarks serve`, then retry. If it continues, check the server log for the private diagnostic.",
         icon: "info",
         retry: true,
         title: "Agent Benchmarks could not complete the request",
@@ -116,7 +113,7 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
       if (error.status >= 500) {
         return {
           detail:
-            "Agent Benchmarks hit an unexpected local error. Restart `decant serve`, then retry. If it continues, check the server log.",
+            "Agent Benchmarks hit an unexpected local error. Restart `agent-benchmarks serve`, then retry. If it continues, check the server log.",
           icon: "info",
           retry: true,
           title: "Agent Benchmarks could not complete the request",

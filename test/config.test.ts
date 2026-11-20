@@ -7,14 +7,14 @@ describe("resolveConfig", () => {
       dbPath: "/tmp/x.db",
       opencodeDir: "/flag/opencode",
       env: {
-        DECANT_DB: "/env/db",
-        DECANT_CLAUDE_DIR: "/env/claude",
-        DECANT_CODEX_DIR: "/env/codex",
-        DECANT_GEMINI_DIR: "/env/gemini",
-        DECANT_OPENCODE_DIR: "/env/opencode",
-        DECANT_CURSOR_DIR: "/env/cursor",
-        DECANT_COPILOT_DIR: "/env/copilot",
-        DECANT_VSCODE_COPILOT_DIR: "/env/vscode",
+        AGENT_BENCHMARKS_DB: "/env/db",
+        AGENT_BENCHMARKS_CLAUDE_DIR: "/env/claude",
+        AGENT_BENCHMARKS_CODEX_DIR: "/env/codex",
+        AGENT_BENCHMARKS_GEMINI_DIR: "/env/gemini",
+        AGENT_BENCHMARKS_OPENCODE_DIR: "/env/opencode",
+        AGENT_BENCHMARKS_CURSOR_DIR: "/env/cursor",
+        AGENT_BENCHMARKS_COPILOT_DIR: "/env/copilot",
+        AGENT_BENCHMARKS_VSCODE_COPILOT_DIR: "/env/vscode",
       },
       homeDir: "/home/dev",
     });
@@ -33,18 +33,20 @@ describe("resolveConfig", () => {
   test("environment overrides beat defaults", () => {
     const config = resolveConfig({
       env: {
-        DECANT_DB: "/env/db",
-        DECANT_CLAUDE_DIR: "/env/claude",
-        DECANT_CODEX_DIR: "/env/codex",
-        DECANT_GEMINI_DIR: "/env/gemini",
-        DECANT_OPENCODE_DIR: "/env/opencode",
-        DECANT_OPENCODE_CONFIG: "/env/opencode.json",
-        DECANT_CURSOR_DIR: "/env/cursor",
-        DECANT_COPILOT_DIR: "/env/copilot",
-        DECANT_VSCODE_COPILOT_DIR: "/env/vscode",
-        DECANT_ATIF_DIR: "/env/atif",
-        DECANT_HERMES_DIR: "/env/hermes",
-        DECANT_PI_DIR: "/env/pi",
+        AGENT_BENCHMARKS_DB: "/env/db",
+        AGENT_BENCHMARKS_CLAUDE_DIR: "/env/claude",
+        AGENT_BENCHMARKS_CODEX_DIR: "/env/codex",
+        AGENT_BENCHMARKS_GEMINI_DIR: "/env/gemini",
+        AGENT_BENCHMARKS_OPENCODE_DIR: "/env/opencode",
+        AGENT_BENCHMARKS_OPENCODE_CONFIG: "/env/opencode.json",
+        AGENT_BENCHMARKS_CURSOR_DIR: "/env/cursor",
+        AGENT_BENCHMARKS_COPILOT_DIR: "/env/copilot",
+        AGENT_BENCHMARKS_VSCODE_COPILOT_DIR: "/env/vscode",
+        AGENT_BENCHMARKS_ATIF_DIR: "/env/atif",
+        AGENT_BENCHMARKS_HERMES_DIR: "/env/hermes",
+        AGENT_BENCHMARKS_OMP_DIR: "/env/omp",
+        AGENT_BENCHMARKS_DROID_DIR: "/env/droid",
+        AGENT_BENCHMARKS_PI_DIR: "/env/pi",
       },
       homeDir: "/home/dev",
     });
@@ -64,12 +66,14 @@ describe("resolveConfig", () => {
       atifDir: "/env/atif",
       hermesDir: "/env/hermes",
       piDir: "/env/pi",
+      ompDir: "/env/omp",
+      droidDir: "/env/droid",
     });
   });
 
   test("defaults point into home", () => {
     const config = resolveConfig({ env: {}, homeDir: "/home/dev" });
-    expect(config.dbPath).toBe("/home/dev/.decant/decant.db");
+    expect(config.dbPath).toBe("/home/dev/.agent-benchmarks/agent-benchmarks.db");
     expect(config.claudeDir).toBe("/home/dev/.claude/projects");
     expect(config.codexDir).toBe("/home/dev/.codex");
     expect(config.geminiDir).toBe("/home/dev/.gemini/tmp");
@@ -81,9 +85,11 @@ describe("resolveConfig", () => {
     expect(config.opencodeModelsPath).toBe("/home/dev/.cache/opencode/models.json");
     expect(config.cursorDir).toBe("/home/dev/.cursor/chats");
     expect(config.copilotDir).toBe("/home/dev/.copilot/session-state");
-    expect(config.atifDir).toBe("/home/dev/.decant/atif");
+    expect(config.atifDir).toBe("/home/dev/.agent-benchmarks/atif");
     expect(config.hermesDir).toBe("/home/dev/.hermes");
     expect(config.piDir).toBe("/home/dev/.pi/agent/sessions");
+    expect(config.ompDir).toBe("/home/dev/.omp/agent/sessions");
+    expect(config.droidDir).toBe("/home/dev/.factory/sessions");
   });
 
   test("reads VS Code and VS Code Insiders from each platform's user data directory", () => {
@@ -113,13 +119,13 @@ describe("resolveConfig", () => {
   test("one VS Code override replaces both default directories", () => {
     const flag = resolveConfig({
       vscodeCopilotDir: "/flag/User",
-      env: { DECANT_VSCODE_COPILOT_DIR: "/env/User" },
+      env: { AGENT_BENCHMARKS_VSCODE_COPILOT_DIR: "/env/User" },
       homeDir: "/h",
       platform: "darwin",
     });
     expect(flag.vscodeCopilotDir).toBe("/flag/User");
     expect(flag.vscodeCopilotInsidersDir).toBeUndefined();
-    const env = resolveConfig({ env: { DECANT_VSCODE_COPILOT_DIR: "" }, homeDir: "/h" });
+    const env = resolveConfig({ env: { AGENT_BENCHMARKS_VSCODE_COPILOT_DIR: "" }, homeDir: "/h" });
     expect(env.vscodeCopilotInsidersDir).toBeDefined();
   });
 
@@ -127,13 +133,13 @@ describe("resolveConfig", () => {
     const at = (env: Record<string, string>, platform: NodeJS.Platform = "linux") =>
       resolveConfig({ env, homeDir: "/h", platform }).hermesDir;
     expect(at({ HERMES_HOME: "/hh" })).toBe("/hh");
-    expect(at({ HERMES_HOME: "/hh", DECANT_HERMES_DIR: "/d" })).toBe("/d");
+    expect(at({ HERMES_HOME: "/hh", AGENT_BENCHMARKS_HERMES_DIR: "/d" })).toBe("/d");
     expect(at({ HERMES_HOME: "" })).toBe("/h/.hermes");
     expect(at({}, "darwin")).toBe("/h/.hermes");
     expect(at({ LOCALAPPDATA: "/local" }, "win32")).toBe("/local/hermes");
     expect(at({}, "win32")).toBe("/h/AppData/Local/hermes");
     expect(
-      resolveConfig({ hermesDir: "/flag", env: { DECANT_HERMES_DIR: "/d" }, homeDir: "/h" })
+      resolveConfig({ hermesDir: "/flag", env: { AGENT_BENCHMARKS_HERMES_DIR: "/d" }, homeDir: "/h" })
         .hermesDir,
     ).toBe("/flag");
   });
@@ -143,7 +149,7 @@ describe("resolveConfig", () => {
       "/cp/session-state",
     );
     expect(
-      resolveConfig({ env: { COPILOT_HOME: "/cp", DECANT_COPILOT_DIR: "/d" }, homeDir: "/h" })
+      resolveConfig({ env: { COPILOT_HOME: "/cp", AGENT_BENCHMARKS_COPILOT_DIR: "/d" }, homeDir: "/h" })
         .copilotDir,
     ).toBe("/d");
     expect(resolveConfig({ env: { COPILOT_HOME: "" }, homeDir: "/h" }).copilotDir).toBe(
@@ -179,12 +185,12 @@ describe("resolveConfig", () => {
     expect(explicit.opencodeConfigDir).toBe("/oc/config");
     expect(explicit.opencodeExtraConfigPath).toBe("/oc/cfg.json");
     expect(explicit.opencodeConfigPath).toBeUndefined();
-    const decant = resolveConfig({
-      env: { DECANT_OPENCODE_CONFIG: "/d/cfg.json", OPENCODE_CONFIG: "/oc/cfg.json" },
+    const agentBenchmarks = resolveConfig({
+      env: { AGENT_BENCHMARKS_OPENCODE_CONFIG: "/d/cfg.json", OPENCODE_CONFIG: "/oc/cfg.json" },
       homeDir: "/h",
     });
-    expect(decant.opencodeConfigPath).toBe("/d/cfg.json");
-    expect(decant.opencodeExtraConfigPath).toBe("/oc/cfg.json");
+    expect(agentBenchmarks.opencodeConfigPath).toBe("/d/cfg.json");
+    expect(agentBenchmarks.opencodeExtraConfigPath).toBe("/oc/cfg.json");
     // OpenCode 1.x caches the models.dev catalog in its cache directory,
     // and reads OPENCODE_MODELS_PATH instead when it is set.
     expect(

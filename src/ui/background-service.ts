@@ -10,7 +10,7 @@ export function backgroundNote(status: BackgroundStatus | null, phase: Backgroun
     return "Moving Agent Benchmarks to the background. This page reloads when it is ready.";
   }
   if (phase === "stopped") {
-    return "Agent Benchmarks stopped. Run decant in a terminal to start it again.";
+    return "Agent Benchmarks stopped. Run agent-benchmarks in a terminal to start it again.";
   }
   if (phase === "saving") {
     return "Saving...";
@@ -30,7 +30,7 @@ export function backgroundNote(status: BackgroundStatus | null, phase: Backgroun
   if (status.running) {
     return `On. Agent Benchmarks is running in the background at ${status.url ?? "its own port"}.`;
   }
-  return "On, but the service is not running. Run decant service status for details.";
+  return "On, but the service is not running. Run agent-benchmarks service status for details.";
 }
 
 export async function waitForBackgroundService(

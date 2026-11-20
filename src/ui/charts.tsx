@@ -100,13 +100,13 @@ export const AnalyticsChart = memo(function AnalyticsChart({
       observer.observe(element);
       window.addEventListener("resize", resize);
       const redrawForTheme = () => draw(true);
-      window.addEventListener("decant:set-theme", redrawForTheme);
+      window.addEventListener("agent-benchmarks:set-theme", redrawForTheme);
       media.addEventListener("change", redrawForTheme);
       draw();
       disposeChart = () => {
         observer.disconnect();
         window.removeEventListener("resize", resize);
-        window.removeEventListener("decant:set-theme", redrawForTheme);
+        window.removeEventListener("agent-benchmarks:set-theme", redrawForTheme);
         media.removeEventListener("change", redrawForTheme);
         chart.dispose();
         chartInstanceRef.current = null;

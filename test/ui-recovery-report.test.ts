@@ -25,13 +25,13 @@ describe("coded UI recovery", () => {
     }
     expect(main).toMatch(/onClick=\{onRetry\}[\s\S]*?Retry/);
     expect(main).toContain("private diagnostic");
-    expect(main).toContain("Restart `decant serve`");
+    expect(main).toContain("Restart `agent-benchmarks serve`");
   });
 
   test("offers direct recovery for missing sessions, stale schemas, and launch failures", () => {
     expect(main).toContain('actionLabel: "Back to sessions"');
     expect(main).toMatch(/case "session_not_found":[\s\S]*?useSync: true/);
-    expect(main).toContain('actionLabel: "View rebuild guide"');
+    expect(main).toContain('actionLabel: "Rebuild archive"');
     const schemaTooOld = sourceBetween(
       main,
       'case "schema_too_old":',
@@ -110,7 +110,6 @@ describe("ingest diagnostics", () => {
       "detail.summary.ingest_issue_count > 0 ||\n            detail.summary.informational_ingest_issue_count > 0",
     );
     expect(main).toContain('label="Re-sync"');
-    expect(main).toContain("Check for an Agent Benchmarks update");
     expect(main).toContain("onRetry={() => setIssuesError(null)}");
   });
 });

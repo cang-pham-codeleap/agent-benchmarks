@@ -9,7 +9,7 @@ import {
   sessionUserStatePredicate,
 } from "../src/session-user-state.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-user-state-predicate-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-user-state-predicate-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;

@@ -1385,7 +1385,7 @@
     "seq": 0,
     "ordinal": 0,
     "type": "text",
-    "text": "You are a synthetic coding agent used in Decant fixtures.",
+    "text": "You are a synthetic coding agent used in Agent Benchmarks fixtures.",
     "tool_name": null,
     "tool_use_id": null,
     "tool_input": null,
@@ -2060,7 +2060,7 @@
     "text": null,
     "tool_name": "patch",
     "tool_use_id": "call_patch_1",
-    "tool_input": "{\"new_string\":\"hello, world\",\"old_string\":\"hello\",\"path\":\"/decant-fixture/example/notes.txt\"}",
+    "tool_input": "{\"new_string\":\"hello, world\",\"old_string\":\"hello\",\"path\":\"/agent-benchmarks-fixture/example/notes.txt\"}",
     "tool_result": null
   },
   {
@@ -2288,7 +2288,7 @@
     "text": null,
     "tool_name": "read",
     "tool_use_id": "call_read_1",
-    "tool_input": "{\"path\":\"/decant-fixture/example/notes.txt\"}",
+    "tool_input": "{\"path\":\"/agent-benchmarks-fixture/example/notes.txt\"}",
     "tool_result": null
   },
   {
@@ -2372,7 +2372,7 @@
     "text": null,
     "tool_name": "read",
     "tool_use_id": "call_v1_read",
-    "tool_input": "{\"filePath\":\"/decant-fixture/example/notes.txt\"}",
+    "tool_input": "{\"filePath\":\"/agent-benchmarks-fixture/example/notes.txt\"}",
     "tool_result": null
   },
   {
@@ -2432,7 +2432,7 @@
     "text": null,
     "tool_name": "bash",
     "tool_use_id": "call_v1_bash",
-    "tool_input": "{\"command\":\"cat /decant-fixture/example/missing.txt\"}",
+    "tool_input": "{\"command\":\"cat /agent-benchmarks-fixture/example/missing.txt\"}",
     "tool_result": null
   },
   {
@@ -2516,7 +2516,7 @@
     "text": null,
     "tool_name": "edit",
     "tool_use_id": "call_edit_1",
-    "tool_input": "{\"newText\":\"hi\",\"oldText\":\"hello\",\"path\":\"/decant-fixture/pi-example/hello.txt\"}",
+    "tool_input": "{\"newText\":\"hi\",\"oldText\":\"hello\",\"path\":\"/agent-benchmarks-fixture/pi-example/hello.txt\"}",
     "tool_result": null
   },
   {

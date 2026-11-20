@@ -25,7 +25,6 @@ export interface UserSettings {
   agent: AgentKey;
   terminal: TerminalKey;
   ide: IdeKey;
-  updateCheck: boolean;
 }
 
 export interface SettingsOptions {
@@ -72,7 +71,7 @@ export const ideOptions: [IdeKey, string][] = [
 export function settingsPath(options: SettingsOptions = {}): string {
   const env = options.env ?? process.env;
   const home = (options.homeDir ?? homedir()) || ".";
-  const dir = env.DECANT_CONFIG_DIR ?? join(home, ".config", "decant");
+  const dir = env.AGENT_BENCHMARKS_CONFIG_DIR ?? join(home, ".config", "agent-benchmarks");
   return resolve(join(dir, "settings.json"));
 }
 
@@ -81,7 +80,6 @@ export function detectedSettings(options: SettingsOptions = {}): UserSettings {
     agent: "claude",
     terminal: detectTerminal(options.env ?? process.env),
     ide: detectIde(options.appExists ?? ((name) => existsSync(`/Applications/${name}.app`))),
-    updateCheck: false,
   };
 }
 
@@ -167,9 +165,6 @@ function sanitize(attrs: unknown): Partial<UserSettings> {
   }
   if (typeof raw.ide === "string" && validIdes.has(raw.ide as IdeKey)) {
     out.ide = raw.ide as IdeKey;
-  }
-  if (typeof raw.updateCheck === "boolean") {
-    out.updateCheck = raw.updateCheck;
   }
   return out;
 }

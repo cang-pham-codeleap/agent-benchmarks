@@ -311,7 +311,7 @@ describe("Hermes Agent file refs", () => {
   test("reads read_file, patch, and write_file paths, and records none for a V4A patch", () => {
     const at = (name: string, input: NormalizedBlock["toolInput"]) => {
       const session = oneBlockSession("hermes", toolUse(name, input));
-      session.cwd = "/decant-fixture/example";
+      session.cwd = "/agent-benchmarks-fixture/example";
       return fileRefs(session);
     };
     expect(at("read_file", { path: "notes.txt" })[0]).toMatchObject({
@@ -321,7 +321,7 @@ describe("Hermes Agent file refs", () => {
     });
     expect(
       at("patch", {
-        path: "/decant-fixture/example/src/app.ts",
+        path: "/agent-benchmarks-fixture/example/src/app.ts",
         old_string: "a",
         new_string: "b",
       })[0],

@@ -59,7 +59,7 @@ export function errorResponse(
 export function serviceStartingResponse(): Response {
   return errorResponse(
     "service_starting",
-    "Decant is still starting. Please try again.",
+    "Agent Benchmarks is still starting. Please try again.",
     { retryable: true },
     503,
   );
@@ -99,7 +99,7 @@ function classifyError(error: unknown): ApiError {
   }
   return {
     code: "internal_error",
-    message: "Decant could not complete this request.",
+    message: "Agent Benchmarks could not complete this request.",
     status: 500,
   };
 }

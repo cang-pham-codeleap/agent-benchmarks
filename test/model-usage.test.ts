@@ -21,7 +21,7 @@ import { byDimension, totals } from "../src/stats.ts";
 import { refreshSessionCosts, tokenEconomicsForSession } from "../src/token-economics.ts";
 import { syntheticOpenCodeSession } from "./opencode-session.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-model-usage-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-model-usage-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let counter = 0;
@@ -401,7 +401,7 @@ describe("reported cost fallback", () => {
     );
   }
 
-  test("uses OpenCode's recorded cost only for a model Decant cannot price", () => {
+  test("uses OpenCode's recorded cost only for a model Agent Benchmarks cannot price", () => {
     const db = freshDb();
     const id = ingestOpenCode(db, "ses_unpriced", [
       { model: "example-unpriced", cost: 0.25, input: 100, output: 10 },
@@ -466,7 +466,7 @@ describe("reported cost fallback", () => {
     closeDb(db);
   });
 
-  test("keeps Decant's list price when the model is priceable", () => {
+  test("keeps Agent Benchmarks's list price when the model is priceable", () => {
     const db = freshDb();
     const id = ingestOpenCode(db, "ses_priced", [
       { model: "glm-5.3-flash", cost: 99, input: 1_000_000, output: 1_000_000 },

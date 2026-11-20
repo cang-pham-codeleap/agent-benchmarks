@@ -76,7 +76,7 @@ describe("parseAtifDocument", () => {
     });
     expect(session.messages[7]?.blocks.map((b) => b.blockType)).toEqual(["tool_result", "text"]);
 
-    // prompt_tokens includes cache reads, which Decant keeps apart.
+    // prompt_tokens includes cache reads, which Agent Benchmarks keeps apart.
     expect(first?.usage).toEqual({
       input: 200,
       output: 80,
@@ -326,7 +326,7 @@ describe("parseAtifDocument", () => {
     expect(refs(parse(embedded))).toBeUndefined();
   });
 
-  test("takes a Decant export's own session totals over per-step sums", () => {
+  test("takes a Agent Benchmarks export's own session totals over per-step sums", () => {
     // Codex stamps usage on a turn's last request, so steps undercount.
     const steps = [
       {
@@ -342,18 +342,18 @@ describe("parseAtifDocument", () => {
       total_cached_tokens: 400,
       total_steps: 1,
     };
-    const decant = { exporter: "decant" };
+    const agentBenchmarks = { exporter: "agent-benchmarks" };
     const totals = (extra: Json, finalExtra: Json = {}) =>
       root(parse(trajectory(steps, { extra, final_metrics: { ...final, extra: finalExtra } })))
         .totals;
-    expect(totals(decant, { total_cache_write_tokens: 100 })).toMatchObject({
+    expect(totals(agentBenchmarks, { total_cache_write_tokens: 100 })).toMatchObject({
       input: 500,
       output: 200,
       cacheRead: 400,
       cacheCreation: 100,
     });
     expect(
-      totals(decant, {
+      totals(agentBenchmarks, {
         includes_subagents: true,
         session_metrics: {
           total_prompt_tokens: 600,
@@ -363,7 +363,7 @@ describe("parseAtifDocument", () => {
         },
       }),
     ).toMatchObject({ input: 600, output: 50 });
-    expect(totals(decant, { includes_subagents: true })).toMatchObject({ input: 100 });
+    expect(totals(agentBenchmarks, { includes_subagents: true })).toMatchObject({ input: 100 });
     expect(totals({ exporter: "other" })).toMatchObject({ input: 100 });
   });
 

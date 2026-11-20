@@ -39,7 +39,7 @@ import {
   watchBinary,
 } from "../src/service.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-service-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-service-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let homeCounter = 0;
@@ -48,7 +48,7 @@ function freshHome(): string {
   return join(workDir, `home-${homeCounter}`);
 }
 
-const spec = { binary: "/opt/test/decant", dbPath: "/Users/dev/.decant/decant.db", port: 3000 };
+const spec = { binary: "/opt/test/agent-benchmarks", dbPath: "/Users/dev/.agent-benchmarks/agent-benchmarks.db", port: 3000 };
 
 function fakeManager(
   initial: { loaded?: boolean; running?: boolean; systemd?: boolean; exitPrints?: number } = {},
@@ -124,41 +124,41 @@ function darwinOptions(homeDir: string, run: (argv: string[]) => Promise<Command
     homeDir,
     uid: 501,
     run,
-    install: { channel: "installer" as const, binaryPath: spec.binary },
+    install: { channel: "standalone" as const, binaryPath: spec.binary },
     execPath: spec.binary,
   };
 }
 
 describe("serviceBinary", () => {
-  test("points Homebrew installs at the stable opt symlink", () => {
+  test("uses the standalone binary's own path", () => {
     const result = serviceBinary({
-      install: { channel: "homebrew", binaryPath: null },
-      execPath: "/opt/homebrew/Cellar/decant/0.14.0/bin/decant",
+      install: { channel: "standalone", binaryPath: null },
+      execPath: "/opt/local/bin/agent-benchmarks",
     });
-    expect(result).toEqual({ path: "/opt/homebrew/opt/decant/bin/decant", reason: null });
+    expect(result).toEqual({ path: "/opt/local/bin/agent-benchmarks", reason: null });
   });
 
   test("refuses installs that cannot outlive the current process", () => {
-    for (const channel of ["source", "npx", "docker"] as const) {
+    for (const channel of ["source", "docker"] as const) {
       const result = serviceBinary({ install: { channel, binaryPath: null } });
       expect(result.path).toBeNull();
       expect(result.reason).toBeString();
     }
   });
 
-  test("uses the binary's own path for the installer and npm", () => {
+  test("uses a configured standalone path", () => {
     expect(
       serviceBinary({
-        install: { channel: "installer", binaryPath: "/x" },
-        execPath: "/missing/bin/decant",
+        install: { channel: "standalone", binaryPath: "/x" },
+        execPath: "/missing/bin/agent-benchmarks",
       }),
-    ).toEqual({ path: "/missing/bin/decant", reason: null });
+    ).toEqual({ path: "/missing/bin/agent-benchmarks", reason: null });
   });
 });
 
 describe("unit files", () => {
   const tricky = {
-    binary: "/Apps/My Tools/decant",
+    binary: "/Apps/My Tools/agent-benchmarks",
     dbPath: "/data/a&b <x> 100% $HOME/d.db",
     port: 4123,
   };
@@ -167,14 +167,14 @@ describe("unit files", () => {
     const plist = launchdPlist(spec, { homeDir: "/Users/dev" });
     expect(plist).toContain(`<string>${LAUNCHD_LABEL}</string>`);
     expect(plist).toMatch(/<key>SuccessfulExit<\/key>\s*<false\/>/);
-    expect(plist).toMatch(/<key>DECANT_SERVICE<\/key>\s*<string>1<\/string>/);
-    expect(plist).toContain("/Users/dev/Library/Logs/decant/serve.log");
+    expect(plist).toMatch(/<key>AGENT_BENCHMARKS_SERVICE<\/key>\s*<string>1<\/string>/);
+    expect(plist).toContain("/Users/dev/Library/Logs/agent-benchmarks/serve.log");
   });
 
   test("the systemd unit restarts only on failure", () => {
     const unit = systemdUnit(spec);
     expect(unit).toContain("Restart=on-failure");
-    expect(unit).toContain("Environment=DECANT_SERVICE=1");
+    expect(unit).toContain("Environment=AGENT_BENCHMARKS_SERVICE=1");
     expect(unit).toContain("WantedBy=default.target");
   });
 
@@ -186,15 +186,15 @@ describe("unit files", () => {
 
   test("paths with spaces, quotes, backslashes, % and $ render unchanged", () => {
     const quoted = {
-      binary: "/Apps/My Tools/decant",
+      binary: "/Apps/My Tools/agent-benchmarks",
       dbPath: '/data/"q" 100% $HOME\\d.db',
       port: 4123,
     };
     expect(systemdUnit(quoted)).toContain(
-      'ExecStart="/Apps/My Tools/decant" "--db" "/data/\\"q\\" 100%% $$HOME\\\\d.db" "serve" "--no-open" "--port" "4123"\n',
+      'ExecStart="/Apps/My Tools/agent-benchmarks" "--db" "/data/\\"q\\" 100%% $$HOME\\\\d.db" "serve" "--no-open" "--port" "4123"\n',
     );
     expect(launchdPlist(quoted)).toContain(
-      "\t\t<string>/Apps/My Tools/decant</string>\n\t\t<string>--db</string>\n\t\t<string>/data/&quot;q&quot; 100% $HOME\\d.db</string>\n",
+      "\t\t<string>/Apps/My Tools/agent-benchmarks</string>\n\t\t<string>--db</string>\n\t\t<string>/data/&quot;q&quot; 100% $HOME\\d.db</string>\n",
     );
   });
 
@@ -227,10 +227,10 @@ describe("unit files", () => {
       `/h/Library/LaunchAgents/${LAUNCHD_LABEL}.plist`,
     );
     expect(unitPath("systemd", { homeDir: "/h", env: {} })).toBe(
-      "/h/.config/systemd/user/decant.service",
+      "/h/.config/systemd/user/agent-benchmarks.service",
     );
     expect(unitPath("systemd", { homeDir: "/h", env: { XDG_CONFIG_HOME: "/cfg" } })).toBe(
-      "/cfg/systemd/user/decant.service",
+      "/cfg/systemd/user/agent-benchmarks.service",
     );
   });
 });
@@ -249,7 +249,7 @@ describe("serviceStatus", () => {
       env: {},
       homeDir: freshHome(),
       run: fake.run,
-      install: { channel: "installer", binaryPath: spec.binary },
+      install: { channel: "standalone", binaryPath: spec.binary },
       execPath: spec.binary,
     });
     expect(status.supported).toBe(false);
@@ -257,11 +257,11 @@ describe("serviceStatus", () => {
   });
 
   test("reports whether the answering process is the service", async () => {
-    expect(isServiceProcess({ DECANT_SERVICE: "1" })).toBe(true);
+    expect(isServiceProcess({ AGENT_BENCHMARKS_SERVICE: "1" })).toBe(true);
     expect(isServiceProcess({})).toBe(false);
     const fake = fakeManager();
     const status = await serviceStatus(
-      darwinOptions(freshHome(), fake.run, { DECANT_SERVICE: "1" }),
+      darwinOptions(freshHome(), fake.run, { AGENT_BENCHMARKS_SERVICE: "1" }),
     );
     expect(status.current).toBe(true);
   });
@@ -277,7 +277,7 @@ describe("launchd install and uninstall", () => {
     );
     expect(status).toMatchObject({ installed: true, running: true, url: "http://127.0.0.1:3000" });
     expect(status.command).toEqual(serviceArgs(spec));
-    expect(fake.calls).toContain("launchctl enable gui/501/dev.dosu.decant");
+    expect(fake.calls).toContain("launchctl enable gui/501/dev.dosu.agent-benchmarks");
     expect(fake.calls).toContain(
       `launchctl bootstrap gui/501 ${unitPath("launchd", { homeDir: home })}`,
     );
@@ -301,7 +301,7 @@ describe("launchd install and uninstall", () => {
     fake.state.running = false;
     fake.calls.length = 0;
     await installService({ dbPath: spec.dbPath, port: 3000 }, options);
-    expect(fake.calls).toContain("launchctl kickstart gui/501/dev.dosu.decant");
+    expect(fake.calls).toContain("launchctl kickstart gui/501/dev.dosu.agent-benchmarks");
     expect(fake.calls.some((call) => call.startsWith("launchctl bootstrap"))).toBe(false);
   });
 
@@ -311,7 +311,7 @@ describe("launchd install and uninstall", () => {
     await installService({ dbPath: spec.dbPath, port: 3000 }, darwinOptions(home, fake.run));
 
     fake.calls.length = 0;
-    const inside = darwinOptions(home, fake.run, { DECANT_SERVICE: "1" });
+    const inside = darwinOptions(home, fake.run, { AGENT_BENCHMARKS_SERVICE: "1" });
     await installService({ dbPath: spec.dbPath, port: 4000 }, inside);
     expect(fake.calls.some((call) => call.startsWith("launchctl bootout"))).toBe(false);
     expect(readFileSync(unitPath("launchd", { homeDir: home }), "utf8")).toContain(
@@ -320,7 +320,7 @@ describe("launchd install and uninstall", () => {
 
     fake.calls.length = 0;
     await installService({ dbPath: spec.dbPath, port: 5000 }, darwinOptions(home, fake.run));
-    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.decant");
+    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.agent-benchmarks");
     expect(fake.calls.some((call) => call.startsWith("launchctl bootstrap"))).toBe(true);
   });
 
@@ -374,7 +374,7 @@ describe("launchd install and uninstall", () => {
     expect(fake.calls.some((call) => call.startsWith("launchctl bootout"))).toBe(false);
 
     const status = await uninstallService(options);
-    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.decant");
+    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.agent-benchmarks");
     expect(status).toMatchObject({ installed: false, running: false });
   });
 });
@@ -384,8 +384,8 @@ describe("systemd install and uninstall", () => {
     for (const [dbPath, binary] of [
       ["/data/a.db\nExecStartPre=/bin/touch /tmp/pwned", spec.binary],
       ["/data/a.db\rExecStartPre=/bin/touch /tmp/pwned", spec.binary],
-      [spec.dbPath, "/opt/test/decant\nExecStartPre=/bin/touch /tmp/pwned"],
-      [spec.dbPath, "/opt/test/decant\r"],
+      [spec.dbPath, "/opt/test/agent-benchmarks\nExecStartPre=/bin/touch /tmp/pwned"],
+      [spec.dbPath, "/opt/test/agent-benchmarks\r"],
     ] as const) {
       const home = freshHome();
       const fake = fakeManager();
@@ -394,7 +394,7 @@ describe("systemd install and uninstall", () => {
         env: {},
         homeDir: home,
         run: fake.run,
-        install: { channel: "installer" as const, binaryPath: binary },
+        install: { channel: "standalone" as const, binaryPath: binary },
         execPath: binary,
       };
       await expect(installService({ dbPath, port: 3000 }, options)).rejects.toBeInstanceOf(
@@ -402,7 +402,7 @@ describe("systemd install and uninstall", () => {
       );
       expect(existsSync(unitPath("systemd", options))).toBe(false);
       expect(fake.calls).not.toContain("systemctl --user daemon-reload");
-      expect(fake.calls).not.toContain("systemctl --user start decant.service");
+      expect(fake.calls).not.toContain("systemctl --user start agent-benchmarks.service");
     }
   });
 
@@ -414,7 +414,7 @@ describe("systemd install and uninstall", () => {
       env: {},
       homeDir: home,
       run: fake.run,
-      install: { channel: "installer" as const, binaryPath: spec.binary },
+      install: { channel: "standalone" as const, binaryPath: spec.binary },
       execPath: spec.binary,
     };
     const status = await installService({ dbPath: spec.dbPath, port: 3000 }, options);
@@ -422,8 +422,8 @@ describe("systemd install and uninstall", () => {
     expect(fake.calls).toEqual(
       expect.arrayContaining([
         "systemctl --user daemon-reload",
-        "systemctl --user enable decant.service",
-        "systemctl --user start decant.service",
+        "systemctl --user enable agent-benchmarks.service",
+        "systemctl --user start agent-benchmarks.service",
       ]),
     );
 
@@ -431,8 +431,8 @@ describe("systemd install and uninstall", () => {
     await uninstallService(options);
     expect(fake.calls).toEqual(
       expect.arrayContaining([
-        "systemctl --user disable decant.service",
-        "systemctl --user stop --no-block decant.service",
+        "systemctl --user disable agent-benchmarks.service",
+        "systemctl --user stop --no-block agent-benchmarks.service",
       ]),
     );
     expect(existsSync(unitPath("systemd", options))).toBe(false);
@@ -453,7 +453,7 @@ describe("systemd install and uninstall", () => {
 
 describe("binaryChanged", () => {
   const base: BinaryFingerprint = {
-    path: "/opt/homebrew/Cellar/decant/0.14.0/bin/decant",
+    path: "/opt/local/agent-benchmarks/0.14.0/bin/agent-benchmarks",
     ino: 100,
     mtimeMs: 1_000,
     size: 5_000,
@@ -463,13 +463,13 @@ describe("binaryChanged", () => {
     expect(binaryChanged(base, { ...base })).toBe(false);
   });
 
-  test("is true when Homebrew moves the opt symlink to a new Cellar path", () => {
+  test("is true when a new build path replaces the binary", () => {
     expect(
-      binaryChanged(base, { ...base, path: "/opt/homebrew/Cellar/decant/0.15.0/bin/decant" }),
+      binaryChanged(base, { ...base, path: "/opt/local/agent-benchmarks/0.15.0/bin/agent-benchmarks" }),
     ).toBe(true);
   });
 
-  test("is true when the installer renames a new file over the old one", () => {
+  test("is true when a new file is renamed over the old one", () => {
     expect(binaryChanged(base, { ...base, ino: 101 })).toBe(true);
   });
 
@@ -485,28 +485,28 @@ describe("binaryChanged", () => {
   test("tracks real files through rename, symlink retarget, and in-place writes", () => {
     const dir = join(workDir, "fingerprints");
     mkdirSync(dir, { recursive: true });
-    const file = join(dir, "decant");
+    const file = join(dir, "agent-benchmarks");
     writeFileSync(file, "v1");
     const first = binaryFingerprint(file);
     if (first == null) throw new Error("fingerprint missing");
     expect(binaryChanged(first, binaryFingerprint(file))).toBe(false);
 
-    writeFileSync(join(dir, "decant.next"), "v2");
-    renameSync(join(dir, "decant.next"), file);
+    writeFileSync(join(dir, "agent-benchmarks.next"), "v2");
+    renameSync(join(dir, "agent-benchmarks.next"), file);
     const renamed = binaryFingerprint(file);
     expect(renamed?.ino).not.toBe(first.ino);
     expect(binaryChanged(first, renamed)).toBe(true);
 
     for (const version of ["1", "2"]) {
       mkdirSync(join(dir, "Cellar", version), { recursive: true });
-      writeFileSync(join(dir, "Cellar", version, "decant"), `brew ${version}`);
+      writeFileSync(join(dir, "Cellar", version, "agent-benchmarks"), `brew ${version}`);
     }
-    const link = join(dir, "opt-decant");
-    symlinkSync(join(dir, "Cellar", "1", "decant"), link);
+    const link = join(dir, "opt-agent-benchmarks");
+    symlinkSync(join(dir, "Cellar", "1", "agent-benchmarks"), link);
     const linked = binaryFingerprint(link);
     if (linked == null) throw new Error("fingerprint missing");
     unlinkSync(link);
-    symlinkSync(join(dir, "Cellar", "2", "decant"), link);
+    symlinkSync(join(dir, "Cellar", "2", "agent-benchmarks"), link);
     expect(binaryChanged(linked, binaryFingerprint(link))).toBe(true);
 
     const before = binaryFingerprint(file);
@@ -617,18 +617,18 @@ describe("launchd reconfiguration", () => {
       `gui/501/${LAUNCHD_LABEL} = {`,
       "\tactive count = 1",
       "\targuments = {",
-      "\t\t/Apps/My Tools/decant",
+      "\t\t/Apps/My Tools/agent-benchmarks",
       "\t\t--db",
       "\t\t/data/a.db",
       "\t}",
       "",
       "\tstate = running",
       "\tenvironment = {",
-      "\t\tDECANT_SERVICE => 1",
+      "\t\tAGENT_BENCHMARKS_SERVICE => 1",
       "\t}",
       "}",
     ].join("\n");
-    expect(parseLaunchdArguments(printed)).toEqual(["/Apps/My Tools/decant", "--db", "/data/a.db"]);
+    expect(parseLaunchdArguments(printed)).toEqual(["/Apps/My Tools/agent-benchmarks", "--db", "/data/a.db"]);
     expect(parseLaunchdArguments("state = running")).toBeNull();
   });
 
@@ -652,9 +652,9 @@ describe("launchd reconfiguration", () => {
     fake.calls.length = 0;
 
     const status = await installService({ dbPath: "/data/changed.db", port: 3001 }, options);
-    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.decant");
+    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.agent-benchmarks");
     expect(fake.calls.some((call) => call.startsWith("launchctl bootstrap"))).toBe(true);
-    expect(fake.calls).not.toContain("launchctl kickstart gui/501/dev.dosu.decant");
+    expect(fake.calls).not.toContain("launchctl kickstart gui/501/dev.dosu.agent-benchmarks");
     expect(status).toMatchObject({ running: true, url: "http://127.0.0.1:3001" });
     expect(fake.state.args).toEqual(status.command);
     expect(fake.state.args).toContain("/data/changed.db");
@@ -666,7 +666,7 @@ describe("launchd reconfiguration", () => {
     await installService({ dbPath: spec.dbPath, port: 3000 }, darwinOptions(home, fake.run));
     await installService(
       { dbPath: spec.dbPath, port: 4000 },
-      darwinOptions(home, fake.run, { DECANT_SERVICE: "1" }),
+      darwinOptions(home, fake.run, { AGENT_BENCHMARKS_SERVICE: "1" }),
     );
     expect(fake.state.args).toContain("3000");
 
@@ -675,7 +675,7 @@ describe("launchd reconfiguration", () => {
       { dbPath: spec.dbPath, port: 4000 },
       darwinOptions(home, fake.run),
     );
-    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.decant");
+    expect(fake.calls).toContain("launchctl bootout gui/501/dev.dosu.agent-benchmarks");
     expect(fake.state.args).toEqual(status.command);
     expect(fake.state.args).toContain("4000");
   });
@@ -689,7 +689,7 @@ describe("launchd reconfiguration", () => {
 
     const status = await installService({ dbPath: spec.dbPath, port: 3001 }, options);
     expect(status).toMatchObject({ running: true, url: "http://127.0.0.1:3001" });
-    const bootout = fake.calls.indexOf("launchctl bootout gui/501/dev.dosu.decant");
+    const bootout = fake.calls.indexOf("launchctl bootout gui/501/dev.dosu.agent-benchmarks");
     const bootstrap = fake.calls.findIndex((call) => call.startsWith("launchctl bootstrap"));
     const waits = fake.calls
       .slice(bootout + 1, bootstrap)
@@ -746,7 +746,7 @@ describe("systemd reconfiguration", () => {
       env: {},
       homeDir: home,
       run: fake.run,
-      install: { channel: "installer" as const, binaryPath: spec.binary },
+      install: { channel: "standalone" as const, binaryPath: spec.binary },
       execPath: spec.binary,
     };
     await installService({ dbPath: spec.dbPath, port: 3000 }, options);
@@ -755,12 +755,12 @@ describe("systemd reconfiguration", () => {
     await installService({ dbPath: spec.dbPath, port: 3001 }, options);
     expect(fake.calls).toEqual([
       "systemctl --user show-environment",
-      "systemctl --user is-active decant.service",
+      "systemctl --user is-active agent-benchmarks.service",
       "systemctl --user daemon-reload",
-      "systemctl --user enable decant.service",
-      "systemctl --user start decant.service",
+      "systemctl --user enable agent-benchmarks.service",
+      "systemctl --user start agent-benchmarks.service",
       "systemctl --user show-environment",
-      "systemctl --user is-active decant.service",
+      "systemctl --user is-active agent-benchmarks.service",
     ]);
     expect(readFileSync(unitPath("systemd", options), "utf8")).toContain('"3001"');
   });

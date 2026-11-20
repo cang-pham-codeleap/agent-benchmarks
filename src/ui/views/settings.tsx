@@ -3,19 +3,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type ApiRetryPolicy, getJson } from "../api.ts";
-import dosuDecantUrl from "../assets/dosu-decant.png";
 import {
   type BackgroundPhase,
   backgroundNote,
   waitForBackgroundService,
 } from "../background-service.ts";
-import { dosuLink } from "../dosu-links.ts";
 import { errorMessage, versionLabel } from "../format.ts";
 import type {
   BackgroundStatus,
   ConfigView,
   SettingsInfo,
-  UpdateStatus,
   UserSettings,
 } from "../types.ts";
 
@@ -23,12 +20,10 @@ export function SettingsView({
   config,
   onSaved,
   settingsInfo,
-  update,
 }: {
   config: ConfigView | null;
   onSaved: () => void;
   settingsInfo: SettingsInfo | null;
-  update: UpdateStatus | null;
 }) {
   const [settings, setSettings] = useState<UserSettings | null>(settingsInfo?.settings ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -40,9 +35,7 @@ export function SettingsView({
 
   const save = (patch: Partial<UserSettings>) => {
     const base = settings ?? settingsInfo?.settings;
-    if (base == null) {
-      return;
-    }
+    if (base == null) return;
     const previous = settings;
     const next = { ...base, ...patch };
     setSettings(next);
@@ -66,8 +59,7 @@ export function SettingsView({
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          How Agent Benchmarks opens things on your machine. We start from what we detect and remember your
-          choices.
+          How Agent Benchmarks opens things on your machine. We start from what we detect and remember your choices.
         </p>
       </header>
 
@@ -100,54 +92,23 @@ export function SettingsView({
 
       <Card>
         <CardContent className="divide-y">
-          <SettingSwitch
-            checked={
-              update?.envOverride === true ? update.enabled : (settings?.updateCheck ?? false)
-            }
-            disabled={update?.envOverride === true}
-            help="Once a day, ask the npm registry for the newest Agent Benchmarks version. The request carries no session data."
-            label="Check for updates"
-            onChange={(updateCheck) => save({ updateCheck })}
-            status={updateNote(update, settings?.updateCheck ?? false)}
-          />
           <BackgroundSetting />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <CardHeader>
           <div className="space-y-2">
             <CardTitle>About Agent Benchmarks</CardTitle>
             <p className="text-sm text-muted-foreground">
-              See where your coding agents spend tokens, money, and time: a local-first, searchable
-              archive of Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI,
-              Copilot Chat in VS Code, Hermes Agent, and Pi sessions, with ATIF import and export.
+              See where your coding agents spend tokens, money, and time: a local-first, searchable archive for models, harnesses, and agentic workflows.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Based on Decant by Dosu (Apache-2.0)
-            </p>
+            <p className="text-sm text-muted-foreground">Based on Decant by Dosu (Apache-2.0)</p>
           </div>
-          <img alt="" className="max-h-24 max-w-24 object-contain" src={dosuDecantUrl} />
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <div className="flex flex-wrap gap-4 text-foreground underline-offset-4 [&_a:hover]:underline">
-            <a href="https://github.com/dosu-ai/decant" rel="noopener" target="_blank">
-              View source ↗
-            </a>
-            <a
-              href="https://github.com/dosu-ai/decant/blob/main/LICENSE"
-              rel="noopener"
-              target="_blank"
-            >
-              Apache-2.0 license ↗
-            </a>
-          </div>
           <p>Version {versionLabel(config?.version)}</p>
-          <p>
-            {update?.enabled === true && update.channel !== "source"
-              ? "Agent Benchmarks contacts the npm registry once a day to check for a newer version. Your session logs stay on this machine."
-              : "Agent Benchmarks makes no outbound network calls. Your session logs stay on this machine."}
-          </p>
+          <p>Agent Benchmarks makes no outbound network calls. Your session logs stay on this machine.</p>
         </CardContent>
       </Card>
     </div>
@@ -202,7 +163,7 @@ function BackgroundSetting() {
         }
         setPhase("stopped");
         setError(
-          "The background service did not answer within 30 seconds. Run decant service status to see why.",
+          "The background service did not answer within 30 seconds. Run agent-benchmarks service status to see why.",
         );
       })
       .catch((err: unknown) => {
@@ -227,37 +188,7 @@ function BackgroundSetting() {
   );
 }
 
-function updateNote(update: UpdateStatus | null, saved: boolean): string {
-  if (update == null) {
-    return "Loading update status...";
-  }
-  if (!update.envOverride && update.enabled !== saved) {
-    return saved ? "Checking for updates..." : "Saving...";
-  }
-  const override = update.envOverride
-    ? " DECANT_UPDATE_CHECK in the environment overrides this setting."
-    : "";
-  if (!update.enabled) {
-    return `Checks are off. Run decant update to check and install by hand.${override}`;
-  }
-  if (update.updateAvailable && update.latest != null) {
-    return `Agent Benchmarks ${versionLabel(update.latest)} is available. Run ${update.command} to install it.${override}`;
-  }
-  if (update.channel === "source") {
-    return `This is a source checkout, so Agent Benchmarks does not check for releases. Update it with git pull.${override}`;
-  }
-  if (update.latest != null) {
-    const checked =
-      update.checkedAt == null
-        ? ""
-        : ` Last checked ${new Date(update.checkedAt).toLocaleString()}.`;
-    return `You have the newest release.${checked}${override}`;
-  }
-  if (update.error != null) {
-    return `The last check failed: ${update.error}. Agent Benchmarks can check again after an hour.${override}`;
-  }
-  return `No check has finished yet.${override}`;
-}
+
 
 export function SettingSelect({
   help,

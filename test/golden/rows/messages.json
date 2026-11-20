@@ -1437,7 +1437,7 @@
     "output_tokens": null,
     "cache_read_tokens": null,
     "cache_creation_tokens": null,
-    "raw": "{\"data\":{\"content\":\"You are a synthetic coding agent used in Decant fixtures.\",\"role\":\"system\"},\"id\":\"00000000-0000-4000-8000-100000000002\",\"parentId\":\"00000000-0000-4000-8000-100000000001\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"type\":\"system.message\"}"
+    "raw": "{\"data\":{\"content\":\"You are a synthetic coding agent used in Agent Benchmarks fixtures.\",\"role\":\"system\"},\"id\":\"00000000-0000-4000-8000-100000000002\",\"parentId\":\"00000000-0000-4000-8000-100000000001\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"type\":\"system.message\"}"
   },
   {
     "tool": "copilot",
@@ -2125,7 +2125,7 @@
     "output_tokens": null,
     "cache_read_tokens": null,
     "cache_creation_tokens": null,
-    "raw": "{\"_compressed_summary\":0,\"active\":1,\"compacted\":0,\"content\":\"Updating the notes now.\",\"display_kind\":null,\"finish_reason\":\"tool_calls\",\"id\":12,\"message_uid\":\"uid-assistant-12\",\"reasoning\":null,\"reasoning_content\":null,\"role\":\"assistant\",\"timestamp\":1791786110,\"token_count\":null,\"tool_call_id\":null,\"tool_calls\":[{\"function\":{\"arguments\":\"{\\\"path\\\":\\\"/decant-fixture/example/notes.txt\\\",\\\"old_string\\\":\\\"hello\\\",\\\"new_string\\\":\\\"hello, world\\\"}\",\"name\":\"patch\"},\"id\":\"call_patch_1\",\"type\":\"function\"}],\"tool_name\":null}"
+    "raw": "{\"_compressed_summary\":0,\"active\":1,\"compacted\":0,\"content\":\"Updating the notes now.\",\"display_kind\":null,\"finish_reason\":\"tool_calls\",\"id\":12,\"message_uid\":\"uid-assistant-12\",\"reasoning\":null,\"reasoning_content\":null,\"role\":\"assistant\",\"timestamp\":1791786110,\"token_count\":null,\"tool_call_id\":null,\"tool_calls\":[{\"function\":{\"arguments\":\"{\\\"path\\\":\\\"/agent-benchmarks-fixture/example/notes.txt\\\",\\\"old_string\\\":\\\"hello\\\",\\\"new_string\\\":\\\"hello, world\\\"}\",\"name\":\"patch\"},\"id\":\"call_patch_1\",\"type\":\"function\"}],\"tool_name\":null}"
   },
   {
     "tool": "hermes",
@@ -2365,7 +2365,7 @@
     "output_tokens": 40,
     "cache_read_tokens": 40,
     "cache_creation_tokens": 16,
-    "raw": "{\"agent\":\"build\",\"content\":[{\"text\":\"Read the file before answering.\",\"time\":{\"completed\":1791786002000,\"created\":1791786001000},\"type\":\"reasoning\"},{\"executed\":false,\"id\":\"call_read_1\",\"name\":\"read\",\"state\":{\"content\":[{\"text\":\"hello\",\"type\":\"text\"}],\"input\":{\"path\":\"/decant-fixture/example/notes.txt\"},\"metadata\":{\"truncated\":false},\"status\":\"completed\"},\"time\":{\"completed\":1791786003000,\"created\":1791786002000,\"ran\":1791786002500},\"type\":\"tool\"}],\"cost\":0.0000416,\"finish\":\"tool-calls\",\"id\":\"msg_sample_2\",\"model\":{\"id\":\"glm-5.3-flash\",\"providerID\":\"opencode-go\",\"variant\":\"max\"},\"reasoning_tokens\":10,\"seq\":2,\"time\":{\"completed\":1791786005000,\"created\":1791786001000,\"streamed\":1791786002600},\"tokens\":{\"cache\":{\"read\":40,\"write\":16},\"input\":120,\"output\":30,\"reasoning\":10},\"type\":\"assistant\"}"
+    "raw": "{\"agent\":\"build\",\"content\":[{\"text\":\"Read the file before answering.\",\"time\":{\"completed\":1791786002000,\"created\":1791786001000},\"type\":\"reasoning\"},{\"executed\":false,\"id\":\"call_read_1\",\"name\":\"read\",\"state\":{\"content\":[{\"text\":\"hello\",\"type\":\"text\"}],\"input\":{\"path\":\"/agent-benchmarks-fixture/example/notes.txt\"},\"metadata\":{\"truncated\":false},\"status\":\"completed\"},\"time\":{\"completed\":1791786003000,\"created\":1791786002000,\"ran\":1791786002500},\"type\":\"tool\"}],\"cost\":0.0000416,\"finish\":\"tool-calls\",\"id\":\"msg_sample_2\",\"model\":{\"id\":\"glm-5.3-flash\",\"providerID\":\"opencode-go\",\"variant\":\"max\"},\"reasoning_tokens\":10,\"seq\":2,\"time\":{\"completed\":1791786005000,\"created\":1791786001000,\"streamed\":1791786002600},\"tokens\":{\"cache\":{\"read\":40,\"write\":16},\"input\":120,\"output\":30,\"reasoning\":10},\"type\":\"assistant\"}"
   },
   {
     "tool": "opencode",
@@ -2381,7 +2381,7 @@
     "output_tokens": null,
     "cache_read_tokens": null,
     "cache_creation_tokens": null,
-    "raw": "{\"executed\":false,\"id\":\"call_read_1\",\"name\":\"read\",\"state\":{\"content\":[{\"text\":\"hello\",\"type\":\"text\"}],\"input\":{\"path\":\"/decant-fixture/example/notes.txt\"},\"metadata\":{\"truncated\":false},\"status\":\"completed\"},\"time\":{\"completed\":1791786003000,\"created\":1791786002000,\"ran\":1791786002500},\"type\":\"tool\"}"
+    "raw": "{\"executed\":false,\"id\":\"call_read_1\",\"name\":\"read\",\"state\":{\"content\":[{\"text\":\"hello\",\"type\":\"text\"}],\"input\":{\"path\":\"/agent-benchmarks-fixture/example/notes.txt\"},\"metadata\":{\"truncated\":false},\"status\":\"completed\"},\"time\":{\"completed\":1791786003000,\"created\":1791786002000,\"ran\":1791786002500},\"type\":\"tool\"}"
   },
   {
     "tool": "opencode",
@@ -2413,7 +2413,7 @@
     "output_tokens": null,
     "cache_read_tokens": null,
     "cache_creation_tokens": null,
-    "raw": "{\"agent\":\"build\",\"id\":\"msg_v1s_1\",\"model\":{\"modelID\":\"glm-5.3-flash\",\"providerID\":\"opencode-go\",\"variant\":\"max\"},\"parts\":[{\"id\":\"prt_v1s_01\",\"text\":\"Read the example notes and search the docs.\",\"type\":\"text\"},{\"id\":\"prt_v1s_02\",\"synthetic\":true,\"text\":\"Called the Read tool on notes.txt\",\"type\":\"text\"},{\"filename\":\"notes.txt\",\"id\":\"prt_v1s_03\",\"mime\":\"text/plain\",\"type\":\"file\",\"url\":\"file:///decant-fixture/example/notes.txt\"}],\"role\":\"user\",\"time\":{\"created\":1791790000000}}"
+    "raw": "{\"agent\":\"build\",\"id\":\"msg_v1s_1\",\"model\":{\"modelID\":\"glm-5.3-flash\",\"providerID\":\"opencode-go\",\"variant\":\"max\"},\"parts\":[{\"id\":\"prt_v1s_01\",\"text\":\"Read the example notes and search the docs.\",\"type\":\"text\"},{\"id\":\"prt_v1s_02\",\"synthetic\":true,\"text\":\"Called the Read tool on notes.txt\",\"type\":\"text\"},{\"filename\":\"notes.txt\",\"id\":\"prt_v1s_03\",\"mime\":\"text/plain\",\"type\":\"file\",\"url\":\"file:///agent-benchmarks-fixture/example/notes.txt\"}],\"role\":\"user\",\"time\":{\"created\":1791790000000}}"
   },
   {
     "tool": "opencode",
@@ -2445,7 +2445,7 @@
     "output_tokens": 40,
     "cache_read_tokens": 40,
     "cache_creation_tokens": 16,
-    "raw": "{\"agent\":\"build\",\"cost\":0.0000416,\"finish\":\"tool-calls\",\"id\":\"msg_v1s_2\",\"mode\":\"build\",\"modelID\":\"glm-5.3-flash\",\"parentID\":\"msg_v1s_1\",\"parts\":[{\"id\":\"prt_v1s_04\",\"snapshot\":\"snap0\",\"type\":\"step-start\"},{\"id\":\"prt_v1s_05\",\"text\":\"Read the file first.\",\"time\":{\"end\":1791790001500,\"start\":1791790001100},\"type\":\"reasoning\"},{\"callID\":\"call_v1_read\",\"id\":\"prt_v1s_06\",\"state\":{\"input\":{\"filePath\":\"/decant-fixture/example/notes.txt\"},\"metadata\":{},\"output\":\"hello\",\"status\":\"completed\",\"time\":{\"end\":1791790002500,\"start\":1791790002000},\"title\":\"notes.txt\"},\"tool\":\"read\",\"type\":\"tool\"},{\"callID\":\"call_v1_mcp\",\"id\":\"prt_v1s_07\",\"state\":{\"input\":{\"query\":\"example\"},\"metadata\":{},\"output\":\"no results\",\"status\":\"completed\",\"time\":{\"end\":1791790003500,\"start\":1791790003000},\"title\":\"search\"},\"tool\":\"dosu_search\",\"type\":\"tool\"},{\"cost\":0.0000416,\"id\":\"prt_v1s_08\",\"reason\":\"tool-calls\",\"snapshot\":\"snap1\",\"tokens\":{\"cache\":{\"read\":40,\"write\":16},\"input\":120,\"output\":30,\"reasoning\":10,\"total\":216},\"type\":\"step-finish\"}],\"path\":{\"cwd\":\"/decant-fixture/example\",\"root\":\"/decant-fixture/example\"},\"providerID\":\"opencode-go\",\"reasoning_tokens\":10,\"role\":\"assistant\",\"time\":{\"completed\":1791790005000,\"created\":1791790001000},\"tokens\":{\"cache\":{\"read\":40,\"write\":16},\"input\":120,\"output\":30,\"reasoning\":10,\"total\":216},\"variant\":\"max\"}"
+    "raw": "{\"agent\":\"build\",\"cost\":0.0000416,\"finish\":\"tool-calls\",\"id\":\"msg_v1s_2\",\"mode\":\"build\",\"modelID\":\"glm-5.3-flash\",\"parentID\":\"msg_v1s_1\",\"parts\":[{\"id\":\"prt_v1s_04\",\"snapshot\":\"snap0\",\"type\":\"step-start\"},{\"id\":\"prt_v1s_05\",\"text\":\"Read the file first.\",\"time\":{\"end\":1791790001500,\"start\":1791790001100},\"type\":\"reasoning\"},{\"callID\":\"call_v1_read\",\"id\":\"prt_v1s_06\",\"state\":{\"input\":{\"filePath\":\"/agent-benchmarks-fixture/example/notes.txt\"},\"metadata\":{},\"output\":\"hello\",\"status\":\"completed\",\"time\":{\"end\":1791790002500,\"start\":1791790002000},\"title\":\"notes.txt\"},\"tool\":\"read\",\"type\":\"tool\"},{\"callID\":\"call_v1_mcp\",\"id\":\"prt_v1s_07\",\"state\":{\"input\":{\"query\":\"example\"},\"metadata\":{},\"output\":\"no results\",\"status\":\"completed\",\"time\":{\"end\":1791790003500,\"start\":1791790003000},\"title\":\"search\"},\"tool\":\"dosu_search\",\"type\":\"tool\"},{\"cost\":0.0000416,\"id\":\"prt_v1s_08\",\"reason\":\"tool-calls\",\"snapshot\":\"snap1\",\"tokens\":{\"cache\":{\"read\":40,\"write\":16},\"input\":120,\"output\":30,\"reasoning\":10,\"total\":216},\"type\":\"step-finish\"}],\"path\":{\"cwd\":\"/agent-benchmarks-fixture/example\",\"root\":\"/agent-benchmarks-fixture/example\"},\"providerID\":\"opencode-go\",\"reasoning_tokens\":10,\"role\":\"assistant\",\"time\":{\"completed\":1791790005000,\"created\":1791790001000},\"tokens\":{\"cache\":{\"read\":40,\"write\":16},\"input\":120,\"output\":30,\"reasoning\":10,\"total\":216},\"variant\":\"max\"}"
   },
   {
     "tool": "opencode",
@@ -2461,7 +2461,7 @@
     "output_tokens": null,
     "cache_read_tokens": null,
     "cache_creation_tokens": null,
-    "raw": "{\"callID\":\"call_v1_read\",\"id\":\"prt_v1s_06\",\"messageID\":\"msg_v1s_2\",\"state\":{\"input\":{\"filePath\":\"/decant-fixture/example/notes.txt\"},\"metadata\":{},\"output\":\"hello\",\"status\":\"completed\",\"time\":{\"end\":1791790002500,\"start\":1791790002000},\"title\":\"notes.txt\"},\"tool\":\"read\",\"type\":\"tool\"}"
+    "raw": "{\"callID\":\"call_v1_read\",\"id\":\"prt_v1s_06\",\"messageID\":\"msg_v1s_2\",\"state\":{\"input\":{\"filePath\":\"/agent-benchmarks-fixture/example/notes.txt\"},\"metadata\":{},\"output\":\"hello\",\"status\":\"completed\",\"time\":{\"end\":1791790002500,\"start\":1791790002000},\"title\":\"notes.txt\"},\"tool\":\"read\",\"type\":\"tool\"}"
   },
   {
     "tool": "opencode",
@@ -2493,7 +2493,7 @@
     "output_tokens": 17,
     "cache_read_tokens": 60,
     "cache_creation_tokens": 0,
-    "raw": "{\"agent\":\"build\",\"cost\":0.0000478,\"finish\":\"stop\",\"id\":\"msg_v1s_3\",\"mode\":\"build\",\"modelID\":\"glm-5.3-flash\",\"parentID\":\"msg_v1s_1\",\"parts\":[{\"id\":\"prt_v1s_09\",\"snapshot\":\"snap1\",\"type\":\"step-start\"},{\"cost\":0.00001,\"id\":\"prt_v1s_10\",\"reason\":\"unknown\",\"tokens\":{\"cache\":{\"read\":0,\"write\":0},\"input\":50,\"output\":5,\"reasoning\":0,\"total\":55},\"type\":\"step-finish\"},{\"attempt\":1,\"error\":{\"data\":{\"isRetryable\":true,\"message\":\"overloaded\"},\"name\":\"APIError\"},\"id\":\"prt_v1s_11\",\"time\":{\"created\":1791790007000},\"type\":\"retry\"},{\"id\":\"prt_v1s_12\",\"snapshot\":\"snap1\",\"type\":\"step-start\"},{\"id\":\"prt_v1s_13\",\"text\":\"The notes say hello.\",\"time\":{\"end\":1791790008500,\"start\":1791790008000},\"type\":\"text\"},{\"callID\":\"call_v1_bash\",\"id\":\"prt_v1s_14\",\"state\":{\"error\":\"No such file or directory\",\"input\":{\"command\":\"cat /decant-fixture/example/missing.txt\"},\"status\":\"error\",\"time\":{\"end\":1791790008700,\"start\":1791790008600}},\"tool\":\"bash\",\"type\":\"tool\"},{\"cost\":0.0000378,\"id\":\"prt_v1s_15\",\"reason\":\"stop\",\"tokens\":{\"cache\":{\"read\":60,\"write\":0},\"input\":200,\"output\":12,\"reasoning\":0,\"total\":272},\"type\":\"step-finish\"}],\"path\":{\"cwd\":\"/decant-fixture/example\",\"root\":\"/decant-fixture/example\"},\"providerID\":\"opencode-go\",\"reasoning_tokens\":0,\"role\":\"assistant\",\"time\":{\"completed\":1791790009000,\"created\":1791790006000},\"tokens\":{\"cache\":{\"read\":60,\"write\":0},\"input\":200,\"output\":12,\"reasoning\":0,\"total\":272},\"variant\":\"max\"}"
+    "raw": "{\"agent\":\"build\",\"cost\":0.0000478,\"finish\":\"stop\",\"id\":\"msg_v1s_3\",\"mode\":\"build\",\"modelID\":\"glm-5.3-flash\",\"parentID\":\"msg_v1s_1\",\"parts\":[{\"id\":\"prt_v1s_09\",\"snapshot\":\"snap1\",\"type\":\"step-start\"},{\"cost\":0.00001,\"id\":\"prt_v1s_10\",\"reason\":\"unknown\",\"tokens\":{\"cache\":{\"read\":0,\"write\":0},\"input\":50,\"output\":5,\"reasoning\":0,\"total\":55},\"type\":\"step-finish\"},{\"attempt\":1,\"error\":{\"data\":{\"isRetryable\":true,\"message\":\"overloaded\"},\"name\":\"APIError\"},\"id\":\"prt_v1s_11\",\"time\":{\"created\":1791790007000},\"type\":\"retry\"},{\"id\":\"prt_v1s_12\",\"snapshot\":\"snap1\",\"type\":\"step-start\"},{\"id\":\"prt_v1s_13\",\"text\":\"The notes say hello.\",\"time\":{\"end\":1791790008500,\"start\":1791790008000},\"type\":\"text\"},{\"callID\":\"call_v1_bash\",\"id\":\"prt_v1s_14\",\"state\":{\"error\":\"No such file or directory\",\"input\":{\"command\":\"cat /agent-benchmarks-fixture/example/missing.txt\"},\"status\":\"error\",\"time\":{\"end\":1791790008700,\"start\":1791790008600}},\"tool\":\"bash\",\"type\":\"tool\"},{\"cost\":0.0000378,\"id\":\"prt_v1s_15\",\"reason\":\"stop\",\"tokens\":{\"cache\":{\"read\":60,\"write\":0},\"input\":200,\"output\":12,\"reasoning\":0,\"total\":272},\"type\":\"step-finish\"}],\"path\":{\"cwd\":\"/agent-benchmarks-fixture/example\",\"root\":\"/agent-benchmarks-fixture/example\"},\"providerID\":\"opencode-go\",\"reasoning_tokens\":0,\"role\":\"assistant\",\"time\":{\"completed\":1791790009000,\"created\":1791790006000},\"tokens\":{\"cache\":{\"read\":60,\"write\":0},\"input\":200,\"output\":12,\"reasoning\":0,\"total\":272},\"variant\":\"max\"}"
   },
   {
     "tool": "opencode",
@@ -2509,7 +2509,7 @@
     "output_tokens": null,
     "cache_read_tokens": null,
     "cache_creation_tokens": null,
-    "raw": "{\"callID\":\"call_v1_bash\",\"id\":\"prt_v1s_14\",\"messageID\":\"msg_v1s_3\",\"state\":{\"error\":\"No such file or directory\",\"input\":{\"command\":\"cat /decant-fixture/example/missing.txt\"},\"status\":\"error\",\"time\":{\"end\":1791790008700,\"start\":1791790008600}},\"tool\":\"bash\",\"type\":\"tool\"}"
+    "raw": "{\"callID\":\"call_v1_bash\",\"id\":\"prt_v1s_14\",\"messageID\":\"msg_v1s_3\",\"state\":{\"error\":\"No such file or directory\",\"input\":{\"command\":\"cat /agent-benchmarks-fixture/example/missing.txt\"},\"status\":\"error\",\"time\":{\"end\":1791790008700,\"start\":1791790008600}},\"tool\":\"bash\",\"type\":\"tool\"}"
   },
   {
     "tool": "opencode",
@@ -2525,7 +2525,7 @@
     "output_tokens": null,
     "cache_read_tokens": null,
     "cache_creation_tokens": null,
-    "raw": "{\"agent\":\"build\",\"cost\":0,\"id\":\"msg_v1s_4\",\"mode\":\"build\",\"modelID\":\"glm-5.3-flash\",\"parentID\":\"msg_v1s_1\",\"parts\":[{\"callID\":\"call_v1_pending\",\"id\":\"prt_v1s_16\",\"state\":{\"input\":{},\"raw\":\"\",\"status\":\"pending\"},\"tool\":\"read\",\"type\":\"tool\"}],\"path\":{\"cwd\":\"/decant-fixture/example\",\"root\":\"/decant-fixture/example\"},\"providerID\":\"opencode-go\",\"role\":\"assistant\",\"time\":{\"created\":1791790010000},\"tokens\":{\"cache\":{\"read\":0,\"write\":0},\"input\":0,\"output\":0,\"reasoning\":0},\"variant\":\"max\"}"
+    "raw": "{\"agent\":\"build\",\"cost\":0,\"id\":\"msg_v1s_4\",\"mode\":\"build\",\"modelID\":\"glm-5.3-flash\",\"parentID\":\"msg_v1s_1\",\"parts\":[{\"callID\":\"call_v1_pending\",\"id\":\"prt_v1s_16\",\"state\":{\"input\":{},\"raw\":\"\",\"status\":\"pending\"},\"tool\":\"read\",\"type\":\"tool\"}],\"path\":{\"cwd\":\"/agent-benchmarks-fixture/example\",\"root\":\"/agent-benchmarks-fixture/example\"},\"providerID\":\"opencode-go\",\"role\":\"assistant\",\"time\":{\"created\":1791790010000},\"tokens\":{\"cache\":{\"read\":0,\"write\":0},\"input\":0,\"output\":0,\"reasoning\":0},\"variant\":\"max\"}"
   },
   {
     "tool": "pi",
@@ -2605,7 +2605,7 @@
     "output_tokens": 60,
     "cache_read_tokens": 4200,
     "cache_creation_tokens": 0,
-    "raw": "{\"id\":\"a0000007\",\"message\":{\"api\":\"anthropic-messages\",\"content\":[{\"arguments\":{\"newText\":\"hi\",\"oldText\":\"hello\",\"path\":\"/decant-fixture/pi-example/hello.txt\"},\"id\":\"call_edit_1\",\"name\":\"edit\",\"type\":\"toolCall\"},{\"arguments\":{\"command\":\"example-check hello.txt\"},\"id\":\"call_bash_1\",\"name\":\"bash\",\"type\":\"toolCall\"}],\"model\":\"claude-sonnet-5\",\"provider\":\"anthropic\",\"role\":\"assistant\",\"stopReason\":\"toolUse\",\"thinkingLevel\":\"medium\",\"timestamp\":1793527208000,\"usage\":{\"cacheRead\":4200,\"cacheWrite\":0,\"cost\":{\"cacheRead\":0,\"cacheWrite\":0,\"input\":0,\"output\":0,\"total\":0.0034},\"input\":150,\"output\":60,\"totalTokens\":4410}},\"parentId\":\"a0000006\",\"timestamp\":\"2026-11-01T10:00:08.000Z\",\"type\":\"message\"}"
+    "raw": "{\"id\":\"a0000007\",\"message\":{\"api\":\"anthropic-messages\",\"content\":[{\"arguments\":{\"newText\":\"hi\",\"oldText\":\"hello\",\"path\":\"/agent-benchmarks-fixture/pi-example/hello.txt\"},\"id\":\"call_edit_1\",\"name\":\"edit\",\"type\":\"toolCall\"},{\"arguments\":{\"command\":\"example-check hello.txt\"},\"id\":\"call_bash_1\",\"name\":\"bash\",\"type\":\"toolCall\"}],\"model\":\"claude-sonnet-5\",\"provider\":\"anthropic\",\"role\":\"assistant\",\"stopReason\":\"toolUse\",\"thinkingLevel\":\"medium\",\"timestamp\":1793527208000,\"usage\":{\"cacheRead\":4200,\"cacheWrite\":0,\"cost\":{\"cacheRead\":0,\"cacheWrite\":0,\"input\":0,\"output\":0,\"total\":0.0034},\"input\":150,\"output\":60,\"totalTokens\":4410}},\"parentId\":\"a0000006\",\"timestamp\":\"2026-11-01T10:00:08.000Z\",\"type\":\"message\"}"
   },
   {
     "tool": "pi",

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { closeDb, openDb } from "../src/db.ts";
 import { cachedRead, READ_CACHE_MAX_ENTRIES, statementKey } from "../src/read-cache.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-read-cache-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-read-cache-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let dbCounter = 0;

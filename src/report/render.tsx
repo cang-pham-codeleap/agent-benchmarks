@@ -4,14 +4,13 @@ import { mcpServerLabel, mcpServerLabels } from "../mcp-names.ts";
 import { sharePercentLabel } from "../share-percent.ts";
 import { sessionSourceLabel } from "../source-filter.ts";
 import type { TokenEconomics, TokenEconomicsBucket } from "../token-economics.ts";
-import { DECANT_VERSION } from "../version.ts";
+import { AGENT_BENCHMARKS_VERSION } from "../version.ts";
 import {
   renderContextWindowChart,
   renderCostByDayChart,
   renderSessionsByDayChart,
 } from "./charts.ts";
 import type { AnalyticsReportData, SessionReportData, SessionToolReportRow } from "./data.ts";
-import { DosuOptimizedMark, reportDosuLink } from "./dosu.tsx";
 import { reportFontCss } from "./fonts.ts";
 import { REPORT_CSS } from "./styles.ts";
 
@@ -552,7 +551,7 @@ function staticDocument(
 function normalizeOptions(options: ReportRenderOptions): NormalizedRenderOptions {
   return {
     generatedAt: options.generatedAt ?? new Date(),
-    version: options.version ?? DECANT_VERSION,
+    version: options.version ?? AGENT_BENCHMARKS_VERSION,
     fontCss: options.fontCss ?? reportFontCss(),
   };
 }

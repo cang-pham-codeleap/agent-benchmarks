@@ -99,7 +99,6 @@ import type {
   SyncStatus,
   ThemeChoice,
 } from "./types.ts";
-import { UpdateNudge } from "./update-nudge.tsx";
 import { AnalyticsView } from "./views/analytics.tsx";
 import { CompareView } from "./views/compare.tsx";
 import { FilesView } from "./views/files.tsx";
@@ -193,7 +192,7 @@ function App() {
     reloadKey,
   });
   const [theme, setTheme] = useState<ThemeChoice>(() => {
-    const stored = readStorage("decant-theme");
+    const stored = readStorage("agent-benchmarks-theme");
     return stored === "light" || stored === "dark" ? stored : "system";
   });
 
@@ -392,15 +391,15 @@ function App() {
     const root = document.documentElement;
     if (theme === "system") {
       root.removeAttribute("data-theme");
-      removeStorage("decant-theme");
+      removeStorage("agent-benchmarks-theme");
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       root.classList.toggle("dark", prefersDark);
     } else {
       root.dataset.theme = theme;
-      writeStorage("decant-theme", theme);
+      writeStorage("agent-benchmarks-theme", theme);
       root.classList.toggle("dark", theme === "dark");
     }
-    window.dispatchEvent(new CustomEvent("decant:set-theme"));
+    window.dispatchEvent(new CustomEvent("agent-benchmarks:set-theme"));
   }, [theme]);
 
   useEffect(() => {
@@ -797,8 +796,7 @@ function App() {
             </>
           )}
           {lastActivity != null && !firstSync ? <div className="flex items-center gap-2 px-2 py-1"><Icon name="clock" /><span>latest {lastActivity}</span></div> : null}
-          <UpdateNudge status={data.update} />
-          <a className="px-2 py-1 text-[11px] hover:text-sidebar-foreground" href="https://github.com/dosu-ai/decant/releases" rel="noopener" target="_blank" title={`Current build: ${versionLabel(data.config?.version)}`}>Agent Benchmarks {versionLabel(data.config?.version)}</a>
+          <span className="px-2 py-1 text-[11px]" title={`Current build: ${versionLabel(data.config?.version)}`}>Agent Benchmarks {versionLabel(data.config?.version)}</span>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">
@@ -968,7 +966,6 @@ function renderView(
           config={data.config}
           onSaved={actions.refresh}
           settingsInfo={data.settings}
-          update={data.update}
         />
       );
     default:
@@ -998,6 +995,20 @@ function FramedNotice() {
     />
   );
 }
+
+function migrateAgentBenchmarksStorage(): void {
+  const legacyPrefix = "decant-";
+  const keys = Object.keys(localStorage);
+  for (const oldKey of keys.filter((key) => key.startsWith(legacyPrefix))) {
+    const newKey = `agent-benchmarks-${oldKey.slice(legacyPrefix.length)}`;
+    if (localStorage.getItem(newKey) == null) {
+      localStorage.setItem(newKey, localStorage.getItem(oldKey) ?? "");
+    }
+    localStorage.removeItem(oldKey);
+  }
+}
+
+migrateAgentBenchmarksStorage();
 
 const root = document.getElementById("root");
 if (root == null) {

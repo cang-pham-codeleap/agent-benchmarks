@@ -13,7 +13,7 @@ import { emptyUsage } from "../src/model.ts";
 import { parsePiSession, piSessionIdFromStem } from "../src/sources/pi.ts";
 import { totals as statsTotals } from "../src/stats.ts";
 
-const workDir = realpathSync(mkdtempSync(join(tmpdir(), "decant-pi-test-")));
+const workDir = realpathSync(mkdtempSync(join(tmpdir(), "agent-benchmarks-pi-test-")));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 let caseCounter = 0;
@@ -38,7 +38,7 @@ const HEADER = {
   version: 3,
   id: "inline-session",
   timestamp: "2026-11-03T08:00:00.000Z",
-  cwd: "/decant-fixture/pi-example",
+  cwd: "/agent-benchmarks-fixture/pi-example",
 };
 
 function usage(input: number, output: number, cost = 0): Record<string, unknown> {
@@ -85,8 +85,8 @@ describe("parsePiSession", () => {
     expect(session).toMatchObject({
       tool: "pi",
       sourceSessionId: "5a1e0000-0000-4000-8000-000000000001",
-      cwd: "/decant-fixture/pi-example",
-      projectPath: "/decant-fixture/pi-example",
+      cwd: "/agent-benchmarks-fixture/pi-example",
+      projectPath: "/agent-benchmarks-fixture/pi-example",
       title: "Greeting rename",
       model: "gpt-5.4",
       reasoningEffort: "mixed",
@@ -443,7 +443,7 @@ describe("Pi forks", () => {
   });
 
   test("a fork bills an entry written after the fork", () => {
-    const fork = { ...HEADER, parentSession: "/decant-fixture/pi-example/original.jsonl" };
+    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
     const { session } = parsePiSession(
       "fallback",
       lines(
@@ -456,7 +456,7 @@ describe("Pi forks", () => {
   });
 
   test("a copy written in the same millisecond as the fork is still a copy", () => {
-    const fork = { ...HEADER, parentSession: "/decant-fixture/pi-example/original.jsonl" };
+    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
     const { session } = parsePiSession(
       "fallback",
       lines(
@@ -469,7 +469,7 @@ describe("Pi forks", () => {
   });
 
   test("an entry after the fork's first own entry is billed even if the clock went back", () => {
-    const fork = { ...HEADER, parentSession: "/decant-fixture/pi-example/original.jsonl" };
+    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
     const { session } = parsePiSession(
       "fallback",
       lines(
@@ -490,7 +490,7 @@ describe("Pi forks", () => {
   });
 
   test("a fork bills an entry whose time it cannot read rather than dropping it", () => {
-    const fork = { ...HEADER, parentSession: "/decant-fixture/pi-example/original.jsonl" };
+    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
     const undated = {
       type: "message",
       id: "d1",
@@ -504,7 +504,7 @@ describe("Pi forks", () => {
 });
 
 describe("Pi ingest", () => {
-  const PROJECT = "--decant-fixture-pi-example--";
+  const PROJECT = "--agent-benchmarks-fixture-pi-example--";
 
   function stage(dir: string, names: string[]): IngestConfig & { piDir: string } {
     const piDir = join(dir, "pi", "agent", "sessions");
@@ -519,14 +519,14 @@ describe("Pi ingest", () => {
   }
 
   test("resolves the sessions directory from Pi's own environment variable", () => {
-    const env = { DECANT_PI_DIR: "", PI_CODING_AGENT_DIR: "" };
+    const env = { AGENT_BENCHMARKS_PI_DIR: "", PI_CODING_AGENT_DIR: "" };
     expect(resolveConfig({ env, homeDir: "/home/dev" }).piDir).toBe("/home/dev/.pi/agent/sessions");
     expect(
       resolveConfig({ env: { PI_CODING_AGENT_DIR: "~/agents/pi" }, homeDir: "/home/dev" }).piDir,
     ).toBe("/home/dev/agents/pi/sessions");
     expect(
       resolveConfig({
-        env: { DECANT_PI_DIR: "/elsewhere", PI_CODING_AGENT_DIR: "/ignored" },
+        env: { AGENT_BENCHMARKS_PI_DIR: "/elsewhere", PI_CODING_AGENT_DIR: "/ignored" },
         homeDir: "/home/dev",
       }).piDir,
     ).toBe("/elsewhere");
@@ -662,7 +662,7 @@ describe("Pi ingest", () => {
     closeDb(db);
   });
 
-  test("uses Pi's recorded cost for a model Decant cannot price", () => {
+  test("uses Pi's recorded cost for a model Agent Benchmarks cannot price", () => {
     const dir = freshDir();
     const piDir = join(dir, "pi", "agent", "sessions");
     write(

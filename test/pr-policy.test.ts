@@ -11,7 +11,7 @@ import {
   scanForPrivateData,
 } from "../scripts/pr-policy.ts";
 
-const workDir = mkdtempSync(join(tmpdir(), "decant-pr-policy-test-"));
+const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-pr-policy-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 function dbSource(latest: number, blocks: Record<number, string>, baseline = 0): string {
