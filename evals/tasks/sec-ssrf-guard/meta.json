@@ -1,0 +1,14 @@
+{
+  "id": "sec-ssrf-guard",
+  "category": "security",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["security", "ssrf", "url", "ip-ranges"],
+  "description": "Write an SSRF guard: URL/IP bypass forms, multi-address DNS answers and redirect chains.",
+  "broken": "checks only the first resolved address, so a public-then-private DNS answer slips through",
+  "verifyTimeoutMs": 60000
+}

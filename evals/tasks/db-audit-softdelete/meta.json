@@ -1,0 +1,14 @@
+{
+  "id": "db-audit-softdelete",
+  "category": "db-design",
+  "language": "sql",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["sqlite", "triggers", "audit-log", "soft-delete", "partial-index"],
+  "description": "Add audit triggers, trigger-kept updated_at, view soft delete and a partial unique email index in SQLite.",
+  "broken": "audit trigger logs UPDATEs that change nothing (and bumps updated_at for them)",
+  "verifyTimeoutMs": 60000
+}

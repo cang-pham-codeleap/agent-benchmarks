@@ -1,0 +1,14 @@
+{
+  "id": "sec-token-verify",
+  "category": "security",
+  "language": "javascript",
+  "kind": "fix",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["security", "jwt", "hmac", "token-verification"],
+  "description": "Harden a forgeable HS256 token verifier: alg, kid, strict base64url, claims, skew, typed reasons.",
+  "broken": "normalizes the alg header (trim + case-fold) so HS256 look-alikes are accepted",
+  "verifyTimeoutMs": 60000
+}

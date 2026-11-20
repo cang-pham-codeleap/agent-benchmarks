@@ -15,11 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type {
-  BenchmarkRunInput,
-  EvalCatalog,
-  EvalHarnessInfo,
-  EvalSetup,
+import {
+  type BenchmarkRunInput,
+  EVAL_DIFFICULTIES,
+  type EvalCatalog,
+  type EvalDifficulty,
+  type EvalHarnessInfo,
+  type EvalSetup,
 } from "../../../eval/types.ts";
 import { evaluationRunCount, evaluationStartReason, presetAfterEdit } from "../evaluating-form.ts";
 
@@ -286,7 +288,13 @@ export function EvalForm({
           <legend className="font-semibold">Tasks</legend>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {categories.map((category) => {
-              const tasks = catalog.tasks.filter((task) => task.category === category);
+              const tasks = catalog.tasks
+                .filter((task) => task.category === category)
+                .sort(
+                  (a, b) =>
+                    EVAL_DIFFICULTIES.indexOf(a.difficulty as EvalDifficulty) -
+                    EVAL_DIFFICULTIES.indexOf(b.difficulty as EvalDifficulty),
+                );
               const selected = tasks.filter((task) => input.taskIds.includes(task.id)).length;
               return (
                 <div key={category} className="space-y-2 rounded-md border p-3">
@@ -323,7 +331,14 @@ export function EvalForm({
                           }
                         />
                         <span>
-                          <span className="block font-medium">{task.id}</span>
+                          <span className="block font-medium">
+                            {task.id}
+                            {task.difficulty && (
+                              <Badge variant="outline" className="ml-2 font-normal">
+                                {task.difficulty}
+                              </Badge>
+                            )}
+                          </span>
                           <span className="block text-muted-foreground">{task.description}</span>
                         </span>
                       </label>

@@ -3,7 +3,13 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAchDir } from "../settings.ts";
 import { defaultConfigProblem, EVAL_HARNESSES, EVAL_LIMITS, EVAL_PRESETS } from "./registry.ts";
-import type { EvalCatalog, EvalHarnessInfo, EvalTask } from "./types.ts";
+import {
+  EVAL_DIFFICULTIES,
+  type EvalCatalog,
+  type EvalDifficulty,
+  type EvalHarnessInfo,
+  type EvalTask,
+} from "./types.ts";
 
 export async function readCatalog(db: Database, activeRunId: string | null): Promise<EvalCatalog> {
   const achDir = getAchDir();
@@ -90,6 +96,9 @@ function tasksFrom(root: string): EvalTaskSource[] {
           id: declaredId,
           language,
           category: typeof meta.category === "string" ? meta.category : language,
+          difficulty: EVAL_DIFFICULTIES.includes(meta.difficulty as EvalDifficulty)
+            ? (meta.difficulty as EvalDifficulty)
+            : null,
           description: typeof meta.description === "string" ? meta.description : id,
           suites: Array.isArray(meta.suites)
             ? meta.suites.filter((value): value is string => typeof value === "string")

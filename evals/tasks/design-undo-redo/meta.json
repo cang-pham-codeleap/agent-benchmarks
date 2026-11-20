@@ -1,0 +1,14 @@
+{
+  "id": "design-undo-redo",
+  "category": "design",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["design", "undo-redo", "command-pattern", "transactions"],
+  "description": "Build an undo/redo command history with merging, nested transactions, rollback and a step limit.",
+  "broken": "a throwing transaction leaves the commands already applied inside it in place",
+  "verifyTimeoutMs": 60000
+}

@@ -1,0 +1,14 @@
+{
+  "id": "uiux-toast-queue",
+  "category": "ui-ux",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["ui-ux", "toast", "accessibility", "aria-live", "timers"],
+  "description": "Build an accessible toast manager with a visible cap, error priority, dedupe and exact pause/resume.",
+  "broken": "resume restarts the full duration instead of the remaining time",
+  "verifyTimeoutMs": 60000
+}

@@ -1,0 +1,14 @@
+{
+  "id": "uiux-virtual-list",
+  "category": "ui-ux",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "hard",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["implement", "ui-ux", "virtual-list", "scroll-anchoring", "binary-search", "keyboard"],
+  "description": "Build a variable-height virtualizer with scroll anchoring, alignment and keyboard navigation.",
+  "broken": "anchoring delta is returned even when the re-measured row is inside the viewport",
+  "verifyTimeoutMs": 60000
+}

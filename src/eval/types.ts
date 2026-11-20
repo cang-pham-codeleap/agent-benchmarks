@@ -275,10 +275,14 @@ export interface EvalResults {
   real: RealResults | null;
 }
 
+export const EVAL_DIFFICULTIES = ["easy", "medium", "hard"] as const;
+export type EvalDifficulty = (typeof EVAL_DIFFICULTIES)[number];
+
 export interface EvalTask {
   id: string;
   language: string;
   category: string;
+  difficulty: EvalDifficulty | null;
   description: string;
   suites: string[];
 }

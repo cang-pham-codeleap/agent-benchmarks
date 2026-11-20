@@ -28,10 +28,14 @@ function verify(taskDir: string, ws: string): { passed: boolean; output: string 
 test("every bundled task is in the catalog under its own category", () => {
   const sources = readEvalTasks(join(tmpdir(), "no-ach-checkout"));
   expect(sources.map((source) => source.task.id).sort()).toEqual(taskIds);
+  const mix: Record<string, string[]> = {};
   for (const { task } of sources) {
     expect(task.category).not.toBe(task.language);
     expect(task.description.length).toBeLessThanOrEqual(110);
+    (mix[task.category] ??= []).push(task.difficulty ?? "none");
   }
+  for (const difficulties of Object.values(mix))
+    expect(difficulties.sort()).toEqual(["easy", "easy", "hard", "medium", "medium"]);
 });
 
 describe.each(taskIds)("%s", (taskId) => {
@@ -46,7 +50,7 @@ describe.each(taskIds)("%s", (taskId) => {
     } finally {
       rmSync(ws, { recursive: true, force: true });
     }
-  });
+  }, 60_000);
 
   test("the reference passes verify", () => {
     const ws = workspace(taskDir, "reference");
@@ -57,7 +61,7 @@ describe.each(taskIds)("%s", (taskId) => {
     } finally {
       rmSync(ws, { recursive: true, force: true });
     }
-  });
+  }, 60_000);
 
   test("the planted bug in broken/ fails verify", () => {
     const meta = JSON.parse(readFileSync(join(taskDir, "meta.json"), "utf8"));
@@ -68,5 +72,5 @@ describe.each(taskIds)("%s", (taskId) => {
     } finally {
       rmSync(ws, { recursive: true, force: true });
     }
-  });
+  }, 60_000);
 });

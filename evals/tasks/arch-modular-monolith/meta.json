@@ -1,0 +1,14 @@
+{
+  "id": "arch-modular-monolith",
+  "category": "architecture",
+  "language": "javascript",
+  "kind": "refactor",
+  "difficulty": "hard",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["refactor", "architecture", "modular-monolith", "module-boundaries", "dependency-injection"],
+  "description": "Untangle a billing/orders/users monolith into isolated modules with a public index and injected state.",
+  "broken": "billing still requires ../orders/repository.js directly",
+  "verifyTimeoutMs": 60000
+}

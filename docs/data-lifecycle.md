@@ -882,10 +882,11 @@ rows. Delete a run's directory to remove it.
 | `home/codex/` | The clean Codex home of a `default` group, holding only a copy of `~/.codex/auth.json` at mode `0600` |
 
 The task picker groups tasks by their `meta.json` `category`, or by `language`
-when a task has none. `evals/tasks/` adds design, UI/UX, architecture,
-security, and database-design tasks graded with only `sh` and Node.js; `bun
-test test/eval-bundled-tasks.test.ts` proves each starter fails, reference
-passes, and planted bug fails.
+when a task has none, and orders each group by `difficulty`. `evals/tasks/`
+adds design, UI/UX, architecture, security, and database-design tasks, two
+easy, two medium, and one hard per category, graded with only `sh` and
+Node.js. `bun test test/eval-bundled-tasks.test.ts` proves that mix and that
+each starter fails, reference passes, and planted bug fails.
 
 A real-task run never writes to your repository. Each cell works in its own
 git worktree of the private clone, and `ach trial --cleanup` removes the

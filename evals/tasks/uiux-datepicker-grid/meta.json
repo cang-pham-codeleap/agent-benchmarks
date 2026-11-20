@@ -1,0 +1,14 @@
+{
+  "id": "uiux-datepicker-grid",
+  "category": "ui-ux",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["ui-ux", "accessibility", "aria", "keyboard-navigation", "dates"],
+  "description": "Build a pure WAI-ARIA date-picker grid model: month layout, keyboard moves, roving tabindex.",
+  "broken": "PageDown from Jan 31 overflows into March instead of clamping to Feb 28/29",
+  "verifyTimeoutMs": 60000
+}

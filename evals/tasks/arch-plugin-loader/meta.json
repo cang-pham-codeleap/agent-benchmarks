@@ -1,0 +1,14 @@
+{
+  "id": "arch-plugin-loader",
+  "category": "architecture",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["architecture", "plugins", "dependency-graph", "lifecycle", "semver"],
+  "description": "Plugin loader: semver-checked dependency graph, stable topo init, cycle errors, ordered rollback.",
+  "broken": "rolls back already-initialized plugins in init order instead of reverse order",
+  "verifyTimeoutMs": 60000
+}

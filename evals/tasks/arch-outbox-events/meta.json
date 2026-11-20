@@ -1,0 +1,14 @@
+{
+  "id": "arch-outbox-events",
+  "category": "architecture",
+  "language": "javascript",
+  "kind": "refactor",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["refactor", "architecture", "domain-events", "transactional-outbox", "retry"],
+  "description": "Decouple checkout from email, stock and analytics with a transactional outbox and a retrying dispatcher.",
+  "broken": "event marked done after the first handler succeeds, so a failing later handler is never retried",
+  "verifyTimeoutMs": 60000
+}

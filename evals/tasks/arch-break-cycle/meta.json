@@ -3,7 +3,7 @@
   "category": "architecture",
   "language": "javascript",
   "kind": "fix",
-  "difficulty": "medium",
+  "difficulty": "easy",
   "license": "Apache-2.0",
   "provenance": "original task written for agent-benchmarks",
   "suites": ["agent-benchmarks"],

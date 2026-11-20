@@ -1,0 +1,14 @@
+{
+  "id": "db-multitenant-schema",
+  "category": "db-design",
+  "language": "sql",
+  "kind": "implement",
+  "difficulty": "hard",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["db-design", "sqlite", "multi-tenant", "triggers", "migration"],
+  "description": "Design a tenant-safe SQLite folder-tree schema with cycle triggers, indexes and a v1 migration.",
+  "broken": "cycle trigger only checks the direct parent, so moving a folder under its grandchild creates a cycle",
+  "verifyTimeoutMs": 60000
+}

@@ -1,0 +1,14 @@
+{
+  "id": "design-rate-limiter",
+  "category": "design",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["design", "rate-limiter", "token-bucket", "sliding-window", "composition"],
+  "description": "Build token-bucket, sliding-window and fixed-window rate limiters plus an atomic all() combinator.",
+  "broken": "all() consumes from earlier limiters before a later one denies",
+  "verifyTimeoutMs": 60000
+}

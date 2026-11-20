@@ -1,0 +1,14 @@
+{
+  "id": "sec-auth-sessions",
+  "category": "security",
+  "language": "javascript",
+  "kind": "fix",
+  "difficulty": "hard",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["security", "authentication", "sessions", "csrf", "scrypt", "lockout"],
+  "description": "Harden a multi-module auth stack: scrypt rehash, hashed sessions, expiry, lockout, bound CSRF.",
+  "broken": "legacy sha256 password hashes are verified but never upgraded to scrypt after a successful login",
+  "verifyTimeoutMs": 60000
+}

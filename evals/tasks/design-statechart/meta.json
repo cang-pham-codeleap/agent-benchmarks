@@ -1,0 +1,14 @@
+{
+  "id": "design-statechart",
+  "category": "design",
+  "language": "javascript",
+  "kind": "implement",
+  "difficulty": "hard",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["implement", "design", "state-machine", "statechart", "interpreter"],
+  "description": "Build a hierarchical statechart interpreter with guards, history, final states and exact action order.",
+  "broken": "exit actions run outermost-first instead of innermost-first",
+  "verifyTimeoutMs": 60000
+}

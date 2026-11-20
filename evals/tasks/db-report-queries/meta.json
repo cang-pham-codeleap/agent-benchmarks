@@ -1,0 +1,14 @@
+{
+  "id": "db-report-queries",
+  "category": "db-design",
+  "language": "sql",
+  "kind": "implement",
+  "difficulty": "medium",
+  "license": "Apache-2.0",
+  "provenance": "original task written for agent-benchmarks",
+  "suites": ["agent-benchmarks"],
+  "tags": ["sql", "sqlite", "window-functions", "recursive-cte", "reporting"],
+  "description": "Write four SQLite reports: monthly revenue, tied top-3 ranks, repeat-purchase cohorts, spend crossings.",
+  "broken": "revenue figures ignore the refunds table instead of subtracting refunds",
+  "verifyTimeoutMs": 60000
+}
