@@ -612,9 +612,8 @@ function spawnGroup(
     AGENTIC_CODING_HARNESS_HERMETIC_ROOT: hermeticRoot ?? undefined,
     AGENT_BENCHMARKS_EVAL_RUN: manifest.id,
   };
-  const codex = Bun.which("codex");
-  if (hermeticRoot == null && codex != null && harnesses.includes("codex"))
-    env.PATH = `${writableCodexShim(runDir, codex)}:${env.PATH ?? ""}`;
+  const bin = writeHarnessShims(runDir, harnesses, hermeticRoot == null, env.PATH ?? "");
+  if (bin != null) env.PATH = `${bin}:${env.PATH ?? ""}`;
   for (const [key, value] of Object.entries(env)) if (value === undefined) delete env[key];
   const child = Bun.spawn(args, {
     cwd: join(runDir, "cwd"),
@@ -635,18 +634,51 @@ function spawnGroup(
   return child;
 }
 
-/** `codex exec` defaults to a read-only sandbox and ach has no flag for it, so real tasks get the
- * interactive default (`workspace-write`) through a `codex` shim placed first on PATH. */
-function writableCodexShim(runDir: string, codex: string): string {
+/** Headless flags ach cannot set or that installed CLIs no longer accept, fixed by a shim placed first on
+ * PATH. `real` is the shell-quoted path of the installed CLI. */
+const HARNESS_SHIMS: { harness: string; realTasksOnly: boolean; body: (real: string) => string }[] =
+  [
+    {
+      // `codex exec` defaults to a read-only sandbox; real tasks need the interactive default.
+      harness: "codex",
+      realTasksOnly: true,
+      body: (real) =>
+        `if [ "$1" = exec ]; then shift; exec ${real} exec --sandbox workspace-write "$@"; fi\nexec ${real} "$@"`,
+    },
+    {
+      // Copilot CLI 1.0.114 rejects ach's `--usage-output-file`; ach then reads usage from events.jsonl.
+      harness: "copilot",
+      realTasksOnly: false,
+      body: (real) =>
+        [
+          "skip=",
+          'for arg do shift; if [ -n "$skip" ]; then skip=; continue; fi',
+          '  case "$arg" in --usage-output-file) skip=1; continue;; --usage-output-file=*) continue;; esac',
+          '  set -- "$@" "$arg"; done',
+          `exec ${real} "$@"`,
+        ].join("\n"),
+    },
+  ];
+
+export function writeHarnessShims(
+  runDir: string,
+  harnesses: readonly string[],
+  realTask: boolean,
+  path: string,
+): string | null {
   const bin = join(runDir, "bin");
-  mkdirSync(bin, { recursive: true });
-  const real = shellQuote(codex);
-  writeFileSync(
-    join(bin, "codex"),
-    `#!/bin/sh\nif [ "$1" = exec ]; then shift; exec ${real} exec --sandbox workspace-write "$@"; fi\nexec ${real} "$@"\n`,
-    { mode: 0o755 },
-  );
-  return bin;
+  let wrote = false;
+  for (const shim of HARNESS_SHIMS) {
+    if (!harnesses.includes(shim.harness) || (shim.realTasksOnly && !realTask)) continue;
+    const installed = Bun.which(shim.harness, { PATH: path });
+    if (installed == null) continue;
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, shim.harness), `#!/bin/sh\n${shim.body(shellQuote(installed))}\n`, {
+      mode: 0o755,
+    });
+    wrote = true;
+  }
+  return wrote ? bin : null;
 }
 
 async function syncAfterRun(
