@@ -13,8 +13,8 @@ import { join } from "node:path";
 import { type Config, resolveConfig } from "../src/config.ts";
 import { closeDb, openDb } from "../src/db.ts";
 import { readEvalCells } from "../src/eval/ledger.ts";
-import { groupId, safeCellDir } from "../src/eval/paths.ts";
-import type { BenchmarkRunInput } from "../src/eval/types.ts";
+import { groupId, safeCellDir, setupGroups } from "../src/eval/paths.ts";
+import type { BenchmarkRunInput, EvalSetup } from "../src/eval/types.ts";
 import { sync } from "../src/ingest.ts";
 
 const allowNull = process.env.AGENT_BENCHMARKS_EVAL_ALLOW_NULL;
@@ -165,6 +165,13 @@ describe("augment boundary", () => {
       "duplicate setup: claude:haiku:clean+rtk",
     );
     expect(rejection(benchmark([same, { ...same, augments: [] }]))).toBeNull();
+  });
+
+  test("groups run in the order their first setup was requested", () => {
+    const setup = (augments: string[], harness = "claude") =>
+      ({ harness, model: "haiku", config: "clean", augments }) as EvalSetup;
+    const keys = setupGroups([setup(["rtk"]), setup([]), setup(["rtk"], "omp")]).map((g) => g.key);
+    expect(keys).toEqual(["clean+rtk", "clean"]);
   });
 });
 

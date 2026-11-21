@@ -892,8 +892,9 @@ each starter fails, reference passes, and planted bug fails.
 A run group is one `ach trial` process for the setups that share a config and
 an augment set. Its key is the config (`current`, `default`, or `clean`), plus
 `+` and the sorted augment ids when it has any, such as `clean+rtk`. Groups run
-one after another, the plain config first; the plan and ledger of `current` keep
-the names `plan.json` and `ledger.jsonl`. An API cell id is `<group>/<ach cell id>`.
+one after another, in the order their first setup appears in the request; the
+plan and ledger of `current` keep the names `plan.json` and `ledger.jsonl`. An
+API cell id is `<group>/<ach cell id>`.
 
 The `clean` config uses your login like `current` but drops user settings,
 hooks, plugins, MCP servers, and instruction files: Claude Code runs with

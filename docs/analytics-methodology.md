@@ -826,5 +826,7 @@ augments.
   counts per run. So two small runs of the same tasks can together reach a
   verdict, and a changed task never inflates another's trial count.
 - **Limits.** Setups run one group after another, so provider load or cache
-  state can differ between the baseline and the augmented arm. The 10% bar is
-  a fixed rule, not a measured noise floor for each model.
+  state can differ between the baseline and the augmented arm. Groups run in
+  request order, so rotating the setup order across runs spreads that drift
+  over both arms. The 10% bar is a fixed rule, not a measured noise floor for
+  each model.

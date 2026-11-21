@@ -21,6 +21,7 @@ export function groupId(config: EvalConfigMode, augments: readonly AugmentId[]):
   };
 }
 
+/** Groups in the order their first setup was requested, which is also the order they run in. */
 export function setupGroups<T extends EvalSetup>(
   setups: readonly T[],
 ): (RunGroupId & { setups: T[] })[] {
@@ -31,7 +32,7 @@ export function setupGroups<T extends EvalSetup>(
     group.setups.push(setup);
     groups.set(id.key, group);
   }
-  return sortGroups([...groups.values()]);
+  return [...groups.values()];
 }
 
 export function sortGroups<T extends { key: string; config: EvalConfigMode }>(groups: T[]): T[] {
