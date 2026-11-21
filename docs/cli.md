@@ -136,6 +136,31 @@ note: syncing session logs before this command, 658 of 1800 files checked so far
 and the command reads the archive as it is. The line never goes to stdout, so
 `--json` output stays parseable.
 
+## MCP server
+
+`agent-benchmarks mcp serve` runs a Model Context Protocol server on stdio, so a
+coding agent can query the archive. It speaks newline-delimited JSON-RPC 2.0:
+stdout carries only protocol messages, and the server exits when stdin closes.
+Point your agent's MCP configuration at the command, with `--db <path>` before
+`mcp` to choose an archive.
+
+The server is read-only and never syncs, so tool calls stay fast. Keep the
+archive current with `agent-benchmarks service`, `watch`, or `sync`. Each tool
+runs the matching CLI command with `--json` and returns its output, so the
+command's own flag validation applies. Arguments a tool does not declare are
+ignored. A failing command comes back with `isError: true` and the `--json`
+error object as the text.
+
+| Tool | Runs | Arguments |
+| --- | --- | --- |
+| `search_sessions` | `search` | `query`, `tool`, `project`, `repo`, `since`, `until`, `limit`, `offset` |
+| `list_sessions` | `ls` | `tool`, `model`, `project`, `repo`, `since`, `until`, `include_subagents`, `limit`, `offset` |
+| `show_session` | `show` | `id`, `outline`, `limit`, `offset`, `max_chars` |
+| `usage_stats` | `stats` | `by` |
+
+Transcripts can be large. Call `show_session` with `outline` first, then page
+with `limit`, `offset`, and `max_chars`.
+
 ## Local API
 
 `agent-benchmarks serve` serves the same archive over HTTP on loopback. The OpenAPI 3.1

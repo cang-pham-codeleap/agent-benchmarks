@@ -16,6 +16,7 @@ import {
 import { tokenEconomics } from "../../token-economics.ts";
 import type { CliContext } from "../context.ts";
 import { parseDay, parseOffset, resolveListScope, type ScopeOptions } from "../list-options.ts";
+import { serveMcp } from "../mcp-server.ts";
 import { parseChoice, parseInteger, parseWith } from "../parse.ts";
 
 export function registerStatsCommands(ctx: CliContext): void {
@@ -204,9 +205,15 @@ export function registerStatsCommands(ctx: CliContext): void {
         ),
       );
   };
-  const mcp = program.command("mcp").description("MCP server usage");
+  const mcp = program.command("mcp").description("MCP server usage, and an MCP server for agents");
   addMcpStats(mcp.command("ls"));
   addMcpStats(mcp.command("stats"));
+  mcp
+    .command("serve")
+    .description("serve read-only archive tools to an agent over MCP on stdio (never syncs)")
+    .action(() =>
+      ctx.run(() => serveMcp({ db: ctx.globals().db, env: ctx.env, homeDir: ctx.homeDir })),
+    );
 }
 
 function formatNumber(value: number): string {
