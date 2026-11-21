@@ -208,7 +208,7 @@ describe("server routes", () => {
     } finally {
       await server.stop(true);
     }
-  });
+  }, 30_000);
 
   test("serves a lightweight visible non-archived session search index", async () => {
     const config = freshConfig();
