@@ -158,4 +158,13 @@ describe("augment verdicts", () => {
   test("different harness versions are pooled separately", () => {
     expect(poolAugmentVerdicts([run("a", "1"), run("b", "2")])).toHaveLength(2);
   });
+
+  test("a one-trial run pooled with a full run leaves its thin tasks out", () => {
+    const oneOff = { ...run("b"), cells: arms(1, 1, 0.5, { taskPrefix: "solo" }) };
+    const full = { ...run("a", "1.0"), cells: arms(7, 3, 0.2) };
+    const [pooled] = poolAugmentVerdicts([full, oneOff]);
+    expect(pooled?.pairs).toBe(21);
+    expect(pooled?.minTrials).toBe(3);
+    expect(pooled?.verdict).toBe("adopt");
+  });
 });

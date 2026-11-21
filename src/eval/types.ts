@@ -339,9 +339,9 @@ export interface AugmentVerdict {
   model: string;
   config: EvalConfigMode;
   augments: AugmentId[];
-  /** (task, trial) pairs graded in both arms. */
+  /** (task, trial) pairs on tasks that reach the trial floor; thinner tasks are left out. */
   pairs: number;
-  /** Fewest graded trials of any task in the pairs. */
+  /** Fewest paired trials of any counted task; of any task when none reach the floor. */
   minTrials: number;
   /** Augmented pass share minus baseline pass share over the pairs. */
   passDelta: number | null;

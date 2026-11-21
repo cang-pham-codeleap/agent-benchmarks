@@ -813,8 +813,9 @@ augments.
   the pairs graded in both arms. It exists only when every such pair has token
   usage. `costDelta` is the same for cost and exists only when every such pair
   is priced. The saving is read from cost when available, otherwise from tokens.
-- **Thresholds.** Fewer than 20 pairs, or fewer than 3 paired trials for any
-  task, is `inconclusive`. A pass drop of 5 points or more, or `worse` exceeding
+- **Thresholds.** A task with fewer than 3 paired trials is left out of the
+  verdict. Fewer than 20 remaining pairs is `inconclusive`. A pass drop of 5
+  points or more, or `worse` exceeding
   `better` by 2 or more, is `quality-risk`. Otherwise a saving of at least 10%
   with no pass loss and `worse` no greater than `better` is `adopt`; anything
   else is `no-saving`. With no token or cost data the verdict is `inconclusive`.

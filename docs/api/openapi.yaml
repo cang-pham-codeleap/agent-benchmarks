@@ -2009,8 +2009,8 @@ components:
         augments:
           type: array
           items: { $ref: "#/components/schemas/EvaluationAugmentId" }
-        pairs: { type: integer, minimum: 0, description: (task, trial) pairs graded in both arms. }
-        minTrials: { type: integer, minimum: 0, description: Fewest paired trials of any task. }
+        pairs: { type: integer, minimum: 0, description: (task, trial) pairs on tasks with at least three paired trials. }
+        minTrials: { type: integer, minimum: 0, description: Fewest paired trials of any counted task. }
         passDelta: { type: [number, "null"], description: Augmented pass share minus baseline pass share. }
         better: { type: integer, minimum: 0 }
         worse: { type: integer, minimum: 0 }

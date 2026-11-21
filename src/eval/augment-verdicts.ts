@@ -93,11 +93,16 @@ function pct(value: number): string {
   return `${(Math.abs(value) * 100).toFixed(0)}%`;
 }
 
-function verdictFor(pairs: readonly Pair[]): VerdictFields {
+function verdictFor(all: readonly Pair[]): VerdictFields {
   const rules = AUGMENT_VERDICT_RULES;
   const perTask = new Map<string, number>();
-  for (const pair of pairs) perTask.set(pair.taskKey, (perTask.get(pair.taskKey) ?? 0) + 1);
-  const minTrials = perTask.size ? Math.min(...perTask.values()) : 0;
+  for (const pair of all) perTask.set(pair.taskKey, (perTask.get(pair.taskKey) ?? 0) + 1);
+  // Tasks under the trial floor are left out whole, so a one-off run cannot veto a pooled sample.
+  const pairs = all.filter((pair) => (perTask.get(pair.taskKey) ?? 0) >= rules.minTrials);
+  const counts = [...perTask.values()];
+  const keptTrials = counts.filter((n) => n >= rules.minTrials);
+  const minTrials = Math.min(...(keptTrials.length ? keptTrials : counts.length ? counts : [0]));
+  const thin = all.length - pairs.length;
   const passed = (cell: EvalCell) => cell.outcome === "passed";
   const better = pairs.filter((p) => passed(p.aug) && !passed(p.base)).length;
   const worse = pairs.filter((p) => !passed(p.aug) && passed(p.base)).length;
@@ -113,9 +118,9 @@ function verdictFor(pairs: readonly Pair[]): VerdictFields {
 
   let verdict: AugmentVerdictKind;
   let reason: string;
-  if (pairs.length < rules.minPairs || minTrials < rules.minTrials) {
+  if (pairs.length < rules.minPairs) {
     verdict = "inconclusive";
-    reason = `${pairs.length} graded pairs, and the thinnest task has ${minTrials} graded ${minTrials === 1 ? "trial" : "trials"}; needs ${rules.minPairs} pairs and ${rules.minTrials} trials per task.`;
+    reason = `${pairs.length} graded pairs on tasks with at least ${rules.minTrials} trials${thin ? ` (${thin} more on thinner tasks left out)` : ""}; needs ${rules.minPairs}.`;
   } else if ((passDelta ?? 0) <= -rules.qualityDrop || worse - better >= rules.worseMargin) {
     verdict = "quality-risk";
     reason = `The augmented arm passed ${better} pairs the baseline failed and failed ${worse} the baseline passed (pass rate change ${((passDelta ?? 0) * 100).toFixed(1)} points).`;
