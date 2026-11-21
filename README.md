@@ -16,8 +16,6 @@ Agent Benchmarks is a private research fork for evaluating models, agent harness
 
 ![Two recorded benchmark cells side by side, Haiku and DeepSeek flash solving the same virtual-list task](docs/images/benchmark-live-compare.png)
 
-![Full-text search for "Fenwick tree" returning highlighted matches across benchmark sessions in 27 ms](docs/images/search.png)
-
 ## Quick start
 
 ```sh
