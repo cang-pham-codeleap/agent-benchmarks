@@ -19,6 +19,7 @@ import {
 } from "./paths.ts";
 import {
   git,
+  hiddenTestsToRun,
   parseNumstat,
   type RealCellResult,
   type RealSpec,
@@ -406,7 +407,9 @@ export function prepareRealRun(
             cwd: repo,
             ...(profile.setupCommand == null ? {} : { setup: profile.setupCommand }),
             verify: `bun ${shellQuote(verifyScript)} ${shellQuote(specPath)} ${key}`,
-            verifyTimeoutMs: verifyTimeoutMs(profile.checks.length + hiddenPaths.length),
+            verifyTimeoutMs: verifyTimeoutMs(
+              profile.checks.length + hiddenTestsToRun(hiddenPaths).length,
+            ),
           },
         ],
         trials: input.trials,

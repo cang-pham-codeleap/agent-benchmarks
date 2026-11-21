@@ -324,6 +324,11 @@ non-merge commits, whether the work tree is dirty (uncommitted work never
 enters a run), and, with `sha`, the commit's message, changed files, and
 suggested hidden test files.
 
+At verify, every hidden path is restored from the commit, and the hidden-test
+command runs once per test-named file (`*.test.*`, `*.spec.*`, `*_test.*`,
+`test_*.py`). Helpers, fixtures, and goldens are restored but not run. When no
+hidden path is test-named, the command runs on each one.
+
 Each setup may also carry `config: "clean"` (keeps the login, drops hooks,
 plugins, MCP servers, settings, and instruction files) and `augments`, a list
 of augment ids (`rtk`, `codegraph`, `caveman`, `ponytail`, `ptc`, `bash-cap`).

@@ -81,10 +81,11 @@ beforeAll(() => {
   write(repo, "src/x.js", buggy);
   commit("base");
   write(repo, "src/x.js", fixed);
+  write(repo, "test/helper.js", "export const expected = 5;\n");
   write(
     repo,
     "test/x.test.js",
-    'import { add } from "../src/x.js";\nif (add(2, 3) !== 5) process.exit(1);\n',
+    'import { add } from "../src/x.js";\nimport { expected } from "./helper.js";\nif (add(2, 3) !== expected) process.exit(1);\n',
   );
   fixSha = commit("fix + test\n\nadd returned the difference");
   write(repo, "README.md", "later\n");
@@ -105,7 +106,7 @@ function replayInput(overrides: Record<string, unknown> = {}, task: Record<strin
       type: "replay",
       sha: fixSha.slice(0, 8),
       prompt: "fix add",
-      hiddenPaths: ["test/x.test.js"],
+      hiddenPaths: ["test/helper.js", "test/x.test.js"],
       ...task,
     },
     profile: { setupCommand: null, checks: ["echo ok", "exit 3"], hiddenTestCommand: "bun {file}" },
@@ -121,7 +122,7 @@ describe("validateRealInput", () => {
       type: "replay",
       sha: fixSha,
       prompt: "fix add",
-      hiddenPaths: ["test/x.test.js"],
+      hiddenPaths: ["test/helper.js", "test/x.test.js"],
     });
   });
 
@@ -173,8 +174,8 @@ describe("inspectRepo", () => {
       sha: fixSha,
       subject: "fix + test",
       body: "add returned the difference",
-      files: ["src/x.js", "test/x.test.js"],
-      suggestedHidden: ["test/x.test.js"],
+      files: ["src/x.js", "test/helper.js", "test/x.test.js"],
+      suggestedHidden: ["test/helper.js", "test/x.test.js"],
       isMerge: false,
     });
     expect(inspection.profileSource).toBe("detected");
@@ -222,7 +223,7 @@ describe("prepareRealRun and real-verify", () => {
     expect(reference).toEqual({
       baseSha: prepared.baseSha,
       sha: fixSha,
-      diffStat: { files: ["src/x.js", "test/x.test.js"], added: 3, removed: 1 },
+      diffStat: { files: ["src/x.js", "test/helper.js", "test/x.test.js"], added: 5, removed: 1 },
       nonHidden: { files: ["src/x.js"], added: 1, removed: 1 },
     });
     expect(readFileSync(join(runDir(), "reference", "diff.patch"), "utf8")).toContain(

@@ -28,6 +28,14 @@ export function verifyTimeoutMs(commands: number): number {
   return verifyBudgetMs(commands) + GIT_SLACK_MS;
 }
 
+/** Hidden files to run: the test-named ones when any exist, so helpers and goldens are only checked out; otherwise every hidden file. */
+export function hiddenTestsToRun(paths: readonly string[]): string[] {
+  const named = paths.filter((path) =>
+    /(\.(test|spec)\.[^/]+|_test\.[^/]+|(^|\/)test_[^/]+\.py)$/.test(path),
+  );
+  return named.length ? named : [...paths];
+}
+
 export function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
 }
@@ -110,7 +118,8 @@ export async function verifyCell(
     git(workspace, "diff", "--cached", "--numstat", "-z", "--no-renames", spec.baseSha),
     hiddenPaths,
   );
-  const total = spec.profile.checks.length + hiddenPaths.length;
+  const toRun = hiddenTestsToRun(hiddenPaths);
+  const total = spec.profile.checks.length + toRun.length;
   const deadline = Date.now() + verifyBudgetMs(total);
   let left = total;
   const timeout = () =>
@@ -126,7 +135,7 @@ export async function verifyCell(
   if (spec.sha == null) return { diffStat, checks, hidden: null };
   if (hiddenPaths.length) git(workspace, "checkout", spec.sha, "--", ...hiddenPaths);
   const files: { path: string; passed: boolean }[] = [];
-  for (const [index, path] of hiddenPaths.entries()) {
+  for (const [index, path] of toRun.entries()) {
     const command = (spec.profile.hiddenTestCommand ?? "").replaceAll("{file}", shellQuote(path));
     const run = await runCommand(
       command,
