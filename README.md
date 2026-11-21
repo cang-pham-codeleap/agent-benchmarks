@@ -72,7 +72,14 @@ Agent Benchmarks is local-first and makes no outbound network calls at runtime. 
 
 ## Installation
 
-This fork is not published to npm, Homebrew, GitHub Releases, or a container registry. Install Bun 1.3 or newer, run `bun install --frozen-lockfile`, and use the source checkout:
+The CLI is published to npm from the `release` branch. Bun 1.3 or newer must be on your `PATH`, because the package ships TypeScript source that Bun runs:
+
+```sh
+npx agent-benchmarks
+bunx agent-benchmarks
+```
+
+It is not published to Homebrew, GitHub Releases, or a container registry. To work from a source checkout, run `bun install --frozen-lockfile` and use:
 
 ```sh
 bun run src/cli.ts

@@ -127,6 +127,18 @@ CodeRabbit reviews every pull request once it leaves draft. Its approval is
 enough to merge unless the change touches a path in `.github/CODEOWNERS`, which
 needs a maintainer's review. Maintainers squash-merge pull requests.
 
+## Releasing
+
+1. Bump `version` in `package.json` on `main`.
+2. Merge `main` into `release`.
+3. The Release workflow runs Biome, `tsc`, and the tests, then publishes to npm.
+   A version that is already published is skipped.
+
+One-time setup: add the repository secret `NPM_TOKEN` (a granular publish
+token) for the first publish. Then configure npm trusted publishing on
+npmjs.com (repository `cang-pham-codeleap/agent-benchmarks`, workflow
+`release.yml`) and delete the secret.
+
 ## Security and privacy
 
 - Never commit real Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI,
