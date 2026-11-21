@@ -1,7 +1,7 @@
+import { Gauge, Monitor, Moon, Search, Settings, Sun } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Gauge, Monitor, Moon, Search, Settings, Sun } from "lucide-react";
-import type { EvalProgressEvent } from "../eval/types.ts";
+import type { EvalCellActivityEvent, EvalProgressEvent } from "../eval/types.ts";
 import { ApiError, getJson, getSyncStatus } from "./api.ts";
 import { ApiFailureState } from "./api-failure.tsx";
 import { paletteShortcutLabel, shouldOpenCommandPalette } from "./command-palette.ts";
@@ -70,6 +70,7 @@ import {
   loadSlicesIndependently,
 } from "./slice-loading.ts";
 import { type DashboardSource, sourceScopeQuery } from "./source-scope.ts";
+import { SyncButton } from "./sync-button.tsx";
 import {
   isForegroundSync,
   LIVE_SESSIONS_REFRESH_MS,
@@ -88,7 +89,6 @@ import {
   syncNoticeDelay,
 } from "./sync-events.ts";
 import { SyncProgressLine, SyncProgressNotice } from "./sync-progress.tsx";
-import { SyncButton } from "./sync-button.tsx";
 import { hasOpenModal, isInteractiveTarget } from "./transcript-navigation.ts";
 import type {
   DashboardData,
@@ -146,6 +146,7 @@ function App() {
   const [syncComplete, setSyncComplete] = useState(false);
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [evalProgress, setEvalProgress] = useState<EvalProgressEvent | null>(null);
+  const [evalActivity, setEvalActivity] = useState<EvalCellActivityEvent | null>(null);
   const [archiveSynced, setArchiveSynced] = useState(true);
   const [syncNoticeShown, setSyncNoticeShown] = useState(false);
   const [archiveUpdateAvailable, setArchiveUpdateAvailable] = useState(false);
@@ -522,7 +523,15 @@ function App() {
     };
     const handleEvalProgress = (event: MessageEvent<string>) => {
       markConnected();
-      try { setEvalProgress(JSON.parse(event.data) as EvalProgressEvent); } catch {}
+      try {
+        setEvalProgress(JSON.parse(event.data) as EvalProgressEvent);
+      } catch {}
+    };
+    const handleEvalActivity = (event: MessageEvent<string>) => {
+      markConnected();
+      try {
+        setEvalActivity(JSON.parse(event.data) as EvalCellActivityEvent);
+      } catch {}
     };
     const handleSync = (event: MessageEvent<string>) => {
       markConnected();
@@ -616,6 +625,7 @@ function App() {
     events.addEventListener("ping", handleHeartbeat);
     events.addEventListener("sync_progress", handleProgress as EventListener);
     events.addEventListener("eval_progress", handleEvalProgress as EventListener);
+    events.addEventListener("eval_cell_activity", handleEvalActivity as EventListener);
     events.addEventListener("sync", handleSync);
     events.addEventListener("archive_updated", handleArchiveUpdated as EventListener);
     events.addEventListener("error", handleError);
@@ -625,6 +635,7 @@ function App() {
       events.removeEventListener("ping", handleHeartbeat);
       events.removeEventListener("sync_progress", handleProgress as EventListener);
       events.removeEventListener("eval_progress", handleEvalProgress as EventListener);
+      events.removeEventListener("eval_cell_activity", handleEvalActivity as EventListener);
       events.removeEventListener("sync", handleSync);
       events.removeEventListener("archive_updated", handleArchiveUpdated as EventListener);
       events.removeEventListener("error", handleError);
@@ -772,7 +783,9 @@ function App() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild size="lg">
                 <Link href="/" setPath={setPath}>
-                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Gauge className="size-4" /></span>
+                  <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Gauge className="size-4" />
+                  </span>
                   <span className="truncate font-semibold">Agent Benchmarks</span>
                 </Link>
               </SidebarMenuButton>
@@ -786,8 +799,15 @@ function App() {
               <SidebarMenu aria-label={group.label}>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={activeView === item.key} tooltip={item.label}>
-                      <Link href={item.href} setPath={setPath}><Icon name={item.icon} /><span>{item.label}</span></Link>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={activeView === item.key}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href} setPath={setPath}>
+                        <Icon name={item.icon} />
+                        <span>{item.label}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -797,62 +817,237 @@ function App() {
         </SidebarContent>
         <SidebarFooter className="border-t text-xs text-muted-foreground [&_svg]:size-4">
           {firstSync ? (
-            <div className="flex items-center gap-2 px-2 py-1"><Icon name="trend" /><span>Totals after the first sync</span></div>
+            <div className="flex items-center gap-2 px-2 py-1">
+              <Icon name="trend" />
+              <span>Totals after the first sync</span>
+            </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 px-2 py-1" title="Top-level sessions matching this page's filters"><Icon name="trend" /><span><strong className="font-medium text-sidebar-foreground">{metrics == null ? "-" : formatInt(metrics.sessions)}</strong> sessions</span></div>
-              <div className="flex items-center gap-2 px-2 py-1"><Icon name="money" /><span><strong className="font-medium text-sidebar-foreground">{metrics == null ? "-" : <CostValue cost={metrics.estimated_cost_usd} sessions={metrics.sessions} usageSessions={metrics.usage_sessions} />}</strong>{" "}tracked</span></div>
+              <div
+                className="flex items-center gap-2 px-2 py-1"
+                title="Top-level sessions matching this page's filters"
+              >
+                <Icon name="trend" />
+                <span>
+                  <strong className="font-medium text-sidebar-foreground">
+                    {metrics == null ? "-" : formatInt(metrics.sessions)}
+                  </strong>{" "}
+                  sessions
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-2 py-1">
+                <Icon name="money" />
+                <span>
+                  <strong className="font-medium text-sidebar-foreground">
+                    {metrics == null ? (
+                      "-"
+                    ) : (
+                      <CostValue
+                        cost={metrics.estimated_cost_usd}
+                        sessions={metrics.sessions}
+                        usageSessions={metrics.usage_sessions}
+                      />
+                    )}
+                  </strong>{" "}
+                  tracked
+                </span>
+              </div>
             </>
           )}
-          {lastActivity != null && !firstSync ? <div className="flex items-center gap-2 px-2 py-1"><Icon name="clock" /><span>latest {lastActivity}</span></div> : null}
-          <span className="px-2 py-1 text-[11px]" title={`Current build: ${versionLabel(data.config?.version)}`}>Agent Benchmarks {versionLabel(data.config?.version)}</span>
+          {lastActivity != null && !firstSync ? (
+            <div className="flex items-center gap-2 px-2 py-1">
+              <Icon name="clock" />
+              <span>latest {lastActivity}</span>
+            </div>
+          ) : null}
+          <span
+            className="px-2 py-1 text-[11px]"
+            title={`Current build: ${versionLabel(data.config?.version)}`}
+          >
+            Agent Benchmarks {versionLabel(data.config?.version)}
+          </span>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 max-md:[&_[data-sync-label]]:hidden">
           <SidebarTrigger className="-ml-1" />
-          {VIEWS_WITHOUT_HEADING.has(activeView) ? <h1 className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</h1> : <p className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</p>}
-          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Open command palette" className="hidden min-w-0 max-w-lg flex-1 justify-start font-normal text-muted-foreground md:inline-flex" onClick={() => setCommandPaletteOpen(true)} size="sm" type="button" variant="outline"><Search /><span className="truncate">Search sessions, messages, and tools…</span><kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-[11px]">{paletteShortcutLabel(navigator.userAgent)}</kbd></Button>
-          <Button aria-expanded={commandPaletteOpen} aria-haspopup="dialog" aria-label="Search" className="md:hidden" onClick={() => setCommandPaletteOpen(true)} size="icon" type="button" variant="ghost"><Search /></Button>
+          {VIEWS_WITHOUT_HEADING.has(activeView) ? (
+            <h1 className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</h1>
+          ) : (
+            <p className="text-sm font-semibold tracking-tight">{titleFor(activeLabel)}</p>
+          )}
+          <Button
+            aria-expanded={commandPaletteOpen}
+            aria-haspopup="dialog"
+            aria-label="Open command palette"
+            className="hidden min-w-0 max-w-lg flex-1 justify-start font-normal text-muted-foreground md:inline-flex"
+            onClick={() => setCommandPaletteOpen(true)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Search />
+            <span className="truncate">Search sessions, messages, and tools…</span>
+            <kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-[11px]">
+              {paletteShortcutLabel(navigator.userAgent)}
+            </kbd>
+          </Button>
+          <Button
+            aria-expanded={commandPaletteOpen}
+            aria-haspopup="dialog"
+            aria-label="Search"
+            className="md:hidden"
+            onClick={() => setCommandPaletteOpen(true)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <Search />
+          </Button>
           <div className="ml-auto hidden sm:block" />
-          <SyncButton ariaLabel={archiveUpdateAvailable ? "Load new activity" : "Sync session logs"} busy={syncInProgress} label={archiveUpdateAvailable ? "Update" : "Sync"} labels={TOPBAR_SYNC_LABELS} onClick={archiveUpdateAvailable ? loadArchiveUpdates : runSync} update={archiveUpdateAvailable} />
-          <span aria-live="polite" className="sr-only" role="status">{syncInProgress ? syncAnnouncement(syncProgress) : syncCompleteShown ? syncCompleteLabel(syncProgress) : ""}</span>
-          <Button asChild aria-label="Settings" size="icon" title="Settings" variant="ghost"><Link href="/settings" setPath={setPath}><Settings /></Link></Button>
+          <SyncButton
+            ariaLabel={archiveUpdateAvailable ? "Load new activity" : "Sync session logs"}
+            busy={syncInProgress}
+            label={archiveUpdateAvailable ? "Update" : "Sync"}
+            labels={TOPBAR_SYNC_LABELS}
+            onClick={archiveUpdateAvailable ? loadArchiveUpdates : runSync}
+            update={archiveUpdateAvailable}
+          />
+          <span aria-live="polite" className="sr-only" role="status">
+            {syncInProgress
+              ? syncAnnouncement(syncProgress)
+              : syncCompleteShown
+                ? syncCompleteLabel(syncProgress)
+                : ""}
+          </span>
+          <Button asChild aria-label="Settings" size="icon" title="Settings" variant="ghost">
+            <Link href="/settings" setPath={setPath}>
+              <Settings />
+            </Link>
+          </Button>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button aria-label="Choose theme" className="shrink-0" size="icon" variant="ghost">{theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />}</Button></DropdownMenuTrigger>
-            <DropdownMenuContent align="end"><DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as ThemeChoice)}><DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem><DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem><DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem></DropdownMenuRadioGroup></DropdownMenuContent>
+            <DropdownMenuTrigger asChild>
+              <Button aria-label="Choose theme" className="shrink-0" size="icon" variant="ghost">
+                {theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={theme}
+                onValueChange={(value) => setTheme(value as ThemeChoice)}
+              >
+                <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
           </DropdownMenu>
-          {syncInProgress || syncComplete ? <SyncProgressLine complete={syncCompleteShown} progress={syncProgress} /> : null}
+          {syncInProgress || syncComplete ? (
+            <SyncProgressLine complete={syncCompleteShown} progress={syncProgress} />
+          ) : null}
         </header>
         <div className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-8">
           <div className="mx-auto w-full min-w-0 max-w-[96rem]">
-            {syncNoticeShown && (syncInProgress || syncComplete) ? <SyncProgressNotice complete={syncCompleteShown} firstSync={firstSync} progress={syncProgress} /> : null}
-            {liveDisconnected ? <Alert className="mb-4 flex flex-wrap items-center justify-between gap-3" role="status"><span>Live updates disconnected · the browser will reconnect automatically.</span><Button onClick={reconnectLiveUpdates} size="sm" type="button" variant="outline">Reconnect</Button></Alert> : null}
-            {syncError != null ? <div className="mb-4"><ApiFailureState error={syncError} onRetry={runSync} /></div> : null}
-            {activeFailedSlices.length > 0 ? <Alert className="mb-4 flex flex-wrap items-center justify-between gap-3" variant="destructive"><span>Some dashboard data could not be loaded. Available data is still shown. Failed: {activeFailedSlices.join(", ")}.</span><Button onClick={requestRefresh} size="sm" type="button" variant="outline">Retry</Button></Alert> : null}
-            {activeView === "sessions" && sessionFailure === "notice" ? <Alert className="mb-4 flex flex-wrap items-center justify-between gap-3" variant="destructive"><span>The session list could not be refreshed. The sessions shown may be out of date.</span><Button onClick={requestRefresh} size="sm" type="button" variant="outline">Retry</Button></Alert> : null}
-            {activeView === "sessions" && sessionFailure === "replace" ? <ApiFailureState error={sessionPageState.error} onRetry={requestRefresh} onSync={runSync} /> : renderView(activeView, path, data, {
-              dashboardQuery,
-              dateRange: dateRangeSelection,
-              evalProgress,
-              onDateRangeChange: handleDateRangeChange,
-              onSessionTextFilterChange: setSessionTextFilterActive,
-              onSourceChange: setSourceSelection,
-              refresh: requestRefresh,
-              reloadKey,
-              runSync,
-              failedSlices,
-              firstSync,
-              loadedSlices: loadedSlicesRef.current,
-              recommendationsLoading,
-              sessionPageState,
-              source: sourceSelection,
-              syncing: syncInProgress,
-            })}
+            {syncNoticeShown && (syncInProgress || syncComplete) ? (
+              <SyncProgressNotice
+                complete={syncCompleteShown}
+                firstSync={firstSync}
+                progress={syncProgress}
+              />
+            ) : null}
+            {liveDisconnected ? (
+              <Alert
+                className="mb-4 flex flex-wrap items-center justify-between gap-3"
+                role="status"
+              >
+                <span>Live updates disconnected · the browser will reconnect automatically.</span>
+                <Button onClick={reconnectLiveUpdates} size="sm" type="button" variant="outline">
+                  Reconnect
+                </Button>
+              </Alert>
+            ) : null}
+            {syncError != null ? (
+              <div className="mb-4">
+                <ApiFailureState error={syncError} onRetry={runSync} />
+              </div>
+            ) : null}
+            {activeFailedSlices.length > 0 ? (
+              <Alert
+                className="mb-4 flex flex-wrap items-center justify-between gap-3"
+                variant="destructive"
+              >
+                <span>
+                  Some dashboard data could not be loaded. Available data is still shown. Failed:{" "}
+                  {activeFailedSlices.join(", ")}.
+                </span>
+                <Button onClick={requestRefresh} size="sm" type="button" variant="outline">
+                  Retry
+                </Button>
+              </Alert>
+            ) : null}
+            {activeView === "sessions" && sessionFailure === "notice" ? (
+              <Alert
+                className="mb-4 flex flex-wrap items-center justify-between gap-3"
+                variant="destructive"
+              >
+                <span>
+                  The session list could not be refreshed. The sessions shown may be out of date.
+                </span>
+                <Button onClick={requestRefresh} size="sm" type="button" variant="outline">
+                  Retry
+                </Button>
+              </Alert>
+            ) : null}
+            {activeView === "sessions" && sessionFailure === "replace" ? (
+              <ApiFailureState
+                error={sessionPageState.error}
+                onRetry={requestRefresh}
+                onSync={runSync}
+              />
+            ) : (
+              renderView(activeView, path, data, {
+                dashboardQuery,
+                dateRange: dateRangeSelection,
+                evalActivity,
+                evalProgress,
+                onDateRangeChange: handleDateRangeChange,
+                onSessionTextFilterChange: setSessionTextFilterActive,
+                onSourceChange: setSourceSelection,
+                refresh: requestRefresh,
+                reloadKey,
+                runSync,
+                failedSlices,
+                firstSync,
+                loadedSlices: loadedSlicesRef.current,
+                recommendationsLoading,
+                sessionPageState,
+                source: sourceSelection,
+                syncing: syncInProgress,
+              })
+            )}
           </div>
         </div>
       </SidebarInset>
-      <CommandPalette analyticsReportHref={withDateQuery("/reports/analytics", dashboardQuery)} onClose={() => setCommandPaletteOpen(false)} onNavigate={(href) => { setCommandPaletteOpen(false); visit(href, setPath); }} onRunSync={() => { setCommandPaletteOpen(false); runSync(); }} onToggleTheme={() => setTheme((current) => current === "system" ? "light" : current === "light" ? "dark" : "system")} open={commandPaletteOpen} refreshKey={reloadKey} syncing={syncInProgress} />
+      <CommandPalette
+        analyticsReportHref={withDateQuery("/reports/analytics", dashboardQuery)}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNavigate={(href) => {
+          setCommandPaletteOpen(false);
+          visit(href, setPath);
+        }}
+        onRunSync={() => {
+          setCommandPaletteOpen(false);
+          runSync();
+        }}
+        onToggleTheme={() =>
+          setTheme((current) =>
+            current === "system" ? "light" : current === "light" ? "dark" : "system",
+          )
+        }
+        open={commandPaletteOpen}
+        refreshKey={reloadKey}
+        syncing={syncInProgress}
+      />
     </SidebarProvider>
   );
 }
@@ -864,6 +1059,7 @@ function renderView(
   actions: {
     dashboardQuery: string;
     dateRange: DateRangeSelection;
+    evalActivity: EvalCellActivityEvent | null;
     evalProgress: EvalProgressEvent | null;
     onDateRangeChange: (range: DateRangeSelection) => void;
     onSessionTextFilterChange: (active: boolean) => void;
@@ -919,9 +1115,22 @@ function renderView(
     case "search":
       return <SearchView dateRange={actions.dateRange} path={path} />;
     case "compare":
-      return <CompareView data={data} dateRange={actions.dateRange} onDateRangeChange={actions.onDateRangeChange} reloadKey={actions.reloadKey} />;
+      return (
+        <CompareView
+          data={data}
+          dateRange={actions.dateRange}
+          onDateRangeChange={actions.onDateRangeChange}
+          reloadKey={actions.reloadKey}
+        />
+      );
     case "evaluating":
-      return <EvaluatingView path={path} progress={actions.evalProgress} />;
+      return (
+        <EvaluatingView
+          path={path}
+          progress={actions.evalProgress}
+          activity={actions.evalActivity}
+        />
+      );
     case "analytics":
       return (
         <AnalyticsView
@@ -975,11 +1184,7 @@ function renderView(
       );
     case "settings":
       return (
-        <SettingsView
-          config={data.config}
-          onSaved={actions.refresh}
-          settingsInfo={data.settings}
-        />
+        <SettingsView config={data.config} onSaved={actions.refresh} settingsInfo={data.settings} />
       );
     default:
       return <NotFoundView pathname={pathname} />;
@@ -990,7 +1195,9 @@ function NotFoundView({ pathname }: { pathname: string }) {
   return (
     <ErrorState
       action={
-        <Button asChild><Link href="/">Back to Analytics</Link></Button>
+        <Button asChild>
+          <Link href="/">Back to Analytics</Link>
+        </Button>
       }
       detail={`There is no page at ${pathname}.`}
       icon="inbox"

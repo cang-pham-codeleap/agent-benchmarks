@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   BenchmarkRunInput,
   EvalCatalog,
+  EvalCellActivityEvent,
   EvalProgressEvent,
   EvalResults,
   EvalRunManifest,
@@ -27,6 +28,7 @@ import { ApiFailureState } from "../api-failure.tsx";
 import { durationPrecise } from "../format.ts";
 import { Link, visit } from "../link.tsx";
 import { EvalForm } from "./evaluating/form.tsx";
+import { LiveView } from "./evaluating/live.tsx";
 import { RealTaskForm } from "./evaluating/real-form.tsx";
 import { RealResultsView } from "./evaluating/real-results.tsx";
 import { EvalResultsView } from "./evaluating/results.tsx";
@@ -49,10 +51,12 @@ function ActiveRun({
   result,
   busy,
   onCancel,
+  onWatch,
 }: {
   result: EvalResults;
   busy: boolean;
   onCancel: (manifest: EvalRunManifest) => void;
+  onWatch: (manifest: EvalRunManifest) => void;
 }) {
   const [now, setNow] = useState(Date.now());
   const { manifest, progress } = result;
@@ -77,34 +81,39 @@ function ActiveRun({
             </CardDescription>
           </div>
           {manifest.status === "running" && (
-            <AlertDialog.Root>
-              <AlertDialog.Trigger asChild>
-                <Button type="button" variant="outline" disabled={busy}>
-                  Cancel run
-                </Button>
-              </AlertDialog.Trigger>
-              <AlertDialog.Portal>
-                <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-                <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg">
-                  <AlertDialog.Title className="text-lg font-semibold">
-                    Cancel evaluation?
-                  </AlertDialog.Title>
-                  <AlertDialog.Description className="text-sm text-muted-foreground">
-                    Cancel is best effort; leftover processes are listed if any survive.
-                  </AlertDialog.Description>
-                  <div className="flex justify-end gap-2">
-                    <AlertDialog.Cancel asChild>
-                      <Button variant="outline">Keep running</Button>
-                    </AlertDialog.Cancel>
-                    <AlertDialog.Action asChild>
-                      <Button variant="destructive" onClick={() => onCancel(manifest)}>
-                        Cancel run
-                      </Button>
-                    </AlertDialog.Action>
-                  </div>
-                </AlertDialog.Content>
-              </AlertDialog.Portal>
-            </AlertDialog.Root>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onWatch(manifest)}>
+                Watch live
+              </Button>
+              <AlertDialog.Root>
+                <AlertDialog.Trigger asChild>
+                  <Button type="button" variant="outline" disabled={busy}>
+                    Cancel run
+                  </Button>
+                </AlertDialog.Trigger>
+                <AlertDialog.Portal>
+                  <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+                  <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg">
+                    <AlertDialog.Title className="text-lg font-semibold">
+                      Cancel evaluation?
+                    </AlertDialog.Title>
+                    <AlertDialog.Description className="text-sm text-muted-foreground">
+                      Cancel is best effort; leftover processes are listed if any survive.
+                    </AlertDialog.Description>
+                    <div className="flex justify-end gap-2">
+                      <AlertDialog.Cancel asChild>
+                        <Button variant="outline">Keep running</Button>
+                      </AlertDialog.Cancel>
+                      <AlertDialog.Action asChild>
+                        <Button variant="destructive" onClick={() => onCancel(manifest)}>
+                          Cancel run
+                        </Button>
+                      </AlertDialog.Action>
+                    </div>
+                  </AlertDialog.Content>
+                </AlertDialog.Portal>
+              </AlertDialog.Root>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -141,9 +150,11 @@ function ActiveRun({
 export function EvaluatingView({
   path,
   progress,
+  activity,
 }: {
   path: string;
   progress: EvalProgressEvent | null;
+  activity: EvalCellActivityEvent | null;
 }) {
   const selectedId = new URLSearchParams(path.split("?", 2)[1] ?? "").get("run");
   const [catalog, setCatalog] = useState<EvalCatalog | null>(null);
@@ -155,6 +166,8 @@ export function EvaluatingView({
   const [resultError, setResultError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [runView, setRunView] = useState<"results" | "live">("results");
+  const [pinned, setPinned] = useState<string | null>(null);
   const refresh = () => {
     setError(null);
     setRevision((value) => value + 1);
@@ -164,6 +177,7 @@ export function EvaluatingView({
     runs?.find((run) => run.status === "running" || run.status === "cancel-incomplete")?.id ??
     null;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revision and progress are refetch triggers
   useEffect(() => {
     const controller = new AbortController();
     void Promise.all([
@@ -182,6 +196,7 @@ export function EvaluatingView({
     return () => controller.abort();
   }, [revision, progress]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revision and progress are refetch triggers
   useEffect(() => {
     if (!selectedId) {
       setSelected(null);
@@ -202,6 +217,7 @@ export function EvaluatingView({
     return () => controller.abort();
   }, [selectedId, revision, progress]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revision and progress are refetch triggers
   useEffect(() => {
     if (!activeId) {
       setActive(null);
@@ -232,6 +248,7 @@ export function EvaluatingView({
   }, [progress, selectedId, activeId]);
 
   function selectRun(id: string) {
+    setPinned(null);
     const params = new URLSearchParams(path.split("?", 2)[1] ?? "");
     params.set("run", id);
     visit(`/evaluating?${params}`);
@@ -280,7 +297,7 @@ export function EvaluatingView({
       </header>
       {error != null && <ApiFailureState error={error} onRetry={refresh} />}
       {!catalog || !runs || !input ? (
-        <div className="space-y-4" aria-label="Loading evaluations">
+        <div className="space-y-4" role="status" aria-label="Loading evaluations">
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-32 w-full" />
         </div>
@@ -302,6 +319,10 @@ export function EvaluatingView({
               <ActiveRun
                 result={activeResult}
                 busy={busy}
+                onWatch={(run) => {
+                  setRunView("live");
+                  selectRun(run.id);
+                }}
                 onCancel={(run) =>
                   void mutate(`/api/evals/${encodeURIComponent(run.id)}/cancel`, {}, false)
                 }
@@ -313,30 +334,52 @@ export function EvaluatingView({
             (resultError != null ? (
               <ApiFailureState error={resultError} onRetry={refresh} />
             ) : current ? (
-              <div key={current.manifest.id}>
-                {current.manifest.status === "cancel-incomplete" &&
-                  current.manifest.id !== activeId && (
-                    <Alert className="mb-4" variant="destructive">
-                      <AlertTitle>Cancellation incomplete</AlertTitle>
-                      <AlertDescription>
-                        Surviving process IDs:{" "}
-                        {current.manifest.survivors.join(", ") || "unavailable"}.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                <EvalResultsView
-                  results={current}
-                  busy={busy || !!activeId}
-                  onResume={(run, retryFailed) =>
-                    void mutate(
-                      `/api/evals/${encodeURIComponent(run.id)}/resume`,
-                      { retryFailed },
-                      true,
-                    )
-                  }
-                />
-                <RealResultsView results={current} />
-              </div>
+              <Tabs
+                key={current.manifest.id}
+                value={runView}
+                onValueChange={(value) => setRunView(value as "results" | "live")}
+              >
+                <TabsList>
+                  <TabsTrigger value="results">Results</TabsTrigger>
+                  <TabsTrigger value="live">Live</TabsTrigger>
+                </TabsList>
+                <TabsContent value="live">
+                  <LiveView
+                    results={current}
+                    activity={activity?.runId === current.manifest.id ? activity : null}
+                    pinned={pinned}
+                    onPin={setPinned}
+                  />
+                </TabsContent>
+                <TabsContent value="results">
+                  {current.manifest.status === "cancel-incomplete" &&
+                    current.manifest.id !== activeId && (
+                      <Alert className="mb-4" variant="destructive">
+                        <AlertTitle>Cancellation incomplete</AlertTitle>
+                        <AlertDescription>
+                          Surviving process IDs:{" "}
+                          {current.manifest.survivors.join(", ") || "unavailable"}.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  <EvalResultsView
+                    results={current}
+                    busy={busy || !!activeId}
+                    onOpenCell={(cellId) => {
+                      setPinned(cellId);
+                      setRunView("live");
+                    }}
+                    onResume={(run, retryFailed) =>
+                      void mutate(
+                        `/api/evals/${encodeURIComponent(run.id)}/resume`,
+                        { retryFailed },
+                        true,
+                      )
+                    }
+                  />
+                  <RealResultsView results={current} />
+                </TabsContent>
+              </Tabs>
             ) : (
               <Skeleton className="h-48 w-full" />
             ))}
@@ -371,10 +414,10 @@ export function EvaluatingView({
                     : "No evaluations yet. Try the Smoke preset to check your setup."}
                 </p>
               ) : (
-                <div
+                <section
                   className="overflow-x-auto rounded-md border"
-                  role="region"
                   aria-label="Past evaluation runs"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll container so keyboard users can scroll the table
                   tabIndex={0}
                 >
                   <Table>
@@ -421,7 +464,7 @@ export function EvaluatingView({
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                </section>
               )}
             </CardContent>
           </Card>

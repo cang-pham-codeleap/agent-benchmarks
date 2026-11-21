@@ -54,9 +54,11 @@ export function EvalResultsView({
   results,
   busy,
   onResume,
+  onOpenCell,
 }: {
   results: EvalResults;
   busy: boolean;
+  onOpenCell: (cellId: string) => void;
   onResume: (run: EvalRunManifest, retryFailed: boolean) => void;
 }) {
   const { manifest, setups, cells } = results;
@@ -81,6 +83,7 @@ export function EvalResultsView({
           )}
         </div>
         {results.warnings.map((warning, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: warning strings may repeat
           <Alert key={`${index}-${warning}`}>
             <AlertDescription>{warning}</AlertDescription>
           </Alert>
@@ -94,10 +97,10 @@ export function EvalResultsView({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div
+            <section
               className="overflow-x-auto rounded-md border"
-              role="region"
               aria-label="Evaluation summary"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll container so keyboard users can scroll the table
               tabIndex={0}
             >
               <Table>
@@ -200,7 +203,7 @@ export function EvalResultsView({
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </section>
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -267,10 +270,10 @@ export function EvalResultsView({
                   Passed / graded trials; unavailable outcomes are not graded.
                 </p>
               </div>
-              <div
+              <section
                 className="overflow-x-auto rounded-md border"
-                role="region"
                 aria-label="Task by setup results"
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll container so keyboard users can scroll the table
                 tabIndex={0}
               >
                 <Table>
@@ -311,6 +314,21 @@ export function EvalResultsView({
                                   {rate == null ? "ungraded" : percent(rate)}
                                 </Help>
                               </span>
+                              <span className="mt-1 flex flex-wrap gap-1">
+                                {trials.map((cell) => (
+                                  <Button
+                                    key={cell.cellId}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs"
+                                    aria-label={`Watch ${setupText(setup.setup)} ${task} trial ${cell.trial}`}
+                                    onClick={() => onOpenCell(cell.cellId)}
+                                  >
+                                    Watch t{cell.trial}
+                                  </Button>
+                                ))}
+                              </span>
                             </TableCell>
                           );
                         })}
@@ -318,7 +336,7 @@ export function EvalResultsView({
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+              </section>
             </div>
             {(manifest.status === "interrupted" || manifest.status === "cancelled") && (
               <div className="flex flex-wrap items-center gap-3">
@@ -401,6 +419,7 @@ export function EvalResultsView({
                   <p className="font-medium">Execution order</p>
                   <ol className="list-inside list-decimal">
                     {manifest.provenance.executionOrder.map((item, index) => (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: order entries may repeat
                       <li key={`${index}-${item}`}>{item}</li>
                     ))}
                   </ol>

@@ -1,7 +1,10 @@
-import type { EvalProgressEvent } from "../eval/types.ts";
+import type { EvalCellActivityEvent, EvalProgressEvent } from "../eval/types.ts";
 import { errorResponse } from "./http.ts";
 
-export type ServerEvent = { type: string } | (EvalProgressEvent & { type: "eval_progress" });
+export type ServerEvent =
+  | { type: string }
+  | (EvalProgressEvent & { type: "eval_progress" })
+  | (EvalCellActivityEvent & { type: "eval_cell_activity" });
 
 /** One stream per tab; browsers allow six connections per origin. */
 export const MAX_EVENT_CLIENTS = 32;

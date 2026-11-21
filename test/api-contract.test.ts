@@ -387,6 +387,13 @@ describe("local API OpenAPI contract", () => {
           expectedCode: "not_found",
         },
         {
+          path: "/api/evals/{id}/cells/{cellId}/events",
+          method: "get",
+          url: "/api/evals/00000000-0000-4000-8000-000000000000/cells/current%2Fclaude%3Aprompt%3Asonnet%3Atrial1/events?after=0",
+          status: 404,
+          expectedCode: "not_found",
+        },
+        {
           path: "/api/evals/{id}/report.html",
           method: "get",
           url: "/api/evals/00000000-0000-4000-8000-000000000000/report.html",
@@ -486,6 +493,13 @@ describe("local API OpenAPI contract", () => {
           status: 400,
           expectedCode: "repo_invalid",
         },
+        {
+          path: "/api/evals/{id}/cells/{cellId}/events",
+          method: "get",
+          url: "/api/evals/00000000-0000-4000-8000-000000000000/cells/current%2Fx/events?after=-1",
+          status: 400,
+          expectedCode: "invalid_request",
+        },
       ];
 
       expect(operationKeys(document)).toEqual(
@@ -564,6 +578,7 @@ describe("local API OpenAPI contract", () => {
       expect(sseEventNames(document)).toEqual([
         "archive_updated",
         "error",
+        "eval_cell_activity",
         "eval_progress",
         "hello",
         "ping",

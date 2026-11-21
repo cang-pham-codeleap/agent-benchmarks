@@ -21,11 +21,12 @@ function argsThroughShim(bin: string | null, name: string, args: string[]): stri
 }
 
 describe("harness shims", () => {
-  test("copilot loses only the usage file flag the installed CLI rejects", () => {
+  test("copilot loses the flags the installed CLI rejects or that pin an older CLI", () => {
     const bin = writeHarnessShims(join(root, "run-a"), ["copilot"], false, installed);
     expect(
       argsThroughShim(bin, "copilot", [
         "--prompt=fix it; keep spaces",
+        "--no-auto-update",
         "--usage-output-file",
         "/tmp/usage.json",
         "--model",
@@ -33,6 +34,14 @@ describe("harness shims", () => {
         "--usage-output-file=/tmp/u2.json",
       ]),
     ).toEqual(["--prompt=fix it; keep spaces", "--model", "claude-sonnet-5.5"]);
+  });
+
+  test("copilot-fusion reaches the CLI as its auto model, in both flag forms", () => {
+    const bin = writeHarnessShims(join(root, "run-f"), ["copilot"], false, installed);
+    expect(
+      argsThroughShim(bin, "copilot", ["--model", "copilot-fusion", "--prompt=copilot-fusion"]),
+    ).toEqual(["--model", "auto", "--prompt=copilot-fusion"]);
+    expect(argsThroughShim(bin, "copilot", ["--model=copilot-fusion"])).toEqual(["--model=auto"]);
   });
 
   test("codex exec gets a writable sandbox in real tasks only", () => {
