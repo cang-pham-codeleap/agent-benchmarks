@@ -125,7 +125,7 @@ const results: EvalResults = {
   setups: SETUPS.map(summary),
   paired: [],
   warnings: ["Descriptive only: one task."],
-  progress: { done: 3, total: 3, currentCell: null },
+  progress: { done: 3, total: 3, currentCell: null, liveCellId: null },
   real: {
     task: {
       type: "replay",

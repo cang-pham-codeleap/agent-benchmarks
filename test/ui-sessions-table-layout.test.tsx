@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { SessionSummary } from "../src/ui/types.ts";
 import { SessionTableRow, SessionTableSkeletonRows } from "../src/ui/views/sessions.tsx";
 
-
 const session: SessionSummary = {
   id: 1,
   tool: "opencode",
@@ -45,7 +44,11 @@ const session: SessionSummary = {
 describe("sessions table", () => {
   test("renders the session link, metrics and expandable subagents", () => {
     const markup = renderToStaticMarkup(
-      <table><tbody><SessionTableRow depth={0} expanded={false} onToggle={() => {}} session={session} /></tbody></table>,
+      <table>
+        <tbody>
+          <SessionTableRow depth={0} expanded={false} onToggle={() => {}} session={session} />
+        </tbody>
+      </table>,
     );
     expect(markup).toContain('href="/sessions/1"');
     expect(markup).toContain("Synthetic session");
@@ -55,9 +58,15 @@ describe("sessions table", () => {
   });
 
   test("renders eleven placeholder cells per skeleton row", () => {
-    const markup = renderToStaticMarkup(<table><tbody><SessionTableSkeletonRows /></tbody></table>);
+    const markup = renderToStaticMarkup(
+      <table>
+        <tbody>
+          <SessionTableSkeletonRows />
+        </tbody>
+      </table>,
+    );
     const rows = [...markup.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)];
     expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) expect((row[1]?.match(/<td\b/g) ?? [])).toHaveLength(11);
+    for (const row of rows) expect(row[1]?.match(/<td\b/g) ?? []).toHaveLength(11);
   });
 });

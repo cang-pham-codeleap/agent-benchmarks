@@ -132,7 +132,9 @@ describe("Tools initial loading", () => {
         },
       ],
     });
-    expect(html).toMatch(/<strong[^>]*title="mcp__exa__web_search_exa"[^>]*>web_search_exa<\/strong>/);
+    expect(html).toMatch(
+      /<strong[^>]*title="mcp__exa__web_search_exa"[^>]*>web_search_exa<\/strong>/,
+    );
     const changedDates = renderTools(
       "ready",
       {

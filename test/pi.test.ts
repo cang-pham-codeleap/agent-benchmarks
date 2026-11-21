@@ -130,15 +130,28 @@ describe("parsePiSession", () => {
       HEADER,
       { type: "model_change", provider: "OpenAI", modelId: "openai/gpt-5.4" },
       assistant("a", null, "2026-11-03T08:00:01.000Z", {
-        provider: "OpenAI", model: "openai/gpt-5.4", usage: usage(1, 10),
+        provider: "OpenAI",
+        model: "openai/gpt-5.4",
+        usage: usage(1, 10),
       }),
       assistant("b", "a", "2026-11-03T08:00:02.000Z", {
-        provider: "Other", model: "other/gpt-5.4", usage: usage(1, 1),
+        provider: "Other",
+        model: "other/gpt-5.4",
+        usage: usage(1, 1),
       }),
     );
-    const fallback = lines(HEADER, { type: "model_change", provider: "OpenAI", modelId: "cx/gpt-5.5" });
-    expect([parsePiSession("fallback", records).session, parsePiSession("fallback", fallback).session])
-      .toMatchObject([{ model: "gpt-5.4", provider: "openai" }, { model: "cx/gpt-5.5", provider: "openai" }]);
+    const fallback = lines(HEADER, {
+      type: "model_change",
+      provider: "OpenAI",
+      modelId: "cx/gpt-5.5",
+    });
+    expect([
+      parsePiSession("fallback", records).session,
+      parsePiSession("fallback", fallback).session,
+    ]).toMatchObject([
+      { model: "gpt-5.4", provider: "openai" },
+      { model: "cx/gpt-5.5", provider: "openai" },
+    ]);
   });
 
   test("keeps every branch in file order with its tree links", () => {
@@ -443,7 +456,10 @@ describe("Pi forks", () => {
   });
 
   test("a fork bills an entry written after the fork", () => {
-    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
+    const fork = {
+      ...HEADER,
+      parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl",
+    };
     const { session } = parsePiSession(
       "fallback",
       lines(
@@ -456,7 +472,10 @@ describe("Pi forks", () => {
   });
 
   test("a copy written in the same millisecond as the fork is still a copy", () => {
-    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
+    const fork = {
+      ...HEADER,
+      parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl",
+    };
     const { session } = parsePiSession(
       "fallback",
       lines(
@@ -469,7 +488,10 @@ describe("Pi forks", () => {
   });
 
   test("an entry after the fork's first own entry is billed even if the clock went back", () => {
-    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
+    const fork = {
+      ...HEADER,
+      parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl",
+    };
     const { session } = parsePiSession(
       "fallback",
       lines(
@@ -490,7 +512,10 @@ describe("Pi forks", () => {
   });
 
   test("a fork bills an entry whose time it cannot read rather than dropping it", () => {
-    const fork = { ...HEADER, parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl" };
+    const fork = {
+      ...HEADER,
+      parentSession: "/agent-benchmarks-fixture/pi-example/original.jsonl",
+    };
     const undated = {
       type: "message",
       id: "d1",

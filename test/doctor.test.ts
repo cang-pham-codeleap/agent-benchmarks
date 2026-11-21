@@ -20,7 +20,10 @@ function freshHome(): { home: string; env: Record<string, string> } {
   mkdirSync(home, { recursive: true });
   return {
     home,
-    env: { AGENT_BENCHMARKS_CONFIG_DIR: join(home, ".config", "agent-benchmarks"), AGENT_BENCHMARKS_NO_SYNC: "1" },
+    env: {
+      AGENT_BENCHMARKS_CONFIG_DIR: join(home, ".config", "agent-benchmarks"),
+      AGENT_BENCHMARKS_NO_SYNC: "1",
+    },
   };
 }
 
@@ -103,8 +106,15 @@ describe("collectDoctorReport", () => {
       exists: false,
       found: 0,
     });
-    expect(report.archive).toMatchObject({ path: "~/.agent-benchmarks/agent-benchmarks.db", exists: false });
-    expect(report.env).toEqual(["AGENT_BENCHMARKS_CONFIG_DIR", "AGENT_BENCHMARKS_NO_SYNC", "XDG_DATA_HOME"]);
+    expect(report.archive).toMatchObject({
+      path: "~/.agent-benchmarks/agent-benchmarks.db",
+      exists: false,
+    });
+    expect(report.env).toEqual([
+      "AGENT_BENCHMARKS_CONFIG_DIR",
+      "AGENT_BENCHMARKS_NO_SYNC",
+      "XDG_DATA_HOME",
+    ]);
     expect(report.supported_schema_version).toBe(LATEST_SCHEMA_VERSION);
     expect(JSON.stringify(report)).not.toContain(home);
     expect(JSON.stringify(report)).not.toContain("do-not-print");

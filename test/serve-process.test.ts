@@ -35,7 +35,11 @@ test("a completed supervised serve leaves no stop-grace force-exit timer behind 
   `;
   const proc = Bun.spawn([process.execPath, "--eval", program], {
     cwd: join(import.meta.dir, ".."),
-    env: { ...process.env, AGENT_BENCHMARKS_TEST_HOME: root, AGENT_BENCHMARKS_CONFIG_DIR: join(root, "config") },
+    env: {
+      ...process.env,
+      AGENT_BENCHMARKS_TEST_HOME: root,
+      AGENT_BENCHMARKS_CONFIG_DIR: join(root, "config"),
+    },
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",

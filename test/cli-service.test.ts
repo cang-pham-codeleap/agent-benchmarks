@@ -22,7 +22,10 @@ function cliOptions(service: Partial<ServiceOptions>) {
     return { code: 0, stdout: "", stderr: "" };
   };
   return {
-    env: { AGENT_BENCHMARKS_NO_SYNC: "1", AGENT_BENCHMARKS_DB: join(workDir, "agent-benchmarks.db") },
+    env: {
+      AGENT_BENCHMARKS_NO_SYNC: "1",
+      AGENT_BENCHMARKS_DB: join(workDir, "agent-benchmarks.db"),
+    },
     homeDir: home,
     service: {
       platform: "darwin" as const,
@@ -86,7 +89,13 @@ describe("agent-benchmarks service", () => {
   });
 
   test("refuses an archive or executable path with a control character", async () => {
-    const plist = join(workDir, "home", "Library", "LaunchAgents", "dev.dosu.agentBenchmarks.plist");
+    const plist = join(
+      workDir,
+      "home",
+      "Library",
+      "LaunchAgents",
+      "dev.dosu.agentBenchmarks.plist",
+    );
     const db = await runCli(
       ["--db", join(workDir, "a.db\nRunAtLoad"), "service", "install", "--port", "4102"],
       cliOptions({}),

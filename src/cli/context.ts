@@ -35,7 +35,6 @@ export interface CliRunOptions {
   syncNoticeAfterMs?: number;
 }
 
-
 export interface GlobalOptions {
   db?: string;
   json?: boolean;

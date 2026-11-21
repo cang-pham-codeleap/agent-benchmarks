@@ -69,7 +69,9 @@ describe("worktree pure classifiers", () => {
   });
 
   test("intree codex worktree recovers root and label", () => {
-    const result = classifyIntree("/Users/dev/src/agent-benchmarks/.codex-worktrees/feature-token-ui");
+    const result = classifyIntree(
+      "/Users/dev/src/agent-benchmarks/.codex-worktrees/feature-token-ui",
+    );
     expect(result).toMatchObject({
       rootPath: "/Users/dev/src/agent-benchmarks",
       worktreeLabel: "feature-token-ui",
@@ -116,15 +118,24 @@ describe("worktree pure classifiers", () => {
     });
     expect(externalContainer("/Users/dev/.t3/worktrees/agent-benchmarks")).toBeNull();
     const known: KnownRoot[] = [
-      { path: "/Users/dev/src/agent-benchmarks", basename: "agent-benchmarks", sessions: 3, lastSeen: "2026-06-01" },
+      {
+        path: "/Users/dev/src/agent-benchmarks",
+        basename: "agent-benchmarks",
+        sessions: 3,
+        lastSeen: "2026-06-01",
+      },
     ];
-    expect(classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", known, "agent-benchmarks")).toMatchObject({
+    expect(
+      classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", known, "agent-benchmarks"),
+    ).toMatchObject({
       source: "namematch",
       rootPath: "/Users/dev/src/agent-benchmarks",
       worktreeLabel: "t3-0cacd467",
       worktreeTool: "t3",
     });
-    expect(classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", [], "agent-benchmarks")).toMatchObject({
+    expect(
+      classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", [], "agent-benchmarks"),
+    ).toMatchObject({
       source: "synthetic",
       rootPath: "agent-benchmarks",
       worktreeLabel: "t3-0cacd467",
@@ -138,7 +149,9 @@ describe("worktree pure classifiers", () => {
         lastSeen: "2026-07-01",
       },
     ];
-    expect(classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", lookalike, "agent-benchmarks")).toMatchObject({
+    expect(
+      classifyExternal("t3", "agent-benchmarks-t3-0cacd467", "/x", lookalike, "agent-benchmarks"),
+    ).toMatchObject({
       source: "namematch",
       rootPath: "/Users/dev/src/agent-benchmarks",
       worktreeLabel: "t3-0cacd467",

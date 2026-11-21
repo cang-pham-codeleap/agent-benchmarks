@@ -48,7 +48,11 @@ function freshHome(): string {
   return join(workDir, `home-${homeCounter}`);
 }
 
-const spec = { binary: "/opt/test/agent-benchmarks", dbPath: "/Users/dev/.agent-benchmarks/agent-benchmarks.db", port: 3000 };
+const spec = {
+  binary: "/opt/test/agent-benchmarks",
+  dbPath: "/Users/dev/.agent-benchmarks/agent-benchmarks.db",
+  port: 3000,
+};
 
 function fakeManager(
   initial: { loaded?: boolean; running?: boolean; systemd?: boolean; exitPrints?: number } = {},
@@ -465,7 +469,10 @@ describe("binaryChanged", () => {
 
   test("is true when a new build path replaces the binary", () => {
     expect(
-      binaryChanged(base, { ...base, path: "/opt/local/agent-benchmarks/0.15.0/bin/agent-benchmarks" }),
+      binaryChanged(base, {
+        ...base,
+        path: "/opt/local/agent-benchmarks/0.15.0/bin/agent-benchmarks",
+      }),
     ).toBe(true);
   });
 
@@ -628,7 +635,11 @@ describe("launchd reconfiguration", () => {
       "\t}",
       "}",
     ].join("\n");
-    expect(parseLaunchdArguments(printed)).toEqual(["/Apps/My Tools/agent-benchmarks", "--db", "/data/a.db"]);
+    expect(parseLaunchdArguments(printed)).toEqual([
+      "/Apps/My Tools/agent-benchmarks",
+      "--db",
+      "/data/a.db",
+    ]);
     expect(parseLaunchdArguments("state = running")).toBeNull();
   });
 

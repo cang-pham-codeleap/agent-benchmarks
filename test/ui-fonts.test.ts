@@ -6,7 +6,9 @@ const root = join(import.meta.dir, "..");
 const globals = readFileSync(join(root, "src", "ui", "globals.css"), "utf8");
 
 test("Inter is vendored locally and never fetched remotely", () => {
-  expect(globals).not.toMatch(/fonts\.googleapis|fonts\.gstatic|use\.typekit|src: url\(["']?https?:/);
+  expect(globals).not.toMatch(
+    /fonts\.googleapis|fonts\.gstatic|use\.typekit|src: url\(["']?https?:/,
+  );
   expect(globals).toMatch(
     /@font-face\s*\{[^}]*font-family: "Inter";[^}]*font-weight: 100 900;[^}]*src: url\("(\.\/fonts\/Inter-Variable-Latin\.woff2)"\)/,
   );
@@ -19,7 +21,7 @@ test("the bundled Inter face includes its OFL license", () => {
 });
 
 test("globals.css owns the sans and code font stacks", () => {
-  expect(globals).toMatch(/--app-font-sans: "Inter", ui-sans-serif/);
+  expect(globals).toMatch(/--app-font-sans:\s*"Inter", ui-sans-serif/);
   expect(globals).toMatch(/--app-font-mono: ui-monospace/);
   expect(globals).toMatch(/--font-sans: var\(--app-font-sans\)/);
   expect(globals).toMatch(/--font-mono: var\(--app-font-mono\)/);

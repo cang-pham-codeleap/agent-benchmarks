@@ -9,9 +9,9 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { cn } from "./lib/utils.ts";
 import { clampNumber, costDisplay } from "./format.ts";
 import { Icon } from "./icons.tsx";
+import { cn } from "./lib/utils.ts";
 import type { BadgeTone, IconName } from "./types.ts";
 export function PrivacyReviewLists({
   className,
@@ -206,16 +206,35 @@ export function Sparkline({ tone = "accent", values }: { tone?: BadgeTone; value
   return (
     <svg
       aria-hidden="true"
-      className={cn("h-6 w-28", {
-        neutral: "text-muted-foreground", accent: "text-primary", success: "text-emerald-500",
-        warning: "text-amber-500", danger: "text-destructive", info: "text-chart-3",
-        claude: "text-chart-1", openai: "text-muted-foreground", gemini: "text-chart-3",
-        opencode: "text-chart-5", zai: "text-chart-2", meta: "text-chart-4",
-      }[tone])}
+      className={cn(
+        "h-6 w-28",
+        {
+          neutral: "text-muted-foreground",
+          accent: "text-primary",
+          success: "text-emerald-500",
+          warning: "text-amber-500",
+          danger: "text-destructive",
+          info: "text-chart-3",
+          claude: "text-chart-1",
+          openai: "text-muted-foreground",
+          gemini: "text-chart-3",
+          opencode: "text-chart-5",
+          zai: "text-chart-2",
+          meta: "text-chart-4",
+        }[tone],
+      )}
       preserveAspectRatio="none"
       viewBox="0 0 100 24"
     >
-      <polyline points={points} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.6}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }
@@ -248,7 +267,10 @@ export function CostValue({
 }) {
   const { text, title } = costDisplay(cost, sessions, usageSessions, dense);
   return (
-    <span className={sessions > 0 && usageSessions === 0 ? "text-muted-foreground" : undefined} title={title}>
+    <span
+      className={sessions > 0 && usageSessions === 0 ? "text-muted-foreground" : undefined}
+      title={title}
+    >
       {text}
     </span>
   );
@@ -287,10 +309,16 @@ export function StatCard({
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         {loading ? (
           <strong>
-            <i aria-label="Loading" className="inline-block h-6 w-20 animate-pulse rounded-md bg-accent" role="img" />
+            <i
+              aria-label="Loading"
+              className="inline-block h-6 w-20 animate-pulse rounded-md bg-accent"
+              role="img"
+            />
           </strong>
         ) : (
-          <strong className="text-xl font-semibold tracking-tight" title={valueTitle}>{value}</strong>
+          <strong className="text-xl font-semibold tracking-tight" title={valueTitle}>
+            {value}
+          </strong>
         )}
         {detail != null && !loading ? (
           <small className="text-xs text-muted-foreground" title={detailTitle}>
@@ -375,12 +403,26 @@ export function Bar({ fraction, tone }: { fraction: number; tone: BadgeTone }) {
   const pct = Math.max(0, Math.min(1, Number.isFinite(fraction) ? fraction : 0)) * 100;
   return (
     <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-      <span className={cn("block h-full rounded-full", {
-        neutral: "bg-primary", accent: "bg-primary", success: "bg-emerald-500",
-        warning: "bg-amber-500", danger: "bg-destructive", info: "bg-chart-3",
-        claude: "bg-chart-1", openai: "bg-primary", gemini: "bg-chart-3",
-        opencode: "bg-chart-5", zai: "bg-chart-2", meta: "bg-chart-4",
-      }[tone])} style={{ width: `${pct}%` }} />
+      <span
+        className={cn(
+          "block h-full rounded-full",
+          {
+            neutral: "bg-primary",
+            accent: "bg-primary",
+            success: "bg-emerald-500",
+            warning: "bg-amber-500",
+            danger: "bg-destructive",
+            info: "bg-chart-3",
+            claude: "bg-chart-1",
+            openai: "bg-primary",
+            gemini: "bg-chart-3",
+            opencode: "bg-chart-5",
+            zai: "bg-chart-2",
+            meta: "bg-chart-4",
+          }[tone],
+        )}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -420,10 +462,16 @@ export function OverflowMenu({ children, label }: { children: ReactNode; label: 
       }}
       ref={menuRef}
     >
-      <summary aria-label={label} className="flex size-8 cursor-pointer list-none items-center justify-center rounded-md hover:bg-accent [&_svg]:size-4" title="More actions">
+      <summary
+        aria-label={label}
+        className="flex size-8 cursor-pointer list-none items-center justify-center rounded-md hover:bg-accent [&_svg]:size-4"
+        title="More actions"
+      >
         <Icon name="ellipsis" />
       </summary>
-      <div className="absolute right-0 z-20 mt-1 min-w-40 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">{children}</div>
+      <div className="absolute right-0 z-20 mt-1 min-w-40 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+        {children}
+      </div>
     </details>
   );
 }

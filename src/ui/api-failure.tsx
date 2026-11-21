@@ -52,7 +52,8 @@ export function recoveryPresentation(error: unknown): RecoveryPresentation {
     case "schema_too_new":
       return {
         actionLabel: "Rebuild from source",
-        detail: "These session logs were indexed by a newer Agent Benchmarks build. Update this checkout, then retry.",
+        detail:
+          "These session logs were indexed by a newer Agent Benchmarks build. Update this checkout, then retry.",
         icon: "info",
         retry: true,
         title: "Agent Benchmarks is out of date",
@@ -152,15 +153,23 @@ export function ApiFailureState({
         {recovery.actionLabel}
       </Link>
     ) : recovery.useSync && onSync != null ? (
-      <Button onClick={onSync} type="button">Sync now</Button>
+      <Button onClick={onSync} type="button">
+        Sync now
+      </Button>
     ) : retryIsPrimary ? (
-      <Button onClick={onRetry} type="button">Retry</Button>
+      <Button onClick={onRetry} type="button">
+        Retry
+      </Button>
     ) : null;
   const secondaryAction =
     recovery.useSync && onSync != null && action != null ? (
-      <Button variant="outline" onClick={onSync} type="button">Sync now</Button>
+      <Button variant="outline" onClick={onSync} type="button">
+        Sync now
+      </Button>
     ) : recovery.retry && onRetry != null && action != null && !retryIsPrimary ? (
-      <Button variant="outline" onClick={onRetry} type="button">Retry</Button>
+      <Button variant="outline" onClick={onRetry} type="button">
+        Retry
+      </Button>
     ) : null;
   return (
     <div className="space-y-4">

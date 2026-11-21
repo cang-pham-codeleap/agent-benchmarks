@@ -208,11 +208,17 @@ export function parseClaudeSession(
   const anyThinking = [...turns.values()].some((turn) => turn.hasThinking);
 
   const model = primaryModel(messages) ?? sessionModel;
-  const provider = messages
-    .filter((message) => message.model === model)
-    .map((message) => asString(get(get(message.raw, "message"), "provider")) ?? asString(get(message.raw, "provider")))
-    .find((value) => value != null && value.trim() !== "")?.trim().toLowerCase()
-    ?? DEFAULT_PROVIDERS.claude_code;
+  const provider =
+    messages
+      .filter((message) => message.model === model)
+      .map(
+        (message) =>
+          asString(get(get(message.raw, "message"), "provider")) ??
+          asString(get(message.raw, "provider")),
+      )
+      .find((value) => value != null && value.trim() !== "")
+      ?.trim()
+      .toLowerCase() ?? DEFAULT_PROVIDERS.claude_code;
   const meta = isObject(options.sidecarMeta) ? options.sidecarMeta : {};
   const spawnToolUseId = asString(meta.toolUseId);
   const agentType =

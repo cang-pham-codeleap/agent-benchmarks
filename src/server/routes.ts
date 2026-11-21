@@ -17,6 +17,7 @@ import {
   activeRunId,
   cancelEvalRun,
   listRunManifests,
+  readEvalCellStream,
   readEvalResults,
   readRunManifest,
   resumeEvalRun,
@@ -403,6 +404,9 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
   },
   "/api/evals/{id}/cells/{cellId}": {
     GET: evalCellRoute,
+  },
+  "/api/evals/{id}/cells/{cellId}/events": {
+    GET: evalCellEventsRoute,
   },
   "/api/evals/{id}/report.html": {
     GET: evalReportRoute,
@@ -791,6 +795,31 @@ function evalCellRoute(ctx: RouteContext): Response {
     return artifacts == null
       ? errorResponse("not_found", "evaluation cell not found", {}, 404)
       : json(artifacts);
+  } catch (error) {
+    if (error instanceof URIError)
+      return errorResponse("not_found", "evaluation cell not found", {}, 404);
+    return evalError(error);
+  }
+}
+
+function evalCellEventsRoute(ctx: RouteContext): Response {
+  try {
+    const rawAfter = ctx.url.searchParams.get("after") ?? "0";
+    if (!/^\d{1,9}$/.test(rawAfter))
+      return errorResponse("invalid_request", "after must be a non-negative integer", {}, 400);
+    const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
+    const stream =
+      manifest == null
+        ? null
+        : readEvalCellStream(
+            ctx.config.dbPath,
+            manifest,
+            decodeURIComponent(ctx.params.cellId),
+            Number(rawAfter),
+          );
+    return stream == null
+      ? errorResponse("not_found", "evaluation cell not found", {}, 404)
+      : json(stream);
   } catch (error) {
     if (error instanceof URIError)
       return errorResponse("not_found", "evaluation cell not found", {}, 404);

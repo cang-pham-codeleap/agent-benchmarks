@@ -116,7 +116,9 @@ describe("withArchive and a missing archive", () => {
       exitCode: 1,
       details: { path: dbPath },
     });
-    expect((error as CliError).message).toContain(`no Agent Benchmarks archive at ${dbPath} (from --db)`);
+    expect((error as CliError).message).toContain(
+      `no Agent Benchmarks archive at ${dbPath} (from --db)`,
+    );
     expect(existsSync(dbPath)).toBe(false);
   });
 

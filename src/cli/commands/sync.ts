@@ -407,9 +407,12 @@ export function registerSyncCommands(ctx: CliContext): void {
                     binaryPath,
                     () => {
                       exitCode = SERVICE_RESTART_EXIT_CODE;
-                      serverLogger.info("Agent Benchmarks was updated; restarting the background service.", {
-                        "event.name": "agent-benchmarks.service.binary_changed",
-                      });
+                      serverLogger.info(
+                        "Agent Benchmarks was updated; restarting the background service.",
+                        {
+                          "event.name": "agent-benchmarks.service.binary_changed",
+                        },
+                      );
                       requestShutdown();
                     },
                     {

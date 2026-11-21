@@ -98,7 +98,13 @@ export function DateRangeControl({
   };
 
   return (
-    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setDraft(null); }}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setDraft(null);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button variant="outline" aria-label={`Time range: ${dateRangePresetLabel(range)}`}>
           <Icon name="clock" />
@@ -107,75 +113,73 @@ export function DateRangeControl({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 space-y-4">
-            <fieldset className="grid gap-1">
-              <legend className="sr-only">Time range presets</legend>
-              <Button variant="ghost" className="justify-between" size="sm"
-                aria-pressed={range.preset === "all"}
-                onClick={() => choosePreset("all")}
-                type="button"
-              >
-                <span>All time</span>
-                {range.preset === "all" ? <Icon name="check" /> : null}
-              </Button>
-              {RANGE_PRESETS.map((preset) => (
-                <Button variant="ghost" className="justify-between" size="sm"
-                  aria-pressed={range.preset === preset.key}
-                  key={preset.key}
-                  onClick={() => choosePreset(preset.key)}
-                  type="button"
-                >
-                  <span>{preset.label}</span>
-                  {range.preset === preset.key ? <Icon name="check" /> : null}
-                </Button>
-              ))}
-            </fieldset>
-            <div className="space-y-2 border-t pt-4">
-              <div className="flex justify-between text-sm font-medium">
-                <span>Custom range</span>
-                {range.preset === "custom" && bounded ? (
-                  <small>{dateRangeLabel(range)}</small>
-                ) : null}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="grid gap-1 text-sm">
-                  <span>From</span>
-                  <Input
-                    aria-describedby={reversed ? errorId : undefined}
-                    aria-invalid={
-                      reversed || (check.status === "incomplete" && check.field === "from")
-                    }
-                    aria-label="From date"
-                    max={fields.to || undefined}
-                    onChange={(event) =>
-                      editCustomRange({ ...fields, from: dateInputValue(event) })
-                    }
-                    type="date"
-                    value={fields.from ?? ""}
-                  />
-                </label>
-                <label className="grid gap-1 text-sm">
-                  <span>To</span>
-                  <Input
-                    aria-describedby={reversed ? errorId : undefined}
-                    aria-invalid={
-                      reversed || (check.status === "incomplete" && check.field === "to")
-                    }
-                    aria-label="To date"
-                    min={fields.from || undefined}
-                    onChange={(event) => editCustomRange({ ...fields, to: dateInputValue(event) })}
-                    type="date"
-                    value={fields.to ?? ""}
-                  />
-                </label>
-              </div>
-              <div aria-live="polite">
-                {reversed ? (
-                  <p className="text-sm text-destructive" id={errorId}>
-                    {REVERSED_RANGE_MESSAGE}
-                  </p>
-                ) : null}
-              </div>
-            </div>
+        <fieldset className="grid gap-1">
+          <legend className="sr-only">Time range presets</legend>
+          <Button
+            variant="ghost"
+            className="justify-between"
+            size="sm"
+            aria-pressed={range.preset === "all"}
+            onClick={() => choosePreset("all")}
+            type="button"
+          >
+            <span>All time</span>
+            {range.preset === "all" ? <Icon name="check" /> : null}
+          </Button>
+          {RANGE_PRESETS.map((preset) => (
+            <Button
+              variant="ghost"
+              className="justify-between"
+              size="sm"
+              aria-pressed={range.preset === preset.key}
+              key={preset.key}
+              onClick={() => choosePreset(preset.key)}
+              type="button"
+            >
+              <span>{preset.label}</span>
+              {range.preset === preset.key ? <Icon name="check" /> : null}
+            </Button>
+          ))}
+        </fieldset>
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex justify-between text-sm font-medium">
+            <span>Custom range</span>
+            {range.preset === "custom" && bounded ? <small>{dateRangeLabel(range)}</small> : null}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="grid gap-1 text-sm">
+              <span>From</span>
+              <Input
+                aria-describedby={reversed ? errorId : undefined}
+                aria-invalid={reversed || (check.status === "incomplete" && check.field === "from")}
+                aria-label="From date"
+                max={fields.to || undefined}
+                onChange={(event) => editCustomRange({ ...fields, from: dateInputValue(event) })}
+                type="date"
+                value={fields.from ?? ""}
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span>To</span>
+              <Input
+                aria-describedby={reversed ? errorId : undefined}
+                aria-invalid={reversed || (check.status === "incomplete" && check.field === "to")}
+                aria-label="To date"
+                min={fields.from || undefined}
+                onChange={(event) => editCustomRange({ ...fields, to: dateInputValue(event) })}
+                type="date"
+                value={fields.to ?? ""}
+              />
+            </label>
+          </div>
+          <div aria-live="polite">
+            {reversed ? (
+              <p className="text-sm text-destructive" id={errorId}>
+                {REVERSED_RANGE_MESSAGE}
+              </p>
+            ) : null}
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );

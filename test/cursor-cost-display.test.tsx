@@ -123,7 +123,9 @@ describe("cost for sessions without recorded usage", () => {
       />,
     );
     expect(html).not.toContain("$0.00");
-    expect(html).toContain(`<span class="text-muted-foreground" title="${NO_USAGE_TITLE}">-</span>`);
+    expect(html).toContain(
+      `<span class="text-muted-foreground" title="${NO_USAGE_TITLE}">-</span>`,
+    );
     expect(html).toContain("$0.25*");
     expect(html).toContain("2 sessions lack usage data and are not in this cost.");
   });

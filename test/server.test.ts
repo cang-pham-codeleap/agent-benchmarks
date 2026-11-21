@@ -864,7 +864,6 @@ describe("server routes", () => {
     }
   });
 
-
   test("returns a copyable command when terminal launch is unsupported", async () => {
     const config = freshConfig();
     const response = await handleRequest(
@@ -2312,7 +2311,11 @@ describe("trusted peer resolution", () => {
   test("explicit peers replace the derived gateway instead of adding to it", () => {
     const container = bridgedContainer();
     expect(
-      resolveTrustedPeers(undefined, { ...optIn, AGENT_BENCHMARKS_TRUSTED_PEERS: "192.168.1.50" }, container),
+      resolveTrustedPeers(
+        undefined,
+        { ...optIn, AGENT_BENCHMARKS_TRUSTED_PEERS: "192.168.1.50" },
+        container,
+      ),
     ).toEqual(["192.168.1.50"]);
     expect(
       resolveTrustedPeers(undefined, { ...optIn, AGENT_BENCHMARKS_TRUSTED_PEERS: "" }, container),

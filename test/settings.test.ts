@@ -36,7 +36,10 @@ describe("settings", () => {
   });
 
   test("detects Warp and exposes it as a persisted terminal option", () => {
-    const env = { AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "warp"), TERM_PROGRAM: "WarpTerminal" };
+    const env = {
+      AGENT_BENCHMARKS_CONFIG_DIR: join(workDir, "warp"),
+      TERM_PROGRAM: "WarpTerminal",
+    };
     expect(detectedSettings({ env, appExists: () => false }).terminal).toBe("warp");
     expect(saveSettings({ terminal: "warp" }, { env }).terminal).toBe("warp");
   });

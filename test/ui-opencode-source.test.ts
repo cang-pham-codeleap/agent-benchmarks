@@ -29,7 +29,6 @@ describe("OpenCode source copy", () => {
     expect(modelBrandIcon("muse-wonder", "meta")).toBe("meta");
   });
 
-
   test("shows the provider next to the model and labels reported cost", () => {
     const detail = readUiFile("views/session-detail.tsx");
     expect(detail).toMatch(
@@ -41,7 +40,9 @@ describe("OpenCode source copy", () => {
 
   test("names OpenCode alongside the other sources in product copy", () => {
     const copy = main.replace(/\s+/g, " ");
-    expect(copy).toContain("Every agent session log on this device, plus imported ATIF trajectories.");
+    expect(copy).toContain(
+      "Every agent session log on this device, plus imported ATIF trajectories.",
+    );
     expect(copy).toContain("session logs Claude Code, Codex, Gemini CLI, OpenCode");
   });
 });

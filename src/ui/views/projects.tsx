@@ -2,7 +2,14 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge, ToolBadge, toolLabel } from "../badges.tsx";
 import { CostValue, EmptyState, StatCard } from "../common.tsx";
 import { relativeTime } from "../date-time.ts";
@@ -44,7 +51,9 @@ export function ProjectsView({
     <div className="flex flex-col gap-6 p-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-        <p className="text-sm text-muted-foreground">Project roots, worktrees, source tools, and local session activity.</p>
+        <p className="text-sm text-muted-foreground">
+          Project roots, worktrees, source tools, and local session activity.
+        </p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -62,7 +71,7 @@ export function ProjectsView({
           <div className="space-y-1">
             <CardTitle>Projects and worktrees</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Worktree source comes from Git pointers, known layouts, or root name matching. {" "}
+              Worktree source comes from Git pointers, known layouts, or root name matching.{" "}
               <span role="status">
                 {filtering
                   ? `Showing ${formatInt(shown.length)} of ${formatInt(sorted.length)}.`
@@ -109,60 +118,78 @@ export function ProjectsView({
           />
         ) : (
           <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Root</TableHead>
-                  <TableHead className="text-right">Sessions</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
-                  <TableHead className="text-right">Last seen</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {shown.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell className="max-w-xs truncate" title={project.path}>
-                      <Link className="flex flex-col gap-1 hover:underline" href={projectSessionsHref(project.path)}>
-                        <strong>{projectName(project)}</strong>
-                        <small className="truncate text-xs text-muted-foreground">{project.path}</small>
-                      </Link>
-                    </TableCell>
-                    <TableCell><ProjectKind project={project} /></TableCell>
-                    <TableCell><ProjectSource project={project} /></TableCell>
-                    <TableCell className="max-w-xs truncate" title={project.root_path ?? project.path}>
-                      {project.is_worktree ? (
-                        <span className="flex flex-col gap-1">
-                          <strong>{basename(project.root_path)}</strong>
-                          <small className="truncate text-xs text-muted-foreground">{project.root_path ?? "-"}</small>
-                        </span>
-                      ) : project.worktree_count > 0 ? (
-                        <span className="text-sm text-muted-foreground">
-                          {formatInt(project.worktree_count)}{" "}
-                          {project.worktree_count === 1 ? "worktree" : "worktrees"}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(project.sessions)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <CostValue
-                        cost={project.estimated_cost_usd}
-                        dense
-                        sessions={project.sessions}
-                        usageSessions={project.usage_sessions}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">{relativeTime(project.last_seen_at)}</TableCell>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Root</TableHead>
+                    <TableHead className="text-right">Sessions</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                    <TableHead className="text-right">Last seen</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {shown.map((project) => (
+                    <TableRow key={project.id}>
+                      <TableCell className="max-w-xs truncate" title={project.path}>
+                        <Link
+                          className="flex flex-col gap-1 hover:underline"
+                          href={projectSessionsHref(project.path)}
+                        >
+                          <strong>{projectName(project)}</strong>
+                          <small className="truncate text-xs text-muted-foreground">
+                            {project.path}
+                          </small>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <ProjectKind project={project} />
+                      </TableCell>
+                      <TableCell>
+                        <ProjectSource project={project} />
+                      </TableCell>
+                      <TableCell
+                        className="max-w-xs truncate"
+                        title={project.root_path ?? project.path}
+                      >
+                        {project.is_worktree ? (
+                          <span className="flex flex-col gap-1">
+                            <strong>{basename(project.root_path)}</strong>
+                            <small className="truncate text-xs text-muted-foreground">
+                              {project.root_path ?? "-"}
+                            </small>
+                          </span>
+                        ) : project.worktree_count > 0 ? (
+                          <span className="text-sm text-muted-foreground">
+                            {formatInt(project.worktree_count)}{" "}
+                            {project.worktree_count === 1 ? "worktree" : "worktrees"}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatInt(project.sessions)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <CostValue
+                          cost={project.estimated_cost_usd}
+                          dense
+                          sessions={project.sessions}
+                          usageSessions={project.usage_sessions}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {relativeTime(project.last_seen_at)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         )}
       </Card>
@@ -204,7 +231,9 @@ export function ProjectSource({ project }: { project: ProjectSummary }) {
     return (
       <span className="flex flex-col items-start gap-1">
         <Badge tone="accent">{worktreeToolLabel(project.worktree_tool)}</Badge>
-        <small className="text-xs text-muted-foreground">{rootSourceLabel(project.root_source)}</small>
+        <small className="text-xs text-muted-foreground">
+          {rootSourceLabel(project.root_source)}
+        </small>
       </span>
     );
   }

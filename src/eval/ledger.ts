@@ -31,8 +31,9 @@ export interface EvalLedgerRow {
   endedAt: number;
 }
 
-interface RunRecord extends EvalRegistryRun {
+export interface RunRecord extends EvalRegistryRun {
   agent: string;
+  pid?: number;
   status?: string;
   cellId?: string;
   updatedAt?: number;
@@ -240,7 +241,7 @@ function readLedger(path: string): EvalLedgerRow[] {
   return [...last.values()];
 }
 
-function readRegistry(runDir: string): RunRecord[] {
+export function readRegistry(runDir: string): RunRecord[] {
   const root = join(runDir, "ach-state", "runs");
   if (!existsSync(root)) return [];
   const records: RunRecord[] = [];

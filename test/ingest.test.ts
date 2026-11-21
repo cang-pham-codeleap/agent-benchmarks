@@ -185,7 +185,9 @@ function canonicalizeRows(value: unknown, dir: string): unknown {
   // OpenCode source paths are resolved with realpath, which turns macOS's
   // /var/folders into /private/var/folders. Both spellings are the same case dir.
   const text = JSON.stringify(value, (key, item) =>
-    key === "estimated_cost_usd" && typeof item === "number" ? Math.round(item * 1e12) / 1e12 : item,
+    key === "estimated_cost_usd" && typeof item === "number"
+      ? Math.round(item * 1e12) / 1e12
+      : item,
   )
     .replaceAll(realpathSync(dir), "<TMP>")
     .replaceAll(dir, "<TMP>");
@@ -3677,7 +3679,9 @@ describe("OpenCode ingest", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({
       level: "WARN",
-      "event.name": expect.stringMatching(/^agent-benchmarks\.ingest\.opencode_(open|list)_failed$/),
+      "event.name": expect.stringMatching(
+        /^agent-benchmarks\.ingest\.opencode_(open|list)_failed$/,
+      ),
       "file.path": main,
     });
     closeDb(db);

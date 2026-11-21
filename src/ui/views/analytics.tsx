@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { alignToSeries, buildDaySeries, type DaySeries } from "../../day-series.ts";
 import { sharePercentLabel } from "../../share-percent.ts";
@@ -99,8 +105,8 @@ export function FirstRunPanel({
           </span>
           <h2>First sync in progress</h2>
           <p>
-            Agent Benchmarks is reading your session logs for the first time. Analytics appear here when the
-            sync finishes. Nothing leaves this machine.
+            Agent Benchmarks is reading your session logs for the first time. Analytics appear here
+            when the sync finishes. Nothing leaves this machine.
           </p>
         </div>
       </section>
@@ -114,11 +120,11 @@ export function FirstRunPanel({
         </span>
         <h2>No sessions yet</h2>
         <p>
-          Agent Benchmarks reads the session logs Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub
-          Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write, plus any ATIF
-          trajectories you import, and turns them into a searchable session-log index with token,
-          cost, and context-window analytics wherever the source records usage. Nothing leaves this
-          machine.
+          Agent Benchmarks reads the session logs Claude Code, Codex, Gemini CLI, OpenCode, Cursor
+          CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write, plus
+          any ATIF trajectories you import, and turns them into a searchable session-log index with
+          token, cost, and context-window analytics wherever the source records usage. Nothing
+          leaves this machine.
         </p>
         <code>agent-benchmarks sync</code>
         <SyncButton
@@ -393,7 +399,6 @@ export function AnalyticsView({
         />
       </div>
 
-
       <section
         className="rounded-xl border bg-card text-card-foreground shadow-sm"
         {...updatingProps(
@@ -510,10 +515,14 @@ export function AnalyticsView({
                   </td>
                   <td>
                     <span className="flex items-center gap-2">
-                      <span className="w-24"><Bar
-                        fraction={totalModelCost > 0 ? row.estimated_cost_usd / totalModelCost : 0}
-                        tone={brandTone(row.key)}
-                      /></span>
+                      <span className="w-24">
+                        <Bar
+                          fraction={
+                            totalModelCost > 0 ? row.estimated_cost_usd / totalModelCost : 0
+                          }
+                          tone={brandTone(row.key)}
+                        />
+                      </span>
                       <small>{modelCostPercents[index] ?? 0}%</small>
                     </span>
                   </td>
@@ -525,7 +534,10 @@ export function AnalyticsView({
       </section>
 
       {repoRows.length > 0 ? (
-        <section className="rounded-xl border bg-card text-card-foreground shadow-sm" {...updatingProps(status("byRepo") === "loading")}>
+        <section
+          className="rounded-xl border bg-card text-card-foreground shadow-sm"
+          {...updatingProps(status("byRepo") === "loading")}
+        >
           <div className="flex items-start justify-between gap-4 p-6 [&_h2]:font-semibold [&_p]:text-sm [&_p]:text-muted-foreground">
             <div>
               <h2>By repository</h2>
@@ -573,7 +585,9 @@ export function AnalyticsView({
                         <Link href={repoSessionsHref(row.key)}>{basename(row.key)}</Link>
                       )}
                     </td>
-                    <td className="text-right tabular-nums text-muted-foreground">{formatInt(row.sessions)}</td>
+                    <td className="text-right tabular-nums text-muted-foreground">
+                      {formatInt(row.sessions)}
+                    </td>
                     <td className="text-right tabular-nums">
                       <CostValue
                         cost={row.estimated_cost_usd}
@@ -687,10 +701,12 @@ export function OutcomesPanel({
                   <td className="text-right tabular-nums">{formatInt(row.sessions)}</td>
                   <td>
                     <span className="flex items-center gap-2">
-                      <span className="w-24"><Bar
-                        fraction={totalSessions > 0 ? row.sessions / totalSessions : 0}
-                        tone={outcomeTone(row.key)}
-                      /></span>
+                      <span className="w-24">
+                        <Bar
+                          fraction={totalSessions > 0 ? row.sessions / totalSessions : 0}
+                          tone={outcomeTone(row.key)}
+                        />
+                      </span>
                       <small>{sharePercentLabel(row.sessions, totalSessions)}</small>
                     </span>
                   </td>
@@ -899,7 +915,10 @@ export function TokenEconomicsPanel({
                             <span className="h-2 w-2 rounded-full bg-primary" />
                             <span>
                               {activityLabel(bucket.bucket)}
-                              <span aria-hidden="true" className="ml-1 inline-flex text-muted-foreground">
+                              <span
+                                aria-hidden="true"
+                                className="ml-1 inline-flex text-muted-foreground"
+                              >
                                 <Icon name="info" />
                               </span>
                             </span>
@@ -908,7 +927,9 @@ export function TokenEconomicsPanel({
                         <td>
                           {costAvailable ? (
                             <span className="flex items-center gap-2">
-                              <span className="w-24"><Bar fraction={share} tone={tone} /></span>
+                              <span className="w-24">
+                                <Bar fraction={share} tone={tone} />
+                              </span>
                               <small>{costPercents[index]}%</small>
                             </span>
                           ) : (
@@ -920,7 +941,9 @@ export function TokenEconomicsPanel({
                         </td>
                         <td>
                           <span className="flex items-center gap-2">
-                            <span className="w-24"><Bar fraction={timeShare} tone={tone} /></span>
+                            <span className="w-24">
+                              <Bar fraction={timeShare} tone={tone} />
+                            </span>
                             <small>{timePercents[index]}%</small>
                           </span>
                         </td>
@@ -1180,9 +1203,20 @@ function SourceControl({
   value: DashboardSource;
 }) {
   return (
-    <Select value={value || "all"} onValueChange={(next) => onChange(next === "all" ? "" : next as DashboardSource)}>
-      <SelectTrigger aria-label="Source"><SelectValue /></SelectTrigger>
-      <SelectContent>{dashboardSourceOptions(sources).map((option) => <SelectItem key={option.key} value={option.key || "all"}>{option.label}</SelectItem>)}</SelectContent>
+    <Select
+      value={value || "all"}
+      onValueChange={(next) => onChange(next === "all" ? "" : (next as DashboardSource))}
+    >
+      <SelectTrigger aria-label="Source">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {dashboardSourceOptions(sources).map((option) => (
+          <SelectItem key={option.key} value={option.key || "all"}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
     </Select>
   );
 }

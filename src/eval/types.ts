@@ -270,7 +270,7 @@ export interface EvalResults {
   setups: SetupSummary[];
   paired: PairedComparison[];
   warnings: string[];
-  progress: { done: number; total: number; currentCell: string | null };
+  progress: { done: number; total: number; currentCell: string | null; liveCellId: string | null };
   /** Null for benchmark runs. */
   real: RealResults | null;
 }
@@ -327,4 +327,43 @@ export interface EvalProgressEvent {
   done: number;
   total: number;
   currentCell: string | null;
+  /** The cell whose agent process is alive right now; null when none or when it cannot be determined. */
+  liveCellId: string | null;
+}
+
+export type LiveStep =
+  | { seq: number; ts: number; kind: "message"; text: string }
+  | { seq: number; ts: number; kind: "tool_call"; tool: string; summary: string; detail: string }
+  | {
+      seq: number;
+      ts: number;
+      kind: "tool_result";
+      isError: boolean;
+      summary: string;
+      detail: string;
+    }
+  | { seq: number; ts: number; kind: "usage"; costUsd: number | null; outputTokens: number | null }
+  | { seq: number; ts: number; kind: "error"; text: string };
+
+export type LiveStepKind = LiveStep["kind"];
+
+export type CellLiveState = "live" | "done" | "queued" | "unknown";
+
+export interface CellStream {
+  cellId: string;
+  state: CellLiveState;
+  startedAt: number | null;
+  /** Steps with seq >= the requested cursor. */
+  steps: LiveStep[];
+  /** Raw lines consumed so far; pass as `after` to fetch only newer steps. */
+  nextSeq: number;
+  /** Over the whole transcript, not just the returned steps. */
+  totals: { toolCalls: number; costUsd: number | null };
+}
+
+/** Broadcast notice that a cell has new steps; content is fetched per cell. */
+export interface EvalCellActivityEvent {
+  runId: string;
+  cellId: string | null;
+  seq: number;
 }

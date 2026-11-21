@@ -12,7 +12,13 @@ import {
 import { withImmediateTransaction } from "./db.ts";
 import { asInteger, asString, isObject } from "./json.ts";
 import { MESSAGE_METADATA_SQL } from "./message-storage.ts";
-import { type CostSource, emptyUsage, type Json, modelWithoutProvider, type TokenUsage } from "./model.ts";
+import {
+  type CostSource,
+  emptyUsage,
+  type Json,
+  modelWithoutProvider,
+  type TokenUsage,
+} from "./model.ts";
 import { compareCodePoints } from "./order.ts";
 import { queryRow, queryRows, runStatement } from "./sqlite-statements.ts";
 
@@ -121,9 +127,16 @@ export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow
       cacheCreation1h: Math.min(Math.max(0, recorded.cacheCreation1h), Math.max(0, cacheCreation)),
       reasoning: 0,
     };
-    const provider = (typeof message.provider === "string" ? message.provider.trim().toLowerCase() : "") ||
-      (session.tool === "omp" || session.tool === "pi" || session.tool === "opencode" ? null : session.provider);
-    const model = modelWithoutProvider(isRecordedModel(message.model) ? message.model : sessionModel, provider) ?? "";
+    const provider =
+      (typeof message.provider === "string" ? message.provider.trim().toLowerCase() : "") ||
+      (session.tool === "omp" || session.tool === "pi" || session.tool === "opencode"
+        ? null
+        : session.provider);
+    const model =
+      modelWithoutProvider(
+        isRecordedModel(message.model) ? message.model : sessionModel,
+        provider,
+      ) ?? "";
     const tier = requestPriceTier(model, usage, recorded.speed);
     addUsage(groups, provider, model, tier, usage, 1);
     addTokens(billed, usage);
@@ -135,12 +148,16 @@ export function deriveModelUsage(db: Database, sessionId: number): ModelUsageRow
     if (!isPriceableModel(model)) {
       unpricedReportedTotal += reported;
     }
-    reportedByGroup.set(key(provider, model, tier), (reportedByGroup.get(key(provider, model, tier)) ?? 0) + reported);
+    reportedByGroup.set(
+      key(provider, model, tier),
+      (reportedByGroup.get(key(provider, model, tier)) ?? 0) + reported,
+    );
   }
 
   const residual = subtractUsage(totals, billed);
   const single =
-    groups.size === 0 || (groups.size === 1 && groups.has(key(session.provider, sessionModel, "standard")));
+    groups.size === 0 ||
+    (groups.size === 1 && groups.has(key(session.provider, sessionModel, "standard")));
   if (single || !isNonNegative(residual)) {
     const runCost = session.tool === "atif" && !sawReported ? atifRunCost(session.raw_meta) : 0;
     return [
@@ -340,7 +357,10 @@ export function totalCost(parts: SessionCostParts): number {
   return parts.input + parts.output + parts.cacheRead + parts.cacheCreation + parts.reported;
 }
 
-function copilotModelUsage(rawMeta: string | null, provider: string | null): ModelUsageRow[] | null {
+function copilotModelUsage(
+  rawMeta: string | null,
+  provider: string | null,
+): ModelUsageRow[] | null {
   if (rawMeta == null) {
     return null;
   }
@@ -522,5 +542,9 @@ function isZero(usage: TokenUsage): boolean {
 }
 
 function compareRows(left: ModelUsageRow, right: ModelUsageRow): number {
-  return compareCodePoints(left.provider ?? "", right.provider ?? "") || compareCodePoints(left.model, right.model) || compareCodePoints(left.tier, right.tier);
+  return (
+    compareCodePoints(left.provider ?? "", right.provider ?? "") ||
+    compareCodePoints(left.model, right.model) ||
+    compareCodePoints(left.tier, right.tier)
+  );
 }

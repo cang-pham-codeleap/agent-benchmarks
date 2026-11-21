@@ -71,7 +71,10 @@ export async function runCli(argv: string[], options: CliRunOptions = {}): Promi
       // Commander's errors are printed below, where --json can reshape them.
       outputError: () => undefined,
     })
-    .option("--db <path>", "path to the Agent Benchmarks SQLite database (read commands never create it)")
+    .option(
+      "--db <path>",
+      "path to the Agent Benchmarks SQLite database (read commands never create it)",
+    )
     .option("--json", "emit machine-readable JSON")
     .option(
       "--format <format>",
@@ -134,7 +137,6 @@ const HELP_EXITS = new Set(["commander.help", "commander.helpDisplayed", "comman
 function isCommanderExit(error: unknown): error is CommanderExit {
   return typeof error === "object" && error !== null && "exitCode" in error;
 }
-
 
 function commandPath(command: Command): string {
   const names: string[] = [];

@@ -84,11 +84,9 @@ describe("session loading state", () => {
     expect(main).toContain("formatDay(data.dateBounds?.latest_started_at ?? null)");
     expect(main).not.toContain("data.dateBounds?.max");
   });
-
 });
 
 describe("session table skeleton", () => {
-
   test("reserves all fifty row slots before the first page settles", () => {
     expect(main).toContain("{ length: SESSION_PAGE_SIZE }");
     expect(main).toContain("const fetching = enabled && cached == null && currentError == null");
@@ -96,7 +94,6 @@ describe("session table skeleton", () => {
     expect(main).not.toContain("setSessionsLoading");
     expect(main).not.toContain("loadedSessionKey");
   });
-
 
   test("keeps the Started cell as a precise semantic time element", () => {
     const startedCell = sourceBetween(

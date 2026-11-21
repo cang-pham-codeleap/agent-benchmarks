@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { badgeVariants } from "./components/ui/badge.tsx";
-import { cn } from "./lib/utils.ts";
 import { effortDisplayLabel, effortTooltip } from "./effort.ts";
 import { capitalize, formatInt } from "./format.ts";
 import { BrandMark } from "./icons.tsx";
+import { cn } from "./lib/utils.ts";
 import { stripMarkupTags } from "./session-title.ts";
 import type { BadgeTone, BrandIconName } from "./types.ts";
 
@@ -38,7 +38,13 @@ export function Badge({
 
   return (
     <span
-      className={cn(badgeVariants({ variant: "outline" }), "gap-1 font-normal", mono && "font-mono", toneClasses[tone], className)}
+      className={cn(
+        badgeVariants({ variant: "outline" }),
+        "gap-1 font-normal",
+        mono && "font-mono",
+        toneClasses[tone],
+        className,
+      )}
       data-slot="badge"
       title={title}
     >
@@ -146,7 +152,15 @@ export function ModelBadge({ model }: { model: string | null | undefined }) {
       mono
       title={model?.trim() ?? label}
       tone={tone}
-      className={theme == null ? undefined : { astra: "border-chart-4/30 text-chart-4", sol: "border-chart-1/30 text-chart-1", luna: "border-chart-3/30 text-chart-3" }[theme]}
+      className={
+        theme == null
+          ? undefined
+          : {
+              astra: "border-chart-4/30 text-chart-4",
+              sol: "border-chart-1/30 text-chart-1",
+              luna: "border-chart-3/30 text-chart-3",
+            }[theme]
+      }
     >
       {icon == null ? null : <BrandMark name={icon} />}
       <span className="min-w-0 truncate">{label}</span>

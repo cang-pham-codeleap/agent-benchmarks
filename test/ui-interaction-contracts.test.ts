@@ -64,12 +64,12 @@ describe("UI interaction contracts", () => {
     expect(app).toContain("setCommandPaletteOpen(true)");
     expect(app).toContain('aria-label="Open command palette"');
     expect(app).toContain('aria-label="Search"');
-    expect(palette).toContain("<CommandDialog open");
+    expect(palette).toMatch(/<CommandDialog\s+open/);
     expect(palette).toContain("<Command shouldFilter={false} loop>");
     expect(palette).toContain('aria-label="Search sessions and commands"');
     expect(palette).toContain("onSelect={() => item.activate()}");
     expect(command).toContain("CommandPrimitive");
-    expect(palette).toContain("navigate</span>");
+    expect(palette).toMatch(/<kbd>↓<\/kbd> navigate\s*<\/span>/);
   });
 
   test("exposes tool-call details through a keyboard-accessible inspect button", () => {
@@ -83,7 +83,7 @@ describe("UI interaction contracts", () => {
   test("report and share privacy reviews use dialogs", () => {
     for (const file of ["report-export.tsx", "share-chart.tsx"]) {
       const source = readUiFile(file);
-      expect(source).toContain("<Dialog open={open}");
+      expect(source).toMatch(/<Dialog\s+open=\{open\}/);
       expect(source).toContain("<DialogContent");
       expect(source).toContain("<DialogTitle>");
       expect(source).toContain("<PrivacyReviewLists");
@@ -110,7 +110,7 @@ describe("UI interaction contracts", () => {
       "function compactionTokenRange(",
     );
 
-    expect(chart).toContain('aria-label={`Context window usage across');
+    expect(chart).toContain("aria-label={`Context window usage across");
     expect(chart).toContain("void onJump(scrubPoint.seq)");
     expect(chart).toContain("onKeyDown={handleKeyDown}");
     expect(contextStripKeyIndex("ArrowRight", null, 4)).toBe(0);
@@ -185,11 +185,15 @@ describe("UI interaction contracts", () => {
 
   test("provides labelled date inputs in a popover and announces reversed ranges", () => {
     const control = readUiFile("date-range-control.tsx");
-    const markup = renderToStaticMarkup(createElement(DateRangeControl, {
-      bounds: null, onChange: () => {}, range: ALL_DATE_RANGE,
-    }));
+    const markup = renderToStaticMarkup(
+      createElement(DateRangeControl, {
+        bounds: null,
+        onChange: () => {},
+        range: ALL_DATE_RANGE,
+      }),
+    );
     expect(markup).toContain('aria-label="Time range: All time"');
-    expect(control).toContain("<Popover open={open}");
+    expect(control).toMatch(/<Popover\s+open=\{open\}/);
     expect(control).toContain("<PopoverContent");
     expect(control).toContain('aria-label="From date"');
     expect(control).toContain('aria-label="To date"');

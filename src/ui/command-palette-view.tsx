@@ -1,5 +1,12 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Command, CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandDialog,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { getJson } from "./api.ts";
 import { buildCommandPaletteGroups, type CommandPaletteItem } from "./command-palette.ts";
 import { fullDateTime } from "./date-time.ts";
@@ -66,7 +73,12 @@ export function CommandPalette({
         if (controller.signal.aborted) {
           return;
         }
-        setRows(nextRows.map((row) => ({ ...row, title: row.title == null ? null : stripMarkupTags(row.title) })));
+        setRows(
+          nextRows.map((row) => ({
+            ...row,
+            title: row.title == null ? null : stripMarkupTags(row.title),
+          })),
+        );
         setLoadedRefreshKey(refreshKey);
       })
       .catch((error: unknown) => {
@@ -240,38 +252,85 @@ export function CommandPaletteDialog({
   });
   const quickMatchCount = sessionItems.length + pageItems.length + actionItems.length;
   return (
-    <CommandDialog open onOpenChange={(open) => { if (!open) requestClose(); }} title="Search and commands" description="Search sessions, pages, and commands">
+    <CommandDialog
+      open
+      onOpenChange={(open) => {
+        if (!open) requestClose();
+      }}
+      title="Search and commands"
+      description="Search sessions, pages, and commands"
+    >
       <Command shouldFilter={false} loop>
-        <CommandInput aria-label="Search sessions and commands" placeholder="Search sessions or run a command…" value={query} onValueChange={setQuery} />
+        <CommandInput
+          aria-label="Search sessions and commands"
+          placeholder="Search sessions or run a command…"
+          value={query}
+          onValueChange={setQuery}
+        />
         <div aria-live="polite" className="px-4 text-sm text-muted-foreground">
           {loading && rows.length === 0 ? <p role="status">Loading session index…</p> : null}
-          {indexError != null && rows.length === 0 ? <p role="status" className="text-destructive">Session shortcuts are unavailable. Pages and actions still work.</p> : null}
-          {normalizedQuery !== "" && quickMatchCount === 0 && !loading && indexError == null ? <p>No quick matches. Try transcript search below.</p> : null}
+          {indexError != null && rows.length === 0 ? (
+            <p role="status" className="text-destructive">
+              Session shortcuts are unavailable. Pages and actions still work.
+            </p>
+          ) : null}
+          {normalizedQuery !== "" && quickMatchCount === 0 && !loading && indexError == null ? (
+            <p>No quick matches. Try transcript search below.</p>
+          ) : null}
         </div>
         <CommandList className="max-h-[60vh]">
           {groups.map((group) => (
             <CommandGroup key={group.id} heading={group.label ?? "Transcript search"}>
               {group.items.map((item) => (
-                <CommandItem key={item.id} value={item.id} onSelect={() => item.activate()} className="gap-3">
+                <CommandItem
+                  key={item.id}
+                  value={item.id}
+                  onSelect={() => item.activate()}
+                  className="gap-3"
+                >
                   <Icon name={item.icon} />
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
-                    <strong className="truncate font-medium"><PaletteHighlightedText ranges={item.highlights?.title} text={item.label} /></strong>
-                    {item.kind === "session" && item.row != null ? <span className="truncate text-xs text-muted-foreground"><PaletteSessionMeta highlights={item.highlights} row={item.row} /></span> : item.detail == null ? null : <span className="text-xs text-muted-foreground">{item.detail}</span>}
+                    <strong className="truncate font-medium">
+                      <PaletteHighlightedText ranges={item.highlights?.title} text={item.label} />
+                    </strong>
+                    {item.kind === "session" && item.row != null ? (
+                      <span className="truncate text-xs text-muted-foreground">
+                        <PaletteSessionMeta highlights={item.highlights} row={item.row} />
+                      </span>
+                    ) : item.detail == null ? null : (
+                      <span className="text-xs text-muted-foreground">{item.detail}</span>
+                    )}
                   </span>
                   {item.kind === "session" && item.row?.started_at != null ? (
-                    <time className="text-xs text-muted-foreground" dateTime={item.row.started_at} title={fullDateTime(item.row.started_at) ?? item.row.started_at}>
-                      <PaletteHighlightedText ranges={item.highlights?.started_at} text={item.row.started_at.slice(0, 10)} />
+                    <time
+                      className="text-xs text-muted-foreground"
+                      dateTime={item.row.started_at}
+                      title={fullDateTime(item.row.started_at) ?? item.row.started_at}
+                    >
+                      <PaletteHighlightedText
+                        ranges={item.highlights?.started_at}
+                        text={item.row.started_at.slice(0, 10)}
+                      />
                     </time>
-                  ) : item.kind === "content-search" ? <kbd>↵</kbd> : null}
+                  ) : item.kind === "content-search" ? (
+                    <kbd>↵</kbd>
+                  ) : null}
                 </CommandItem>
               ))}
             </CommandGroup>
           ))}
         </CommandList>
         <footer className="flex gap-4 border-t px-4 py-3 text-xs text-muted-foreground">
-          <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
-          <span><kbd>↵</kbd> open</span>
-          <span><kbd>esc</kbd> close</span>
+          <span>
+            <kbd>↑</kbd>
+            <kbd>↓</kbd> navigate
+          </span>
+          <span>
+            <kbd>↵</kbd> open
+          </span>
+          <span>
+            <kbd>esc</kbd> close
+          </span>
         </footer>
       </Command>
     </CommandDialog>

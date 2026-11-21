@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { compareCells, type CompareFilter } from "../compare.ts";
+import { type CompareFilter, compareCells } from "../compare.ts";
 import { contextWindowForSession } from "../context-window.ts";
 import type { DateFilter } from "../date-filter.ts";
 import type { Operation } from "../enrich.ts";

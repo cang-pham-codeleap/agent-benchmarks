@@ -427,7 +427,9 @@ describe("distill timeline and renderers", () => {
     expect(write).toContain("cat > 'src/a b.rs' <<'AGENT_BENCHMARKS_EOF'");
     expect(write).toContain("mkdir -p \"$(dirname 'src/a b.rs')\"");
 
-    expect(writeBlock("evil.txt", "line\nAGENT_BENCHMARKS_EOF\nrm -rf /\n")).toStartWith("# SKIPPED write");
+    expect(writeBlock("evil.txt", "line\nAGENT_BENCHMARKS_EOF\nrm -rf /\n")).toStartWith(
+      "# SKIPPED write",
+    );
     expect(writeBlock("a\nAGENT_BENCHMARKS_EOF\nb.txt", "hi")).toStartWith("# SKIPPED write");
     expect(patchBlock("*** Begin Patch\nAGENT_BENCHMARKS_EOF\n")).toStartWith("# SKIPPED patch");
     expect(writeBlock("evil.txt", "line\nAGENT_BENCHMARKS_EOF\n")).toContain("heredoc — recreate");
@@ -447,7 +449,9 @@ describe("distill timeline and renderers", () => {
       "hh",
     );
     const replay = renderReplay(db, firstSessionId(db), false) ?? "";
-    const carrying = replay.split("\n").filter((line) => line.includes("agent-benchmarks-injection-"));
+    const carrying = replay
+      .split("\n")
+      .filter((line) => line.includes("agent-benchmarks-injection-"));
     expect(carrying.some((line) => line.includes(titlePayload))).toBe(true);
     expect(carrying.some((line) => line.includes(editPayload))).toBe(true);
     for (const line of carrying) {

@@ -9,6 +9,7 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   watch,
   writeFileSync,
 } from "node:fs";
@@ -28,8 +29,16 @@ import {
   evalTaskIds,
   readEvalCells,
   readLedgerCells,
+  readRegistry,
   repairTornLedger,
 } from "./ledger.ts";
+import {
+  type LiveContext,
+  plannedCells,
+  projectTranscript,
+  readCellStream,
+  resolveLive,
+} from "./live.ts";
 import { apiCellId, ledgerFile, planFile, repoProfilesPath } from "./paths.ts";
 import { prepareRealRun, readRealResults, rememberProfile, validateRealInput } from "./real.ts";
 import { shellQuote } from "./real-verify.ts";
@@ -37,6 +46,7 @@ import { configGroupEnv, EVAL_HARNESSES, EVAL_LIMITS } from "./registry.ts";
 import { pairedComparisons, summarizeSetups } from "./stats.ts";
 import type {
   BenchmarkRunInput,
+  CellStream,
   EvalConfigMode,
   EvalResults,
   EvalRunInput,
@@ -402,15 +412,34 @@ export function activeRunId(dbPath: string): string | null {
   return listRunManifests(dbPath).find((run) => run.status === "running")?.id ?? null;
 }
 
-export function evalProgress(
-  dbPath: string,
-  run: EvalRunManifest,
-): { done: number; total: number; currentCell: string | null } {
+export function evalProgress(dbPath: string, run: EvalRunManifest): EvalResults["progress"] {
   return {
     done: readLedgerCells(runDirFor(dbPath, run.id)).size,
     total: run.input.setups.length * evalTaskIds(run.input).length * run.input.trials,
     currentCell: currentCells.get(run.id) ?? null,
+    liveCellId: run.status === "running" ? resolveLive(liveContext(dbPath, run)).cellId : null,
   };
+}
+
+function liveContext(dbPath: string, run: EvalRunManifest): LiveContext {
+  const runDir = runDirFor(dbPath, run.id);
+  return {
+    planned: plannedCells(run.input),
+    ledger: readLedgerCells(runDir),
+    records: readRegistry(runDir),
+    currentCell: currentCells.get(run.id) ?? null,
+    isAlive: processExists,
+  };
+}
+
+/** Null when `cellId` is not a cell of the run. */
+export function readEvalCellStream(
+  dbPath: string,
+  run: EvalRunManifest,
+  cellId: string,
+  after: number,
+): CellStream | null {
+  return readCellStream(liveContext(dbPath, run), cellId, after);
 }
 
 export function readEvalResults(
@@ -648,13 +677,19 @@ const HARNESS_SHIMS: { harness: string; realTasksOnly: boolean; body: (real: str
     },
     {
       // Copilot CLI 1.0.114 rejects ach's `--usage-output-file`; ach then reads usage from events.jsonl.
+      // ach's `--no-auto-update` makes the launcher run an older cached CLI (1.0.76) whose `auto` routes
+      // with `hydra`, not Copilot Fusion (`auto_v2`); without it the CLI matches the catalog's version.
+      // shortcut: an update downloaded mid-run applies at the next cell's launch; pin COPILOT_CLI_DIST_DIR if that drift matters.
+      // `copilot-fusion` is the archive's label for Fusion sessions; the CLI selects Fusion as `auto`.
       harness: "copilot",
       realTasksOnly: false,
       body: (real) =>
         [
-          "skip=",
+          "skip= model=",
           'for arg do shift; if [ -n "$skip" ]; then skip=; continue; fi',
-          '  case "$arg" in --usage-output-file) skip=1; continue;; --usage-output-file=*) continue;; esac',
+          '  if [ -n "$model" ]; then model=; [ "$arg" = copilot-fusion ] && arg=auto; fi',
+          '  case "$arg" in --usage-output-file) skip=1; continue;; --usage-output-file=*|--no-auto-update) continue;;',
+          "    --model) model=1;; --model=copilot-fusion) arg=--model=auto;; esac",
           '  set -- "$@" "$arg"; done',
           `exec ${real} "$@"`,
         ].join("\n"),
@@ -711,7 +746,12 @@ async function syncAfterRun(
 function installLedgerWatch(dbPath: string, runDir: string, id: string): void {
   watchers.get(id)?.close();
   let last = "";
-  const poll = setInterval(() => emit(), 2000);
+  let lastLive: string | null = null;
+  let lastSize = -1;
+  const poll = setInterval(() => {
+    emit();
+    emitActivity();
+  }, 2000);
   const ledgerWatch = existsSync(runDir) ? watch(runDir, () => emit()) : null;
   watchers.set(id, {
     close() {
@@ -727,6 +767,27 @@ function installLedgerWatch(dbPath: string, runDir: string, id: string): void {
     if (body === last) return;
     last = body;
     publishProgress(dbPath, id);
+  }
+  function emitActivity() {
+    const run = readRunManifest(dbPath, id);
+    if (run == null || run.status !== "running") return;
+    const context = liveContext(dbPath, run);
+    const live = resolveLive(context);
+    if (live.cellId !== lastLive) {
+      lastLive = live.cellId;
+      publishProgress(dbPath, id);
+    }
+    const path = live.record?.rawTranscript;
+    if (path == null || !existsSync(path)) return;
+    const size = statSync(path).size;
+    if (size === lastSize) return;
+    lastSize = size;
+    publishServerEvent({
+      type: "eval_cell_activity",
+      runId: id,
+      cellId: live.cellId,
+      seq: projectTranscript(readFileSync(path, "utf8")).nextSeq,
+    });
   }
 }
 
@@ -953,7 +1014,9 @@ function processExists(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    console.error(`[eval/runner] pid ${pid} is not alive`, error);
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "EPERM") return true;
+    if (code !== "ESRCH") console.error(`[eval/runner] cannot probe pid ${pid}`, error);
     return false;
   }
 }

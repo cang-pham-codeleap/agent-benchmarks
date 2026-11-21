@@ -81,7 +81,12 @@ export function Icon({ name }: { name: IconName }) {
 
 export function BrandMark({ name }: { name: BrandIconName }) {
   return (
-    <svg aria-hidden="true" className="size-3.5 shrink-0 fill-current" focusable="false" viewBox="0 0 24 24">
+    <svg
+      aria-hidden="true"
+      className="size-3.5 shrink-0 fill-current"
+      focusable="false"
+      viewBox="0 0 24 24"
+    >
       <path d={brandIconPath(name)} />
     </svg>
   );

@@ -11,8 +11,21 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { previewOmittedCount } from "../../tools.ts";
 import { getJson } from "../api.ts";
 import { Badge } from "../badges.tsx";
@@ -237,11 +250,14 @@ export function ToolCallDetail({
             <span className="text-sm text-muted-foreground" title={call.mcp_server ?? undefined}>
               {serverLabel || call.tool_kind || "Tool call"}
             </span>
-            <h2 className="break-all text-xl font-semibold" id={titleId}>{call.tool_name ?? "Unknown tool"}</h2>
+            <h2 className="break-all text-xl font-semibold" id={titleId}>
+              {call.tool_name ?? "Unknown tool"}
+            </h2>
           </div>
           <Button
             aria-label="Close details"
-            variant="ghost" size="icon"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             type="button"
           >
@@ -528,7 +544,9 @@ export function ToolsView({
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Tools &amp; MCP</h1>
-          <p className="text-sm text-muted-foreground">Tool and MCP-server call volume, scoped to your session logs.</p>
+          <p className="text-sm text-muted-foreground">
+            Tool and MCP-server call volume, scoped to your session logs.
+          </p>
         </div>
         <DateRangeControl
           bounds={data.dateBounds}
@@ -590,7 +608,9 @@ export function ToolsView({
       <Card>
         <CardHeader>
           <CardTitle>MCP servers</CardTitle>
-          <p className="text-sm text-muted-foreground">Model Context Protocol servers and their call volume</p>
+          <p className="text-sm text-muted-foreground">
+            Model Context Protocol servers and their call volume
+          </p>
         </CardHeader>
         {mcpStatus === "loading" ? (
           <div className="px-6 text-sm text-muted-foreground" role="status">
@@ -683,8 +703,12 @@ export function ToolsView({
                           </span>
                         </span>
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">{formatInt(row.tools)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatInt(row.calls)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatInt(row.tools)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatInt(row.calls)}
+                      </TableCell>
                       <TableCell className="text-right">
                         {row.errors > 0 ? (
                           <Badge tone="danger">{formatInt(row.errors)}</Badge>
@@ -693,9 +717,13 @@ export function ToolsView({
                         )}
                       </TableCell>
                       {durationAvailable ? (
-                        <TableCell className="text-right text-muted-foreground">{durationPrecise(row.p50_ms)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {durationPrecise(row.p50_ms)}
+                        </TableCell>
                       ) : null}
-                      <TableCell className="text-right text-muted-foreground">{relativeTime(row.last_used_at)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {relativeTime(row.last_used_at)}
+                      </TableCell>
                     </DrilldownTableRow>
                   );
                 })}
@@ -814,7 +842,9 @@ export function ToolsView({
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatInt(row.calls)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatInt(row.calls)}
+                    </TableCell>
                     <TableCell className="text-right">
                       {row.errors > 0 ? (
                         <Badge tone="danger">{formatInt(row.errors)}</Badge>
@@ -823,9 +853,13 @@ export function ToolsView({
                       )}
                     </TableCell>
                     {durationAvailable ? (
-                      <TableCell className="text-right text-muted-foreground">{durationPrecise(row.p50_ms)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {durationPrecise(row.p50_ms)}
+                      </TableCell>
                     ) : null}
-                    <TableCell className="text-right text-muted-foreground">{relativeTime(row.last_used_at)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {relativeTime(row.last_used_at)}
+                    </TableCell>
                   </DrilldownTableRow>
                 );
               })}
@@ -838,7 +872,9 @@ export function ToolsView({
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <CardTitle>Calls</CardTitle>
-            <p className="text-sm text-muted-foreground">Inspect individual tool activity, inputs, results, and elapsed time</p>
+            <p className="text-sm text-muted-foreground">
+              Inspect individual tool activity, inputs, results, and elapsed time
+            </p>
           </div>
           <span className="text-sm text-muted-foreground">
             {callsCurrent
@@ -851,34 +887,70 @@ export function ToolsView({
         <div className="flex flex-wrap items-end gap-3 px-6">
           <div className="space-y-1 text-sm">
             <span>Tool</span>
-            <Select value={`tool:${locationFilters.tool}`} onValueChange={(value) => updateFilters({ tool: value.slice(5) })}>
-              <SelectTrigger aria-label="Tool" className="w-48"><SelectValue>{locationFilters.tool || "All tools"}</SelectValue></SelectTrigger>
+            <Select
+              value={`tool:${locationFilters.tool}`}
+              onValueChange={(value) => updateFilters({ tool: value.slice(5) })}
+            >
+              <SelectTrigger aria-label="Tool" className="w-48">
+                <SelectValue>{locationFilters.tool || "All tools"}</SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="tool:">All tools</SelectItem>
-                {locationFilters.tool !== "" && !toolFilterRows.some((row) => row.tool_name === locationFilters.tool) ? (
-                  <SelectItem value={`tool:${locationFilters.tool}`}>{locationFilters.tool}</SelectItem>
+                {locationFilters.tool !== "" &&
+                !toolFilterRows.some((row) => row.tool_name === locationFilters.tool) ? (
+                  <SelectItem value={`tool:${locationFilters.tool}`}>
+                    {locationFilters.tool}
+                  </SelectItem>
                 ) : null}
-                {toolFilterRows.map((row) => <SelectItem key={`${row.tool_name}-${row.mcp_server ?? ""}`} value={`tool:${row.tool_name}`}>{row.tool_name} ({formatInt(row.calls)})</SelectItem>)}
+                {toolFilterRows.map((row) => (
+                  <SelectItem
+                    key={`${row.tool_name}-${row.mcp_server ?? ""}`}
+                    value={`tool:${row.tool_name}`}
+                  >
+                    {row.tool_name} ({formatInt(row.calls)})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1 text-sm">
             <span>Server</span>
-            <Select value={`server:${locationFilters.server}`} onValueChange={(value) => updateFilters({ server: value.slice(7) })}>
-              <SelectTrigger aria-label="Server" className="w-48"><SelectValue>{locationFilters.server ? mcpServerLabel(serverLabels, locationFilters.server) : "All servers"}</SelectValue></SelectTrigger>
+            <Select
+              value={`server:${locationFilters.server}`}
+              onValueChange={(value) => updateFilters({ server: value.slice(7) })}
+            >
+              <SelectTrigger aria-label="Server" className="w-48">
+                <SelectValue>
+                  {locationFilters.server
+                    ? mcpServerLabel(serverLabels, locationFilters.server)
+                    : "All servers"}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="server:">All servers</SelectItem>
-                {locationFilters.server !== "" && !serverFilterRows.some((row) => row.mcp_server === locationFilters.server) ? (
-                  <SelectItem value={`server:${locationFilters.server}`}>{mcpServerLabel(serverLabels, locationFilters.server)}</SelectItem>
+                {locationFilters.server !== "" &&
+                !serverFilterRows.some((row) => row.mcp_server === locationFilters.server) ? (
+                  <SelectItem value={`server:${locationFilters.server}`}>
+                    {mcpServerLabel(serverLabels, locationFilters.server)}
+                  </SelectItem>
                 ) : null}
-                {serverFilterRows.map((row) => <SelectItem key={row.mcp_server} value={`server:${row.mcp_server}`}>{mcpServerLabel(serverLabels, row.mcp_server)} ({formatInt(row.calls)})</SelectItem>)}
+                {serverFilterRows.map((row) => (
+                  <SelectItem key={row.mcp_server} value={`server:${row.mcp_server}`}>
+                    {mcpServerLabel(serverLabels, row.mcp_server)} ({formatInt(row.calls)})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1 text-sm">
             <span>Minimum elapsed</span>
-            <Select value={String(locationFilters.minMs)} onValueChange={(value) => updateFilters({ minMs: Number(value) })}>
-              <SelectTrigger aria-label="Minimum elapsed" className="w-48"><SelectValue /></SelectTrigger>
+            <Select
+              value={String(locationFilters.minMs)}
+              onValueChange={(value) => updateFilters({ minMs: Number(value) })}
+            >
+              <SelectTrigger aria-label="Minimum elapsed" className="w-48">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">Any elapsed time</SelectItem>
                 <SelectItem value="100">100 ms+</SelectItem>
@@ -889,7 +961,10 @@ export function ToolsView({
             </Select>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={locationFilters.errorsOnly} onCheckedChange={(checked) => updateFilters({ errorsOnly: checked === true })} />
+            <Checkbox
+              checked={locationFilters.errorsOnly}
+              onCheckedChange={(checked) => updateFilters({ errorsOnly: checked === true })}
+            />
             Errors only
           </label>
           {locationFilters.tool !== "" ||
@@ -937,7 +1012,9 @@ export function ToolsView({
                     <TableHead>Status</TableHead>
                     <TableHead>Tool</TableHead>
                     <TableHead>Input preview</TableHead>
-                    {durationAvailable ? <TableHead className="text-right">Elapsed</TableHead> : null}
+                    {durationAvailable ? (
+                      <TableHead className="text-right">Elapsed</TableHead>
+                    ) : null}
                     <TableHead className="text-right">Output</TableHead>
                     <TableHead className="text-right">When</TableHead>
                     <TableHead>Session</TableHead>
@@ -974,10 +1051,16 @@ export function ToolsView({
                         {toolCallInputLabel(call.input_preview)}
                       </TableCell>
                       {durationAvailable ? (
-                        <TableCell className="text-right text-muted-foreground">{durationPrecise(call.duration_ms)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {durationPrecise(call.duration_ms)}
+                        </TableCell>
                       ) : null}
-                      <TableCell className="text-right text-muted-foreground">{formatBytes(call.output_bytes)}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{relativeTime(call.timestamp)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatBytes(call.output_bytes)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {relativeTime(call.timestamp)}
+                      </TableCell>
                       <TableCell>
                         <Link
                           href={`/sessions/${call.session_id}`}

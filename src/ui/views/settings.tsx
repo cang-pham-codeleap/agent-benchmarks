@@ -1,7 +1,13 @@
 import { useEffect, useId, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { type ApiRetryPolicy, getJson } from "../api.ts";
 import {
   type BackgroundPhase,
@@ -9,12 +15,7 @@ import {
   waitForBackgroundService,
 } from "../background-service.ts";
 import { errorMessage, versionLabel } from "../format.ts";
-import type {
-  BackgroundStatus,
-  ConfigView,
-  SettingsInfo,
-  UserSettings,
-} from "../types.ts";
+import type { BackgroundStatus, ConfigView, SettingsInfo, UserSettings } from "../types.ts";
 
 export function SettingsView({
   config,
@@ -59,7 +60,8 @@ export function SettingsView({
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          How Agent Benchmarks opens things on your machine. We start from what we detect and remember your choices.
+          How Agent Benchmarks opens things on your machine. We start from what we detect and
+          remember your choices.
         </p>
       </header>
 
@@ -87,7 +89,11 @@ export function SettingsView({
             onChange={(ide) => save({ ide })}
           />
         </CardContent>
-        {saveError != null ? <Alert variant="destructive"><AlertDescription>{saveError}</AlertDescription></Alert> : null}
+        {saveError != null ? (
+          <Alert variant="destructive">
+            <AlertDescription>{saveError}</AlertDescription>
+          </Alert>
+        ) : null}
       </Card>
 
       <Card>
@@ -101,14 +107,18 @@ export function SettingsView({
           <div className="space-y-2">
             <CardTitle>About Agent Benchmarks</CardTitle>
             <p className="text-sm text-muted-foreground">
-              See where your coding agents spend tokens, money, and time: a local-first, searchable archive for models, harnesses, and agentic workflows.
+              See where your coding agents spend tokens, money, and time: a local-first, searchable
+              archive for models, harnesses, and agentic workflows.
             </p>
             <p className="text-sm text-muted-foreground">Based on Decant by Dosu (Apache-2.0)</p>
           </div>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>Version {versionLabel(config?.version)}</p>
-          <p>Agent Benchmarks makes no outbound network calls. Your session logs stay on this machine.</p>
+          <p>
+            Agent Benchmarks makes no outbound network calls. Your session logs stay on this
+            machine.
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -183,12 +193,14 @@ function BackgroundSetting() {
         onChange={toggle}
         status={backgroundNote(status, phase)}
       />
-      {error != null ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+      {error != null ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
     </>
   );
 }
-
-
 
 export function SettingSelect({
   help,
@@ -207,12 +219,28 @@ export function SettingSelect({
   return (
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
-        <strong id={`${id}-label`} className="text-sm font-medium">{label}</strong>
-        <p id={`${id}-help`} className="text-sm text-muted-foreground">{help}</p>
+        <strong id={`${id}-label`} className="text-sm font-medium">
+          {label}
+        </strong>
+        <p id={`${id}-help`} className="text-sm text-muted-foreground">
+          {help}
+        </p>
       </div>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger aria-labelledby={`${id}-label`} aria-describedby={`${id}-help`} className="w-full sm:w-56"><SelectValue /></SelectTrigger>
-        <SelectContent>{options.map(([key, name]) => <SelectItem key={key} value={key}>{name}</SelectItem>)}</SelectContent>
+        <SelectTrigger
+          aria-labelledby={`${id}-label`}
+          aria-describedby={`${id}-help`}
+          className="w-full sm:w-56"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(([key, name]) => (
+            <SelectItem key={key} value={key}>
+              {name}
+            </SelectItem>
+          ))}
+        </SelectContent>
       </Select>
     </div>
   );
@@ -237,8 +265,12 @@ export function SettingSwitch({
   return (
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
-        <strong id={`${id}-label`} className="text-sm font-medium">{label}</strong>
-        <p id={`${id}-help`} className="text-sm text-muted-foreground">{help}</p>
+        <strong id={`${id}-label`} className="text-sm font-medium">
+          {label}
+        </strong>
+        <p id={`${id}-help`} className="text-sm text-muted-foreground">
+          {help}
+        </p>
         {status != null ? (
           <p aria-live="polite" className="text-sm text-muted-foreground">
             {status}
@@ -256,7 +288,9 @@ export function SettingSwitch({
         role="switch"
         type="button"
       >
-        <span className={`block size-5 rounded-full bg-background shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`} />
+        <span
+          className={`block size-5 rounded-full bg-background shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`}
+        />
       </button>
     </div>
   );

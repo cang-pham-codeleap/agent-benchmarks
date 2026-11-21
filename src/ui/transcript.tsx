@@ -188,10 +188,19 @@ export function ContextChip({
       ? `Context window: ${formatInt(tokens)} tokens`
       : `Context window: ${formatInt(tokens)} of ${compact(windowTokens ?? 0)} tokens`;
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs tabular-nums" title={title}>
+    <span
+      className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs tabular-nums"
+      title={title}
+    >
       {pct != null ? (
-        <span aria-hidden="true" className="h-1 w-8 overflow-hidden rounded-full bg-muted-foreground/20">
-          <i className="block h-full bg-chart-1" style={{ width: `${Math.min(100, Math.round(pct * 100))}%` }} />
+        <span
+          aria-hidden="true"
+          className="h-1 w-8 overflow-hidden rounded-full bg-muted-foreground/20"
+        >
+          <i
+            className="block h-full bg-chart-1"
+            style={{ width: `${Math.min(100, Math.round(pct * 100))}%` }}
+          />
         </span>
       ) : null}
       {pct != null ? `${Math.round(pct * 100)}% · ` : ""}
@@ -231,7 +240,9 @@ export function TranscriptBlock({
           ) : (
             <Icon name="bolt" />
           )}
-          <span className="font-mono font-medium text-foreground">{block.tool_name ?? "tool_use"}</span>
+          <span className="font-mono font-medium text-foreground">
+            {block.tool_name ?? "tool_use"}
+          </span>
           <small>tool call</small>
         </div>
         {isPresent(block.tool_input) ? (
@@ -334,7 +345,16 @@ export function ToolCallPresentation({
                         const key = `${part.kind}-${partOffset}`;
                         partOffset += part.value.length;
                         return (
-                          <span className={part.kind === "added" ? "bg-chart-2/25" : part.kind === "removed" ? "bg-destructive/25" : undefined} key={key}>
+                          <span
+                            className={
+                              part.kind === "added"
+                                ? "bg-chart-2/25"
+                                : part.kind === "removed"
+                                  ? "bg-destructive/25"
+                                  : undefined
+                            }
+                            key={key}
+                          >
                             {part.value}
                           </span>
                         );
@@ -392,7 +412,10 @@ export function CollapsedToolArguments({
   forceOpen?: boolean;
 }) {
   return (
-    <details className="space-y-2 text-sm [&>summary]:cursor-pointer [&>summary]:text-muted-foreground" open={forceOpen || argumentsText.length <= 240}>
+    <details
+      className="space-y-2 text-sm [&>summary]:cursor-pointer [&>summary]:text-muted-foreground"
+      open={forceOpen || argumentsText.length <= 240}
+    >
       <summary>arguments</summary>
       <TranscriptCodeBlock code={argumentsText} language="json" />
     </details>
@@ -578,10 +601,7 @@ export function SpecialTranscriptBlock({
   return (
     <Tooltip content={block.tooltip}>
       {(tooltipProps) => (
-        <div
-          className="flex gap-3 rounded-md border bg-muted/40 p-4 text-sm"
-          {...tooltipProps}
-        >
+        <div className="flex gap-3 rounded-md border bg-muted/40 p-4 text-sm" {...tooltipProps}>
           <span className="shrink-0 [&_svg]:size-4">
             <Icon name={block.icon} />
           </span>

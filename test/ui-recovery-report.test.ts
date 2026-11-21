@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ReportRouteExportActions } from "../src/ui/report-export.tsx";
 import { UI_ROUTE_PATHS } from "../src/route-paths.ts";
+import { ReportRouteExportActions } from "../src/ui/report-export.tsx";
 import { readUiFile, readUiSource, sourceBetween, sourceFrom } from "./ui-source.ts";
 
 const main = readUiSource();
@@ -118,10 +118,16 @@ describe("report preview routes", () => {
   test("provide the requested local preview toolbar", () => {
     expect(main).toContain('pathOnly(path) === "/reports/analytics"');
     expect(main).toContain("/reports/session/");
-    const toolbar = renderToStaticMarkup(createElement(ReportRouteExportActions, {
-      downloadHref: "/report.html", excluded: [], includes: [], onPrint: () => {},
-      printDisabled: false, title: "Analytics report",
-    }));
+    const toolbar = renderToStaticMarkup(
+      createElement(ReportRouteExportActions, {
+        downloadHref: "/report.html",
+        excluded: [],
+        includes: [],
+        onPrint: () => {},
+        printDisabled: false,
+        title: "Analytics report",
+      }),
+    );
     expect(toolbar).toMatch(/<button[^>]*>[\s\S]*?Download HTML<\/button>/);
     expect(toolbar).toMatch(/<button[^>]*>[\s\S]*?Save as PDF<\/button>/);
     expect(readUiFile("report-export.tsx")).toContain("View report");
@@ -146,7 +152,7 @@ describe("transcript presentation", () => {
   test("uses the same compaction numbering in the chart and thread", () => {
     expect(main).toContain("compactionNumberBySeq");
     expect(main).toMatch(/Compaction \$\{compactionNumber\}/);
-    expect(main).toContain('href={`#message-${compaction.seq}`}');
+    expect(main).toContain("href={`#message-${compaction.seq}`}");
     expect(main).toContain("groupContextMarkers");
   });
 });

@@ -631,7 +631,10 @@ function buildTrajectory(db: Database, detail: SessionDetail, state: BuildState)
     }
   }
 
-  const rootExtra: JsonObject = { exporter: "agent-benchmarks", agentBenchmarks_tool: summary.tool };
+  const rootExtra: JsonObject = {
+    exporter: "agent-benchmarks",
+    agentBenchmarks_tool: summary.tool,
+  };
   const optional: [string, string | null][] = [
     ["title", summary.title],
     ["cwd", row?.cwd ?? null],

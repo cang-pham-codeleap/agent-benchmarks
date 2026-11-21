@@ -42,6 +42,9 @@ describe("route table", () => {
     expect(routeTemplate("/api/evals/run-0001/cells/current%2Fclaude%3At%3Am%3Atrial1")).toBe(
       "/api/evals/{id}/cells/{cellId}",
     );
+    expect(
+      routeTemplate("/api/evals/run-0001/cells/current%2Fclaude%3At%3Am%3Atrial1/events"),
+    ).toBe("/api/evals/{id}/cells/{cellId}/events");
     expect(routeTemplate("/api/evals/run-0001/report.html")).toBe("/api/evals/{id}/report.html");
     expect(routeTemplate("/sessions/7")).toBe("/sessions/{id}");
     expect(routeTemplate("/reports/session/7")).toBe("/reports/session/{id}");

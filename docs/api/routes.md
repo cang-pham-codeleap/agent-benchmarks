@@ -334,6 +334,18 @@ return `real: null`.
 `EvalCell.cellId` (`<config>/<ach cell id>`), or `reference` for the human
 change of a replay.
 
+`GET /api/evals/{id}/cells/{cellId}/events?after=<seq>` returns the agent's
+recorded steps for one cell (messages, tool calls, tool results, spend, errors)
+projected from the harness's raw transcript, plus `state` (`live`, `done`,
+`queued`, or `unknown`), `startedAt`, `nextSeq`, and whole-transcript `totals`.
+`seq` is the transcript line index, so `after=<nextSeq>` fetches only newer
+steps; malformed lines and a half-written last line are skipped. A cell is
+`live` only while its agent process is alive; `GET /api/evals/{id}` reports it
+as `progress.liveCellId`, which is `null` when it cannot be determined (for
+example a real-task run after a server restart). Summaries are cut at 160
+characters and details at 16 KiB. `after` must be a non-negative integer
+(`400 invalid_request`); an unknown run or cell is `404 not_found`.
+
 `GET /api/evals/{id}/report.html` downloads a zero-JavaScript report with
 inline styles: run metadata, the summary table with the human reference,
 each combo's diff, check and hidden-test results, and a transcript summary
@@ -352,6 +364,10 @@ each combo's diff, check and hidden-test results, and a transcript summary
 - `archive_updated` — archive-derived UI data changed; `reason` distinguishes
   the startup sync and background watcher activity from manual syncs,
   statistics rebuilds, and session-state changes
+- `eval_progress` — an evaluation's progress, status, and live cell changed
+- `eval_cell_activity` — the live cell recorded new steps. It carries only
+  `runId`, `cellId`, and `seq`; step content is fetched per cell from
+  `GET /api/evals/{id}/cells/{cellId}/events`
 - `error` — watcher or sync failure
 - `stopped` — source watcher stopped
 
