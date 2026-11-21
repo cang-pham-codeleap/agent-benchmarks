@@ -14,7 +14,6 @@ export interface VersionResolutionOptions {
 }
 
 function describeCheckout(checkoutDir: string): string | null {
-  // An npm install can sit inside another project's repository; describing that would report its version.
   if (!existsSync(join(checkoutDir, ".git"))) return null;
   try {
     const result = spawnSync("git", ["describe", "--tags", "--always", "--dirty"], {
