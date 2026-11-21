@@ -98,7 +98,7 @@ function verdictFor(pairs: readonly Pair[]): VerdictFields {
   let reason: string;
   if (pairs.length < rules.minPairs || minTrials < rules.minTrials) {
     verdict = "inconclusive";
-    reason = `${pairs.length} graded pairs with at least ${minTrials} trials per task; needs ${rules.minPairs} pairs and ${rules.minTrials} trials per task.`;
+    reason = `${pairs.length} graded pairs, and the thinnest task has ${minTrials} graded ${minTrials === 1 ? "trial" : "trials"}; needs ${rules.minPairs} pairs and ${rules.minTrials} trials per task.`;
   } else if ((passDelta ?? 0) <= -rules.qualityDrop || worse - better >= rules.worseMargin) {
     verdict = "quality-risk";
     reason = `The augmented arm passed ${better} pairs the baseline failed and failed ${worse} the baseline passed (pass rate change ${((passDelta ?? 0) * 100).toFixed(1)} points).`;
