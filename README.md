@@ -10,7 +10,13 @@ Agent Benchmarks is a private research fork for evaluating models, agent harness
 | --- | --- |
 | ![Compare view ranking harness, provider, and model combinations by priced cost per task](docs/images/compare-harness-model.png) | ![By-model table with weekly session sparklines, token totals, and share of cost](docs/images/analytics-by-model.png) |
 
-![Real-task evaluation comparing three agent harnesses on Sonnet against the human commit](docs/images/real-task-evaluation.png)
+| Benchmark results with confidence intervals | Real-task run scored against the human commit |
+| --- | --- |
+| ![Benchmark results for two setups on 25 tasks with pass rate, 95% confidence interval, pass@k, cost per solved task, and a paired comparison](docs/images/benchmark-results.png) | ![Real-task evaluation comparing three agent harnesses on Sonnet against the human commit](docs/images/real-task-evaluation.png) |
+
+![Two recorded benchmark cells side by side, Haiku and DeepSeek flash solving the same virtual-list task](docs/images/benchmark-live-compare.png)
+
+![Full-text search for "Fenwick tree" returning highlighted matches across benchmark sessions in 27 ms](docs/images/search.png)
 
 ## Quick start
 
