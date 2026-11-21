@@ -1,7 +1,7 @@
 {
   "name": "agent-benchmarks",
   "version": "0.1.0",
-  "description": "Private research app for benchmarking models, harnesses, and agentic workflows from local agent session logs.",
+  "description": "Benchmark models, harnesses, and agentic workflows from local coding-agent session logs.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
