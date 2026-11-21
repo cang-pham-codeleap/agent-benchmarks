@@ -18,8 +18,8 @@ const input: BenchmarkRunInput = {
   kind: "benchmark",
   name: "synthetic",
   setups: [
-    { harness: "claude", model: "m1", config: "current" },
-    { harness: "codex", model: "m2", config: "current" },
+    { harness: "claude", model: "m1", config: "current", augments: [] },
+    { harness: "codex", model: "m2", config: "current", augments: [] },
   ],
   taskIds: ["task-a"],
   trials: 1,

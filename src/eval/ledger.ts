@@ -1,15 +1,21 @@
 import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync, truncateSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { type EvalRegistryRun, joinSessionCost } from "./cost.ts";
-import { apiCellId, ledgerFile } from "./paths.ts";
+import {
+  apiCellId,
+  augmentsDir,
+  groupId,
+  groupKeysOnDisk,
+  ledgerFile,
+  safeCellDir,
+} from "./paths.ts";
 import { realTaskId } from "./real.ts";
 import { EVAL_HARNESSES } from "./registry.ts";
 import { setupKey } from "./stats.ts";
 import type {
   CellOutcome,
   EvalCell,
-  EvalConfigMode,
   EvalRunInput,
   EvalSetup,
   InterruptedAttempt,
@@ -103,13 +109,44 @@ export function achCellId(setup: EvalSetup, taskId: string, trial: number): stri
   return `${agent}:${taskId}:${setup.model}:trial${trial}`;
 }
 
-/** Last ledger row per cell across every config group, keyed by API cell id. */
+/** Last ledger row per cell across every run group, keyed by API cell id. */
 export function readLedgerCells(runDir: string): Map<string, EvalLedgerRow> {
   const cells = new Map<string, EvalLedgerRow>();
-  for (const config of Object.keys(ledgerFile) as EvalConfigMode[])
-    for (const row of readLedger(join(runDir, ledgerFile[config])))
-      cells.set(apiCellId(config, row.cellId), row);
+  for (const key of groupKeysOnDisk(runDir, "ledger"))
+    for (const row of readLedger(join(runDir, ledgerFile(key))))
+      cells.set(apiCellId(key, row.cellId), row);
   return cells;
+}
+
+/** One row per shim prepare step; the shim writes it, so every field is plain JSON text. */
+export interface PrepRow {
+  groupKey: string;
+  harness: string;
+  cwd: string;
+  ms: number;
+  ok: boolean;
+  error: string | null;
+}
+
+export const PREP_EXIT_CODE = 97;
+
+export function prepLogPath(runDir: string): string {
+  return join(augmentsDir(runDir), "prep.jsonl");
+}
+
+function readPrepRows(runDir: string): PrepRow[] {
+  const path = prepLogPath(runDir);
+  if (!existsSync(path)) return [];
+  const rows: PrepRow[] = [];
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    if (line.trim() === "") continue;
+    try {
+      rows.push(JSON.parse(line) as PrepRow);
+    } catch (error) {
+      console.error(`[eval/ledger] ignoring malformed prep row in ${path}`, error);
+    }
+  }
+  return rows;
 }
 
 export function readEvalCells(
@@ -120,11 +157,13 @@ export function readEvalCells(
   const byCell = readLedgerCells(runDir);
   const registry = readRegistry(runDir);
   const byRun = new Map(registry.map((run) => [run.runId, run]));
+  const prepRows = readPrepRows(runDir);
   const cells: EvalCell[] = [];
   for (const setup of input.setups) {
+    const group = groupId(setup.config, setup.augments);
     for (const taskId of evalTaskIds(input)) {
       for (let trial = 1; trial <= input.trials; trial++) {
-        const cellId = apiCellId(setup.config, achCellId(setup, taskId, trial));
+        const cellId = apiCellId(group.key, achCellId(setup, taskId, trial));
         const row = byCell.get(cellId);
         if (row == null) {
           cells.push(pendingCell(cellId, setupKey(setup), taskId, trial));
@@ -159,8 +198,19 @@ export function readEvalCells(
           cost = { kind: "unavailable", reason: "not-metered" };
         }
         observedModel ??= record?.usage?.model?.observed?.[0] ?? null;
+        const workspace = basename(record?.cwd ?? safeCellDir(achCellId(setup, taskId, trial)));
+        const prep =
+          setup.augments.length === 0
+            ? null
+            : (prepRows
+                .filter(
+                  (candidate) =>
+                    candidate.groupKey === group.key && basename(candidate.cwd) === workspace,
+                )
+                .at(-1) ?? null);
         const outcome =
-          row.runId == null && row.status === "error" && row.error?.includes("setup")
+          prep?.ok === false ||
+          (row.runId == null && row.status === "error" && row.error?.includes("setup"))
             ? "setup-error"
             : toCellOutcome(row.status, row.exitStatus ?? null, row.verify ?? null);
         cells.push({
@@ -174,6 +224,7 @@ export function readEvalCells(
               ? null
               : Math.max(0, (record.updatedAt ?? record.startedAt) - record.startedAt),
           verifyMs: record?.verify?.durationMs ?? null,
+          prepMs: prep?.ms ?? null,
           endToEndMs: Math.max(0, row.endedAt - row.startedAt),
           tokens,
           cost,
@@ -184,6 +235,7 @@ export function readEvalCells(
             exitStatus: row.exitStatus ?? null,
             verify: row.verify ?? null,
             error:
+              (prep?.ok === false ? prep.error : null) ??
               row.error ??
               (outcome === "unavailable" || outcome === "agent-error"
                 ? lastAgentError(record)
@@ -210,7 +262,7 @@ export function readEvalCells(
 
 export function repairTornLedger(runDir: string): boolean {
   let repaired = false;
-  for (const name of Object.values(ledgerFile)) {
+  for (const name of groupKeysOnDisk(runDir, "ledger").map(ledgerFile)) {
     const path = join(runDir, name);
     if (!existsSync(path)) continue;
     const bytes = readFileSync(path);
@@ -270,6 +322,7 @@ function pendingCell(cellId: string, setupKey: string, taskId: string, trial: nu
     outcome: "pending",
     agentMs: null,
     verifyMs: null,
+    prepMs: null,
     endToEndMs: null,
     tokens: null,
     cost: { kind: "unavailable", reason: "not-run" },

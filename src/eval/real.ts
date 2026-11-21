@@ -9,7 +9,14 @@ import {
 } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import { EvalRequestError } from "./errors.ts";
-import { artifactDir, ledgerFile, parseApiCellId, planFile } from "./paths.ts";
+import {
+  artifactDir,
+  ledgerFile,
+  parseApiCellId,
+  planFile,
+  type RunGroupId,
+  setupGroups,
+} from "./paths.ts";
 import {
   git,
   parseNumstat,
@@ -18,11 +25,16 @@ import {
   shellQuote,
   verifyTimeoutMs,
 } from "./real-verify.ts";
-import { defaultConfigProblem, EVAL_HARNESSES, EVAL_LIMITS } from "./registry.ts";
+import {
+  defaultConfigProblem,
+  EVAL_HARNESSES,
+  EVAL_LIMITS,
+  rejectDuplicateSetup,
+  validateSetupConfig,
+} from "./registry.ts";
 import type {
   CellArtifacts,
   EvalCell,
-  EvalConfigMode,
   EvalSetup,
   RealReference,
   RealResults,
@@ -32,8 +44,7 @@ import type {
   RepoProfile,
 } from "./types.ts";
 
-export interface RealPlanGroup {
-  config: EvalConfigMode;
+export interface RealPlanGroup extends RunGroupId {
   planPath: string | null;
   ledgerPath: string;
   setups: EvalSetup[];
@@ -236,23 +247,33 @@ export function validateRealInput(
     if (definition == null) throw new EvalRequestError(`unknown harness: ${setup.harness}`, 400);
     if (!/^[\w.:/@-]{1,128}$/.test(setup.model))
       throw new EvalRequestError("model has unsupported characters", 400);
-    if (setup.config !== "current" && setup.config !== "default")
-      throw new EvalRequestError("setup config must be current or default", 400);
+    if (setup.config !== "current" && setup.config !== "default" && setup.config !== "clean")
+      throw new EvalRequestError("setup config must be current, default or clean", 400);
     if (setup.config === "default" && definition.defaultConfig == null)
       throw new EvalRequestError(
         `default config is not supported for ${definition.label}`,
         400,
         "config_unsupported",
       );
-    const key = `${setup.harness}:${setup.model}:${setup.config}`;
-    if (keys.has(key)) throw new EvalRequestError(`duplicate setup: ${key}`, 400);
-    keys.add(key);
+    const augments = validateSetupConfig(
+      setup.harness,
+      setup.config,
+      (setup as { augments?: unknown }).augments,
+      env,
+    );
+    const normalized: EvalSetup = {
+      harness: setup.harness,
+      model: setup.model,
+      config: setup.config,
+      augments,
+    };
+    rejectDuplicateSetup(keys, normalized);
     if (
       String(setup.harness) !== "null" &&
       Bun.which(definition.achAgent, { PATH: env.PATH ?? "" }) == null
     )
       throw new EvalRequestError(`${setup.harness} is not installed`, 503, "harness_missing");
-    return { harness: setup.harness, model: setup.model, config: setup.config };
+    return normalized;
   });
   const trials = input.trials as number;
   if (!Number.isInteger(trials) || trials < 1 || trials > EVAL_LIMITS.maxTrials)
@@ -363,15 +384,14 @@ export function prepareRealRun(
   writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`);
   const taskId = realTaskId(task);
   const verifyScript = join(import.meta.dir, "real-verify.ts");
-  const groups = (["current", "default"] as const).flatMap((config): RealPlanGroup[] => {
-    const chosen = input.setups.filter((setup) => setup.config === config);
-    if (chosen.length === 0) return [];
+  const groups = setupGroups(input.setups).map((group): RealPlanGroup => {
+    const { key, config, setups: chosen } = group;
     const unavailable = chosen.flatMap((setup) => {
       const reason = config === "default" ? defaultConfigProblem(setup.harness, env) : null;
       return reason == null ? [] : [{ setup, reason }];
     });
     const setups = chosen.filter((setup) => !unavailable.some((item) => item.setup === setup));
-    const planPath = setups.length ? join(runDir, planFile[config]) : null;
+    const planPath = setups.length ? join(runDir, planFile(key)) : null;
     if (planPath != null) {
       const plan = {
         experiment: `agent-benchmarks-eval-${basename(runDir)}`,
@@ -385,7 +405,7 @@ export function prepareRealRun(
             prompt: task.prompt,
             cwd: repo,
             ...(profile.setupCommand == null ? {} : { setup: profile.setupCommand }),
-            verify: `bun ${shellQuote(verifyScript)} ${shellQuote(specPath)} ${config}`,
+            verify: `bun ${shellQuote(verifyScript)} ${shellQuote(specPath)} ${key}`,
             verifyTimeoutMs: verifyTimeoutMs(profile.checks.length + hiddenPaths.length),
           },
         ],
@@ -395,9 +415,15 @@ export function prepareRealRun(
       };
       writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`);
     }
-    return [
-      { config, planPath, ledgerPath: join(runDir, ledgerFile[config]), setups, unavailable },
-    ];
+    return {
+      key,
+      config,
+      augments: group.augments,
+      planPath,
+      ledgerPath: join(runDir, ledgerFile(key)),
+      setups,
+      unavailable,
+    };
   });
   return { baseSha, taskId, groups };
 }
@@ -432,7 +458,7 @@ export function readRealResults(
       id == null
         ? null
         : readJson<RealCellResult>(
-            join(artifactDir(runDir, id.config, id.achCellId), "result.json"),
+            join(artifactDir(runDir, id.groupKey, id.achCellId), "result.json"),
           );
     if (result == null) continue;
     const stats =
@@ -478,7 +504,7 @@ export function readCellArtifacts(
   }
   const id = parseApiCellId(apiCellIdOrReference);
   if (id == null) return null;
-  const dir = artifactDir(runDir, id.config, id.achCellId);
+  const dir = artifactDir(runDir, id.groupKey, id.achCellId);
   if (!existsSync(join(dir, "diff.patch"))) return null;
   const result = readJson<RealCellResult>(join(dir, "result.json"));
   return {

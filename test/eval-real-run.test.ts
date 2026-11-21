@@ -38,6 +38,7 @@ EVAL_HARNESSES.null ??= {
   sessionTool: "null",
   qualifiedModels: false,
   defaultConfig: {},
+  clean: { args: [] },
 };
 
 const achDir = join(homedir(), "Documents", "sources", "_oss-study", "agentic-coding-harness");
@@ -352,7 +353,7 @@ describe("real-task evaluation runs", () => {
     const manifest = readRunManifest(config.dbPath, id);
     expect(manifest?.input.kind).toBe("benchmark");
     expect(manifest?.input.setups).toEqual([
-      { harness: "claude", model: "sonnet", config: "current" },
+      { harness: "claude", model: "sonnet", config: "current", augments: [] },
     ]);
   });
 });

@@ -8,6 +8,7 @@ import {
 import type { Config } from "../config.ts";
 import type { dateFilterFromSearch } from "../date-filter.ts";
 import { parseFileOperation } from "../distill.ts";
+import { poolAugmentVerdicts } from "../eval/augment-verdicts.ts";
 import { readCatalog } from "../eval/catalog.ts";
 import { EvalRequestError } from "../eval/errors.ts";
 import { repoProfilesPath } from "../eval/paths.ts";
@@ -399,6 +400,9 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
   "/api/evals/repo": {
     GET: evalRepoRoute,
   },
+  "/api/evals/augments": {
+    GET: evalAugmentsRoute,
+  },
   "/api/evals/{id}": {
     GET: evalResultsRoute,
   },
@@ -764,6 +768,33 @@ function evalResultsRoute(ctx: RouteContext): Response {
     if (manifest == null) return errorResponse("not_found", "evaluation run not found", {}, 404);
     return withDb(ctx.config, ctx.context, (db) =>
       json(readEvalResults(db, ctx.config.dbPath, manifest)),
+    );
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+function evalAugmentsRoute({ config, context }: RouteContext): Response {
+  try {
+    const manifests = listRunManifests(config.dbPath).filter(
+      (manifest) =>
+        manifest.status === "completed" &&
+        manifest.input.setups.some((setup) => setup.augments.length > 0),
+    );
+    return withDb(config, context, (db) =>
+      json(
+        poolAugmentVerdicts(
+          manifests.map((manifest) => {
+            const results = readEvalResults(db, config.dbPath, manifest);
+            return {
+              runId: manifest.id,
+              harnessVersions: manifest.provenance.harnessVersions,
+              cells: results.cells,
+              setups: manifest.input.setups,
+            };
+          }),
+        ),
+      ),
     );
   } catch (error) {
     return evalError(error);

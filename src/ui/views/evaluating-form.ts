@@ -1,12 +1,68 @@
 import type {
+  AugmentId,
   BenchmarkRunInput,
+  EvalAugmentInfo,
   EvalCatalog,
   EvalPresetId,
+  EvalSetup,
   RealRunInput,
 } from "../../eval/types.ts";
 
+export function setupText(setup: EvalSetup): string {
+  const { augments } = setup;
+  return [
+    setup.harness,
+    setup.model,
+    setup.config,
+    ...(augments.length ? [`+${augments.join(" +")}`] : []),
+  ].join(" · ");
+}
+
 export function evaluationRunCount(input: BenchmarkRunInput): number {
   return input.setups.length * input.taskIds.length * input.trials;
+}
+
+const setupIdentity = (setup: EvalSetup) =>
+  JSON.stringify([setup.harness, setup.model, setup.config, setup.augments]);
+
+/** Augments the harness has a recipe for; empty unless the config is clean or default. */
+export function augmentChoices(
+  catalog: EvalCatalog,
+  harness: EvalSetup["harness"],
+  config: EvalSetup["config"],
+): EvalAugmentInfo[] {
+  return config === "current" ? [] : catalog.augments.filter((a) => a.harnesses.includes(harness));
+}
+
+export function toggleAugment(augments: AugmentId[], id: AugmentId, on: boolean): AugmentId[] {
+  const rest = augments.filter((existing) => existing !== id);
+  return on ? [...rest, id].sort() : rest;
+}
+
+/** A clean baseline plus one setup per available augment, replacing `setups[index]`, within the setup limit. */
+export function augmentSweep(
+  setups: EvalSetup[],
+  index: number,
+  catalog: EvalCatalog,
+): EvalSetup[] {
+  const source = setups[index];
+  if (!source) return setups;
+  const config = source.config === "default" ? "default" : "clean";
+  const base = { harness: source.harness, model: source.model, config } as const;
+  const sweep: EvalSetup[] = [
+    { ...base, augments: [] },
+    ...augmentChoices(catalog, source.harness, config)
+      .filter((augment) => augment.available)
+      .map((augment) => ({ ...base, augments: [augment.id] })),
+  ];
+  const others = setups.filter((_, i) => i !== index);
+  const seen = new Set(others.map(setupIdentity));
+  const fresh = sweep.filter((setup) => !seen.has(setupIdentity(setup)));
+  return [
+    ...setups.slice(0, index),
+    ...fresh.slice(0, Math.max(0, catalog.limits.maxSetups - others.length)),
+    ...setups.slice(index + 1),
+  ];
 }
 
 export function presetAfterEdit(
@@ -35,10 +91,7 @@ function setupsReason(
     return "Choose an installed harness for every setup.";
   if (input.setups.some((setup) => !/^[\w.:/@-]{1,128}$/.test(setup.model)))
     return "Enter a valid model for every setup.";
-  if (
-    new Set(input.setups.map((setup) => JSON.stringify([setup.harness, setup.model, setup.config])))
-      .size !== input.setups.length
-  )
+  if (new Set(input.setups.map(setupIdentity)).size !== input.setups.length)
     return "Each setup must be unique.";
   return null;
 }

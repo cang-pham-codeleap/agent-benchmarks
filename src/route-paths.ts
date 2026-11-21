@@ -41,6 +41,7 @@ export const API_ROUTE_PATHS = [
   "/api/evals/catalog",
   "/api/evals",
   "/api/evals/repo",
+  "/api/evals/augments",
   "/api/evals/{id}/cells/{cellId}",
   "/api/evals/{id}/cells/{cellId}/events",
   "/api/evals/{id}/report.html",

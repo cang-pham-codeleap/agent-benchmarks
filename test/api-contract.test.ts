@@ -339,6 +339,7 @@ describe("local API OpenAPI contract", () => {
         },
         { path: "/api/evals/catalog", method: "get", url: "/api/evals/catalog" },
         { path: "/api/evals", method: "get", url: "/api/evals" },
+        { path: "/api/evals/augments", method: "get", url: "/api/evals/augments" },
         {
           path: "/api/evals/{id}",
           method: "get",

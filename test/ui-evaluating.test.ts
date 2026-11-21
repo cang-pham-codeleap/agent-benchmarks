@@ -1,11 +1,38 @@
 import { describe, expect, test } from "bun:test";
-import type { EvalCatalog, EvalCell, EvalResults, EvalRunInput } from "../src/eval/types.ts";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import type {
+  AugmentId,
+  AugmentVerdict,
+  EvalAugmentInfo,
+  EvalCatalog,
+  EvalCell,
+  EvalHarness,
+  EvalResults,
+  EvalRunInput,
+  EvalSetup,
+} from "../src/eval/types.ts";
+import { AugmentVerdictTable } from "../src/ui/views/evaluating/augments.tsx";
 import { patchFiles, realRow } from "../src/ui/views/evaluating/real-results.tsx";
 import {
+  augmentChoices,
+  augmentSweep,
   evaluationRunCount,
   evaluationStartReason,
   presetAfterEdit,
+  setupText,
 } from "../src/ui/views/evaluating-form.ts";
+
+const augment = (id: AugmentId, harnesses: EvalHarness[], available: boolean): EvalAugmentInfo => ({
+  id,
+  label: id,
+  kind: "shell-proxy",
+  description: id,
+  sourceUrl: "https://example.com",
+  harnesses,
+  available,
+  problem: available ? null : `${id} is not installed`,
+});
 
 const catalog: EvalCatalog = {
   ach: { dir: "/ach", ok: true, problem: null, commit: "abc" },
@@ -39,11 +66,17 @@ const catalog: EvalCatalog = {
     realDefaultWallMs: 1800000,
   },
   activeRunId: null,
+  augments: [
+    augment("rtk", ["claude", "codex"], true),
+    augment("codegraph", ["claude", "codex"], true),
+    augment("caveman", ["claude"], true),
+    augment("ptc", ["codex"], false),
+  ],
 };
 const input: EvalRunInput = {
   kind: "benchmark",
   name: "Run",
-  setups: [{ harness: "codex", model: "model", config: "current" }],
+  setups: [{ harness: "codex", model: "model", config: "current", augments: [] }],
   taskIds: ["one"],
   trials: 2,
   wallMs: 60000,
@@ -67,7 +100,10 @@ describe("evaluation form", () => {
     );
     expect(
       evaluationStartReason(
-        { ...input, setups: [{ harness: "codex", model: "invalid model", config: "current" }] },
+        {
+          ...input,
+          setups: [{ harness: "codex", model: "invalid model", config: "current", augments: [] }],
+        },
         catalog,
         false,
       ),
@@ -101,6 +137,7 @@ const cell = (
   cost,
   observedModel: null,
   session: null,
+  prepMs: null,
   raw: { status: "", exitStatus: null, verify: null, error: null, runId: null },
 });
 const summary = (passed: number, exitCode: number) => ({
@@ -149,5 +186,91 @@ describe("real results", () => {
     );
     expect(files.map((f) => f.path)).toEqual(["x.ts", "y.ts"]);
     expect(files[0]!.lines).toEqual(["@@ -1 +1 @@", "-a", "+b"]);
+  });
+});
+
+const clean = (augments: AugmentId[] = []): EvalSetup => ({
+  harness: "codex",
+  model: "model",
+  config: "clean",
+  augments,
+});
+
+describe("augments", () => {
+  test("choices exist only for clean or default config and only for the harness's recipes", () => {
+    expect(augmentChoices(catalog, "codex", "current")).toEqual([]);
+    for (const config of ["clean", "default"] as const)
+      expect(augmentChoices(catalog, "codex", config).map((a) => a.id)).toEqual([
+        "rtk",
+        "codegraph",
+        "ptc",
+      ]);
+    expect(augmentChoices(catalog, "claude", "clean").map((a) => a.id)).toEqual([
+      "rtk",
+      "codegraph",
+      "caveman",
+    ]);
+  });
+
+  test("sweep gives a clean baseline plus one setup per available augment", () => {
+    expect(augmentSweep([clean()], 0, catalog)).toEqual([
+      clean(),
+      clean(["rtk"]),
+      clean(["codegraph"]),
+    ]);
+  });
+
+  test("sweep turns a current setup into clean and respects the setup limit", () => {
+    const current: EvalSetup = { ...clean(), config: "current" };
+    const other: EvalSetup = { ...clean(), model: "other" };
+    const sweep = augmentSweep([other, other, current], 2, {
+      ...catalog,
+      limits: { ...catalog.limits, maxSetups: 4 },
+    });
+    expect(sweep).toEqual([other, other, clean(), clean(["rtk"])]);
+  });
+
+  test("setup text and uniqueness include augments", () => {
+    expect(setupText(clean())).toBe("codex · model · clean");
+    expect(setupText(clean(["codegraph", "rtk"]))).toBe("codex · model · clean · +codegraph +rtk");
+    const withAugment = { ...input, setups: [clean(), clean(["rtk"])] };
+    expect(evaluationStartReason(withAugment, catalog, false)).toBeNull();
+    expect(
+      evaluationStartReason({ ...withAugment, setups: [clean(), clean()] }, catalog, false),
+    ).toBe("Each setup must be unique.");
+  });
+
+  test("verdict table renders a verdict row", () => {
+    const verdict: AugmentVerdict = {
+      baseline: "codex:model:clean",
+      augmented: "codex:model:clean+rtk",
+      harness: "codex",
+      model: "model",
+      config: "clean",
+      augments: ["rtk"],
+      pairs: 24,
+      minTrials: 3,
+      passDelta: 0,
+      better: 1,
+      worse: 1,
+      tokenDelta: -0.2,
+      costDelta: -0.25,
+      savingBasis: "cost",
+      prepMs: 1500,
+      verdict: "adopt",
+      reason: "Saved 25% cost with no quality loss.",
+    };
+    const html = renderToStaticMarkup(createElement(AugmentVerdictTable, { verdicts: [verdict] }));
+    for (const text of [
+      "Adopt",
+      "24",
+      "0.0 pts",
+      "-25.0%",
+      "cost",
+      "1 / 1",
+      "1.5 s",
+      verdict.reason,
+    ])
+      expect(html).toContain(text);
   });
 });

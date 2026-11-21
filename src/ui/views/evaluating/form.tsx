@@ -23,7 +23,14 @@ import {
   type EvalHarnessInfo,
   type EvalSetup,
 } from "../../../eval/types.ts";
-import { evaluationRunCount, evaluationStartReason, presetAfterEdit } from "../evaluating-form.ts";
+import {
+  augmentChoices,
+  augmentSweep,
+  evaluationRunCount,
+  evaluationStartReason,
+  presetAfterEdit,
+  toggleAugment,
+} from "../evaluating-form.ts";
 
 export function ModelPicker({
   info,
@@ -156,6 +163,7 @@ export function EvalForm({
           </div>
           {input.setups.map((setup, index) => {
             const info = catalog.harnesses.find((harness) => harness.harness === setup.harness);
+            const choices = augmentChoices(catalog, setup.harness, setup.config);
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: setups have no id and are edited by position
               <div key={index} className="flex flex-wrap items-end gap-3 rounded-md border p-3">
@@ -164,7 +172,11 @@ export function EvalForm({
                   <Select
                     value={setup.harness}
                     onValueChange={(harness) =>
-                      updateSetup(index, { harness: harness as EvalSetup["harness"], model: "" })
+                      updateSetup(index, {
+                        harness: harness as EvalSetup["harness"],
+                        model: "",
+                        augments: [],
+                      })
                     }
                   >
                     <SelectTrigger aria-label={`Harness for setup ${index + 1}`}>
@@ -189,6 +201,29 @@ export function EvalForm({
                     onChange={(model) => updateSetup(index, { model })}
                   />
                 </div>
+                <label className="grid min-w-48 flex-1 gap-2 text-sm">
+                  Configuration
+                  <Select
+                    value={setup.config}
+                    onValueChange={(config) =>
+                      updateSetup(index, {
+                        config: config as EvalSetup["config"],
+                        augments: config === "current" ? [] : setup.augments,
+                      })
+                    }
+                  >
+                    <SelectTrigger aria-label={`Configuration for setup ${index + 1}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current">Current (your own configuration)</SelectItem>
+                      <SelectItem value="default" disabled={info?.defaultConfigProblem != null}>
+                        Default (no user configuration)
+                      </SelectItem>
+                      <SelectItem value="clean">Clean (your login, no plugins or hooks)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </label>
                 <div className="flex items-center gap-2 pb-1">
                   {info?.version && (
                     <span className="text-xs text-muted-foreground">{info.version}</span>
@@ -206,6 +241,53 @@ export function EvalForm({
                     <Trash2 />
                   </Button>
                 </div>
+                {choices.length > 0 && (
+                  <fieldset className="flex basis-full flex-wrap items-center gap-x-4 gap-y-2">
+                    <legend className="sr-only">Augments for setup {index + 1}</legend>
+                    {choices.map((augment) => {
+                      const id = `augment-${index}-${augment.id}`;
+                      return (
+                        <label
+                          key={augment.id}
+                          htmlFor={id}
+                          className={`flex items-center gap-2 text-sm ${augment.available ? "" : "opacity-50"}`}
+                        >
+                          <Checkbox
+                            id={id}
+                            checked={setup.augments.includes(augment.id)}
+                            disabled={!augment.available}
+                            aria-describedby={augment.problem ? `${id}-problem` : undefined}
+                            onCheckedChange={(checked) =>
+                              updateSetup(index, {
+                                augments: toggleAugment(
+                                  setup.augments,
+                                  augment.id,
+                                  checked === true,
+                                ),
+                              })
+                            }
+                          />
+                          {augment.label}
+                          {augment.problem && (
+                            <span id={`${id}-problem`} className="sr-only">
+                              {augment.problem}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        onChange({ ...input, setups: augmentSweep(input.setups, index, catalog) })
+                      }
+                    >
+                      Sweep augments
+                    </Button>
+                  </fieldset>
+                )}
               </div>
             );
           })}
@@ -218,7 +300,7 @@ export function EvalForm({
                 ...input,
                 setups: [
                   ...input.setups,
-                  { harness: installed[0]!.harness, model: "", config: "current" },
+                  { harness: installed[0]!.harness, model: "", config: "current", augments: [] },
                 ],
               })
             }

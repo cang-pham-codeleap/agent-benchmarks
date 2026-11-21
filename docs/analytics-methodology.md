@@ -793,3 +793,28 @@ health recommendation. See
 For the machine-readable field definitions, see the
 [OpenAPI contract](api/openapi.yaml). For practical queries, see
 [Local API recipes](api/recipes.md).
+
+## Augment verdict
+
+An augment (for example rtk, codegraph, caveman, ponytail) is a tool or mode
+that runs alongside a coding agent. An evaluation compares an augmented setup
+with a baseline setup that has the same harness, model, and config and no
+augments.
+
+- **Pairs.** A pair is a (task, trial) cell graded in both arms within one run.
+  Ungraded cells (errors, provider limits, unavailable, pending) are excluded.
+- **Deltas.** `passDelta` is augmented passes minus baseline passes, divided by
+  pairs. `better` and `worse` count pairs where only the augmented or only the
+  baseline arm passed. `tokenDelta` is mean total tokens (input, output, cache
+  read, cache write) of the augmented arm over the baseline, minus one.
+  `costDelta` is the same for cost, and exists only when every paired cell is
+  priced. The saving is read from cost when available, otherwise from tokens.
+- **Thresholds.** Fewer than 20 pairs, or fewer than 3 paired trials for any
+  task, is `inconclusive`. A pass drop of 5 points or more, or `worse` exceeding
+  `better` by 2 or more, is `quality-risk`. Otherwise a saving of at least 10%
+  with no pass loss and `worse` no greater than `better` is `adopt`; anything
+  else is `no-saving`. With no token or cost data the verdict is `inconclusive`.
+- **Pooling.** `GET /api/evals/augments` pools the raw pairs of all completed
+  runs sharing harness, harness version, model, config, and augments, then
+  applies the same rules. Trials per task add up across runs, so two runs that
+  are each too small can together reach a verdict.

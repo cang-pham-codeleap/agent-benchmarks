@@ -1,6 +1,7 @@
 import { REPORT_CSS } from "../report/styles.ts";
 import { AGENT_BENCHMARKS_VERSION } from "../version.ts";
 import type {
+  AugmentVerdict,
   CellArtifacts,
   CheckResult,
   DiffStat,
@@ -172,12 +173,13 @@ export function renderReport(
     section(
       "Combos",
       table(
-        ["Harness", "Model", "Configuration", "Harness version"],
+        ["Harness", "Model", "Configuration", "Augments", "Harness version"],
         manifest.input.setups.map((setup) =>
           row([
             setup.harness,
             setup.model,
             configLabel(setup),
+            setup.augments.join(", ") || "none",
             manifest.provenance.harnessVersions[setup.harness] ?? NONE,
           ]),
         ),
@@ -204,6 +206,7 @@ export function renderReport(
       ),
     ),
     passRates,
+    augmentVerdicts(results.augmentVerdicts),
     section("Changes, checks, and hidden tests", combos.join("")),
     section(
       "Transcript summary",
@@ -263,11 +266,56 @@ function patchDetails(files: CellArtifacts | null, open: boolean): string {
 }
 
 function setupLabel(setup: EvalSetup): string {
-  return `${setup.harness} · ${setup.model} · ${configLabel(setup)}`;
+  const { augments } = setup;
+  return [
+    setup.harness,
+    setup.model,
+    configLabel(setup),
+    ...(augments.length ? [`+${augments.join(" +")}`] : []),
+  ].join(" · ");
 }
 
 function configLabel(setup: EvalSetup): string {
+  if (setup.config === "clean") return "clean (login only)";
   return setup.config === "current" ? "current configuration" : "default";
+}
+
+function signed(value: number, unit: string): string {
+  return `${value > 0 ? "+" : ""}${(value * 100).toFixed(1)}${unit}`;
+}
+
+function augmentVerdicts(verdicts: AugmentVerdict[]): string {
+  if (verdicts.length === 0) return "";
+  return section(
+    "Augments",
+    table(
+      [
+        "Augment set",
+        "Verdict",
+        "Pairs",
+        "Pass delta",
+        "Cost or token delta",
+        "Better / worse",
+        "Prep time",
+        "Reason",
+      ],
+      verdicts.map((v) => {
+        const saving = v.savingBasis === "cost" ? v.costDelta : v.tokenDelta;
+        return row([
+          `${v.harness} · ${v.model} · ${v.config} +${v.augments.join(" +")}`,
+          v.verdict,
+          String(v.pairs),
+          v.passDelta == null ? NONE : signed(v.passDelta, " pts"),
+          saving == null || v.savingBasis == null
+            ? NONE
+            : `${signed(saving, "%")} (${v.savingBasis})`,
+          `${v.better} / ${v.worse}`,
+          v.prepMs == null ? NONE : duration(v.prepMs),
+          v.reason,
+        ]);
+      }),
+    ),
+  );
 }
 
 function checksLabel(checks: CheckResult[]): string {

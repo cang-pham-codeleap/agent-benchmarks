@@ -324,6 +324,18 @@ non-merge commits, whether the work tree is dirty (uncommitted work never
 enters a run), and, with `sha`, the commit's message, changed files, and
 suggested hidden test files.
 
+Each setup may also carry `config: "clean"` (keeps the login, drops hooks,
+plugins, MCP servers, settings, and instruction files) and `augments`, a list
+of augment ids (`rtk`, `codegraph`, `caveman`, `ponytail`, `ptc`, `bash-cap`).
+Augments are rejected with `current` config and for harnesses without a
+recipe. `GET /api/evals/{id}` returns `augmentVerdicts`, one row per augmented
+setup with a baseline (same harness, model, config, no augments) in that run.
+
+`GET /api/evals/augments` pools paired cells across every completed run that
+has an augmented setup, keyed by harness, harness version, model, config, and
+augments, and recomputes the verdict over the pooled pairs. Cancelled and
+failed runs are left out.
+
 `GET /api/evals/{id}` adds `real` for real-task runs: the task, the human
 reference diff stat for replays, and per-cell diff stat, checks, hidden-test
 results, overlap with the human change, turns, and tool calls. Benchmark runs

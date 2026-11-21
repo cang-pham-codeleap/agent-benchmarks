@@ -870,14 +870,15 @@ rows. Delete a run's directory to remove it.
 | Path | Content |
 | --- | --- |
 | `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit) |
-| `plan.json`, `plan.default.json` | The `ach` matrix plan for the `current` and `default` configuration groups |
-| `ledger.jsonl`, `ledger.default.jsonl` | One `ach` record per cell and trial |
+| `plan.json`, `plan.<group>.json` | The `ach` matrix plan of each run group (see below) |
+| `ledger.jsonl`, `ledger.<group>.jsonl` | One `ach` record per cell and trial of each run group |
 | `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/` |
-| `bin/` | PATH shims that adapt a harness CLI's flags to the installed version |
+| `bin/<group>/` | PATH shims that adapt a harness CLI's flags to the installed version and append the group's clean and augment args |
+| `augments/` | Files the augment recipes use (prompt files, settings and MCP JSON), `sha256.json` with each file's hash, and `prep.jsonl` |
 | `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit |
 | `reference/` | Replays: the human change from the replayed commit |
 | `real-spec.json` | Real tasks: what the grader needs (base commit, hidden paths, profile) |
-| `cells/<config>/<cell>/` | Real tasks: each cell's `diff.patch`, `result.json`, and `checks/` and `hidden/` logs |
+| `cells/<group>/<cell>/` | Real tasks: each cell's `diff.patch`, `result.json`, and `checks/` and `hidden/` logs |
 | `ach-state/` | `ach` state; real-task cell worktrees are created under it |
 | `home/codex/` | The clean Codex home of a `default` group, holding only a copy of `~/.codex/auth.json` at mode `0600` |
 
@@ -887,6 +888,35 @@ adds design, UI/UX, architecture, security, and database-design tasks, two
 easy, two medium, and one hard per category, graded with only `sh` and
 Node.js. `bun test test/eval-bundled-tasks.test.ts` proves that mix and that
 each starter fails, reference passes, and planted bug fails.
+
+A run group is one `ach trial` process for the setups that share a config and
+an augment set. Its key is the config (`current`, `default`, or `clean`), plus
+`+` and the sorted augment ids when it has any, such as `clean+rtk`. Groups run
+one after another, the plain config first; the plan and ledger of `current` keep
+the names `plan.json` and `ledger.jsonl`. An API cell id is `<group>/<ach cell id>`.
+
+The `clean` config uses your login like `current` but drops user settings,
+hooks, plugins, MCP servers, and instruction files: Claude Code runs with
+`--setting-sources project,local`, `--permission-mode auto` (user settings
+held the permission mode, and without one every edit is denied), and an empty
+strict MCP config, OMP with
+`--no-extensions --no-skills --no-rules --no-context-files` and its default
+tool list pinned without `eval`, and Codex with `--ignore-user-config`. Other
+harnesses do not support it. Augments (RTK, CodeGraph, Caveman, Ponytail,
+programmatic tool calling, a Bash output cap) apply only to `clean` and
+`default` setups, because a `current` setup may already contain them. A harness
+without a recipe for an augment rejects it.
+
+An augment recipe is data in `src/eval/registry.ts`: extra args, env, files,
+MCP servers, and an optional prepare step. The group's shim for the harness
+appends the args and then runs the installed CLI. A prepare step (CodeGraph
+runs `codegraph init`) runs in the cell workspace before the agent starts, once
+per workspace, guarded by a marker file; when the workspace is a git
+repository, its output paths and the marker go in `.git/info/exclude`. Each
+step appends `{groupKey, harness, cwd, ms, ok, error}` to `augments/prep.jsonl`,
+which becomes the cell's `prepMs`. A failed step exits with code 97 and the
+cell's outcome is `setup-error`. Manifests written before augments existed read
+back with `augments: []`.
 
 A real-task run never writes to your repository. Each cell works in its own
 git worktree of the private clone, and `ach trial --cleanup` removes the

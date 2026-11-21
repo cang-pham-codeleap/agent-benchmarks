@@ -2,7 +2,13 @@ import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAchDir } from "../settings.ts";
-import { defaultConfigProblem, EVAL_HARNESSES, EVAL_LIMITS, EVAL_PRESETS } from "./registry.ts";
+import {
+  augmentInfos,
+  defaultConfigProblem,
+  EVAL_HARNESSES,
+  EVAL_LIMITS,
+  EVAL_PRESETS,
+} from "./registry.ts";
 import {
   EVAL_DIFFICULTIES,
   type EvalCatalog,
@@ -42,6 +48,7 @@ export async function readCatalog(db: Database, activeRunId: string | null): Pro
     presets: Object.values(EVAL_PRESETS),
     limits: { ...EVAL_LIMITS },
     activeRunId,
+    augments: augmentInfos(),
   };
 }
 

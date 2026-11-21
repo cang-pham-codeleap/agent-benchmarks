@@ -1335,6 +1335,26 @@ paths:
         "500": { $ref: "#/components/responses/InternalError" }
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
+  /api/evals/augments:
+    get:
+      tags: [Evaluations]
+      operationId: listEvaluationAugmentVerdicts
+      summary: Pool augment verdicts across completed evaluation runs
+      description: >-
+        Pools paired (task, trial) cells of every completed run that has an
+        augmented setup with a same-harness, model, and config baseline. Pools
+        are keyed by harness, harness version, model, config, and augments, and
+        the verdict is recomputed over the pooled pairs.
+      responses:
+        "200":
+          description: One entry per pool
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/AugmentPoolEntry" } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
   /api/evals/{id}:
     parameters:
       - { $ref: "#/components/parameters/EvaluationRunId" }
@@ -1942,11 +1962,89 @@ components:
         model: { type: string, maxLength: 128, pattern: '^[\w.:/@-]+$' }
         config:
           type: string
-          enum: [current, default]
+          enum: [current, default, clean]
           description: >-
             `current` runs with the user's own harness configuration; `default`
             runs without the user's global instructions, skills, tool servers,
-            and settings. Missing means `current`. Manifests always carry it.
+            and settings; `clean` keeps the user's login but drops their hooks,
+            plugins, MCP servers, settings, and instruction files. Missing
+            means `current`. Manifests always carry it.
+        augments:
+          type: array
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+          description: >-
+            Augments enabled for this setup. Only allowed with `default` or
+            `clean` config, and only for harnesses with a recipe. Missing means
+            none; manifests always carry it, sorted.
+      additionalProperties: false
+    EvaluationAugmentId:
+      type: string
+      enum: [rtk, codegraph, caveman, ponytail, ptc, bash-cap]
+    EvaluationAugment:
+      type: object
+      required: [id, label, kind, description, sourceUrl, harnesses, available, problem]
+      properties:
+        id: { $ref: "#/components/schemas/EvaluationAugmentId" }
+        label: { type: string }
+        kind: { type: string, enum: [shell-proxy, mcp, prompt-mode, harness-flag] }
+        description: { type: string }
+        sourceUrl: { type: string }
+        harnesses:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationHarness" }
+        available: { type: boolean }
+        problem: { type: [string, "null"], description: Why it cannot run on this machine. }
+      additionalProperties: false
+    AugmentVerdict:
+      type: object
+      required:
+        [baseline, augmented, harness, model, config, augments, pairs, minTrials, passDelta, better, worse, tokenDelta, costDelta, savingBasis, prepMs, verdict, reason]
+      properties:
+        baseline: { type: string, description: Setup key of the arm without augments. }
+        augmented: { type: string, description: Setup key of the augmented arm. }
+        harness: { $ref: "#/components/schemas/EvaluationHarness" }
+        model: { type: string }
+        config: { type: string, enum: [current, default, clean] }
+        augments:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+        pairs: { type: integer, minimum: 0, description: (task, trial) pairs graded in both arms. }
+        minTrials: { type: integer, minimum: 0, description: Fewest paired trials of any task. }
+        passDelta: { type: [number, "null"], description: Augmented pass share minus baseline pass share. }
+        better: { type: integer, minimum: 0 }
+        worse: { type: integer, minimum: 0 }
+        tokenDelta: { type: [number, "null"], description: Relative change in mean total tokens; -0.2 is 20% fewer. }
+        costDelta: { type: [number, "null"], description: Relative change in mean cost; null unless every paired cell is priced. }
+        savingBasis: { type: [string, "null"], enum: [cost, tokens, null] }
+        prepMs: { type: [number, "null"], description: Mean augment preparation time per augmented cell. }
+        verdict: { type: string, enum: [adopt, quality-risk, no-saving, inconclusive] }
+        reason: { type: string }
+      additionalProperties: false
+    AugmentPoolEntry:
+      type: object
+      required:
+        [harness, model, config, augments, harnessVersion, runIds, pairs, minTrials, passDelta, better, worse, tokenDelta, costDelta, savingBasis, prepMs, verdict, reason]
+      properties:
+        harness: { $ref: "#/components/schemas/EvaluationHarness" }
+        model: { type: string }
+        config: { type: string, enum: [current, default, clean] }
+        augments:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+        harnessVersion: { type: [string, "null"] }
+        runIds: { type: array, items: { type: string } }
+        pairs: { type: integer, minimum: 0 }
+        minTrials: { type: integer, minimum: 0 }
+        passDelta: { type: [number, "null"] }
+        better: { type: integer, minimum: 0 }
+        worse: { type: integer, minimum: 0 }
+        tokenDelta: { type: [number, "null"] }
+        costDelta: { type: [number, "null"] }
+        savingBasis: { type: [string, "null"], enum: [cost, tokens, null] }
+        prepMs: { type: [number, "null"] }
+        verdict: { type: string, enum: [adopt, quality-risk, no-saving, inconclusive] }
+        reason: { type: string }
       additionalProperties: false
     EvaluationRunInput:
       oneOf:
@@ -2150,12 +2248,29 @@ components:
       additionalProperties: false
     EvaluationCatalog:
       type: object
-      required: [ach, harnesses, tasks, presets, limits, activeRunId]
+      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments]
+      properties:
+        augments:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationAugment" }
       additionalProperties: true
     EvaluationResults:
       type: object
-      required: [manifest, cells, interrupted, setups, paired, warnings, progress, real]
+      required: [manifest, cells, interrupted, setups, paired, warnings, progress, real, augmentVerdicts]
       properties:
+        cells:
+          type: array
+          items:
+            type: object
+            properties:
+              prepMs:
+                type: [number, "null"]
+                description: Augment preparation (e.g. building a code index) before the agent started; null without augments.
+            additionalProperties: true
+        augmentVerdicts:
+          type: array
+          items: { $ref: "#/components/schemas/AugmentVerdict" }
+          description: One row per augmented setup that has a baseline in the same run.
         real:
           oneOf:
             - type: "null"

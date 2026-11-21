@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
+  AugmentPoolEntry,
   BenchmarkRunInput,
   EvalCatalog,
   EvalCellActivityEvent,
@@ -27,11 +28,13 @@ import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
 import { durationPrecise } from "../format.ts";
 import { Link, visit } from "../link.tsx";
+import { AugmentPoolPanel } from "./evaluating/augments.tsx";
 import { EvalForm } from "./evaluating/form.tsx";
 import { LiveView } from "./evaluating/live.tsx";
 import { RealTaskForm } from "./evaluating/real-form.tsx";
 import { RealResultsView } from "./evaluating/real-results.tsx";
 import { EvalResultsView } from "./evaluating/results.tsx";
+import { setupText } from "./evaluating-form.ts";
 
 function initialInput(catalog: EvalCatalog): BenchmarkRunInput {
   const preset = catalog.presets.find((item) => item.id === "smoke");
@@ -39,7 +42,9 @@ function initialInput(catalog: EvalCatalog): BenchmarkRunInput {
   return {
     kind: "benchmark",
     name: `Evaluation ${new Date().toLocaleDateString()}`,
-    setups: harness ? [{ harness: harness.harness, model: "", config: "current" }] : [],
+    setups: harness
+      ? [{ harness: harness.harness, model: "", config: "current", augments: [] }]
+      : [],
     taskIds: preset?.taskIds ?? [],
     trials: preset?.trials ?? 1,
     wallMs: catalog.limits.defaultWallMs,
@@ -159,6 +164,7 @@ export function EvaluatingView({
   const selectedId = new URLSearchParams(path.split("?", 2)[1] ?? "").get("run");
   const [catalog, setCatalog] = useState<EvalCatalog | null>(null);
   const [runs, setRuns] = useState<EvalRunManifest[] | null>(null);
+  const [pool, setPool] = useState<AugmentPoolEntry[]>([]);
   const [input, setInput] = useState<BenchmarkRunInput | null>(null);
   const [selected, setSelected] = useState<EvalResults | null>(null);
   const [active, setActive] = useState<EvalResults | null>(null);
@@ -195,6 +201,23 @@ export function EvaluatingView({
       });
     return () => controller.abort();
   }, [revision, progress]);
+
+  const completedRuns = (runs ?? [])
+    .filter((run) => run.status === "completed")
+    .map((run) => run.id)
+    .join();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the pool changes only when a run completes
+  useEffect(() => {
+    const controller = new AbortController();
+    void getJson<AugmentPoolEntry[]>("/api/evals/augments", { signal: controller.signal })
+      .then((nextPool) => {
+        if (!controller.signal.aborted) setPool(nextPool);
+      })
+      .catch((failure: unknown) => {
+        if (!controller.signal.aborted) setError(failure);
+      });
+    return () => controller.abort();
+  }, [revision, completedRuns]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: revision and progress are refetch triggers
   useEffect(() => {
@@ -383,6 +406,7 @@ export function EvaluatingView({
             ) : (
               <Skeleton className="h-48 w-full" />
             ))}
+          <AugmentPoolPanel entries={pool} />
           <Tabs value={tab} onValueChange={(value) => setTab(value as "benchmark" | "real")}>
             <TabsList>
               <TabsTrigger value="benchmark">Benchmark</TabsTrigger>
@@ -450,11 +474,7 @@ export function EvaluatingView({
                             <Badge variant="outline">{run.status}</Badge>
                           </TableCell>
                           <TableCell>{new Date(run.createdAt).toLocaleString()}</TableCell>
-                          <TableCell>
-                            {run.input.setups
-                              .map((setup) => `${setup.harness} / ${setup.model} / ${setup.config}`)
-                              .join(", ")}
-                          </TableCell>
+                          <TableCell>{run.input.setups.map(setupText).join(", ")}</TableCell>
                           <TableCell>
                             {run.input.setups.length *
                               (run.input.kind === "real" ? 1 : run.input.taskIds.length) *

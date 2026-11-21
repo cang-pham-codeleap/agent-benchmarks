@@ -21,12 +21,15 @@ import type { RequestContext } from "../server/context.ts";
 import { publishServerEvent } from "../server/sse.ts";
 import { syncNow } from "../server/sync.ts";
 import { getAchDir } from "../settings.ts";
+import { augmentVerdicts } from "./augment-verdicts.ts";
 import { readEvalTasks } from "./catalog.ts";
 import { EvalRequestError } from "./errors.ts";
 import {
   achCellId,
   type EvalLedgerRow,
   evalTaskIds,
+  PREP_EXIT_CODE,
+  prepLogPath,
   readEvalCells,
   readLedgerCells,
   readRegistry,
@@ -39,15 +42,33 @@ import {
   readCellStream,
   resolveLive,
 } from "./live.ts";
-import { apiCellId, ledgerFile, planFile, repoProfilesPath } from "./paths.ts";
+import {
+  apiCellId,
+  augmentsDir,
+  configOfGroup,
+  groupId,
+  groupKeysOnDisk,
+  ledgerFile,
+  planFile,
+  type RunGroupId,
+  repoProfilesPath,
+  setupGroups,
+} from "./paths.ts";
 import { prepareRealRun, readRealResults, rememberProfile, validateRealInput } from "./real.ts";
 import { shellQuote } from "./real-verify.ts";
-import { configGroupEnv, EVAL_HARNESSES, EVAL_LIMITS } from "./registry.ts";
+import {
+  configGroupEnv,
+  EVAL_HARNESSES,
+  EVAL_LIMITS,
+  rejectDuplicateSetup,
+  resolveRecipe,
+  validateSetupConfig,
+  writeRecipeFiles,
+} from "./registry.ts";
 import { pairedComparisons, summarizeSetups } from "./stats.ts";
 import type {
   BenchmarkRunInput,
   CellStream,
-  EvalConfigMode,
   EvalResults,
   EvalRunInput,
   EvalRunManifest,
@@ -65,14 +86,11 @@ const transitions: Record<EvalRunStatus, EvalRunStatus[]> = {
   interrupted: ["running"],
 };
 
-/** One `ach trial` invocation: config groups run in this order, one child at a time. */
-interface RunGroup {
-  config: EvalConfigMode;
+/** One `ach trial` invocation: run groups run in this order, one child at a time. */
+interface RunGroup extends RunGroupId {
   planPath: string;
   ledgerPath: string;
 }
-
-const groupOrder: EvalConfigMode[] = ["current", "default"];
 
 const watchers = new Map<string, { close(): void }>();
 const children = new Map<string, Bun.Subprocess>();
@@ -165,28 +183,27 @@ async function startBenchmarkRun(
     cpSync(source, target, { recursive: true });
     taskHashes[taskId] = hashTree(target);
   }
-  const plan = {
-    experiment: `agent-benchmarks-eval-${id}`,
-    agents: input.setups.map((setup) => ({
-      agent: EVAL_HARNESSES[setup.harness]!.achAgent,
-      models: [setup.model],
-    })),
-    tasks: input.taskIds.map((taskId) => ({ dir: join(runDir, "tasks", taskId) })),
-    trials: input.trials,
-    variant: "{agent}:{task}:{model}",
-    budget: { wallMs: input.wallMs },
-  };
-  writeFileSync(join(runDir, planFile.current), `${JSON.stringify(plan, null, 2)}\n`);
-  const executionOrder = plan.agents.flatMap((agent) =>
-    input.taskIds.flatMap((task) =>
-      agent.models.flatMap((model) =>
-        Array.from(
-          { length: input.trials },
-          (_, trial) => `${agent.agent} → ${task} → ${model} → ${trial + 1}`,
-        ),
-      ),
-    ),
-  );
+  const executionOrder: string[] = [];
+  for (const group of setupGroups(input.setups)) {
+    const plan = {
+      experiment: `agent-benchmarks-eval-${id}`,
+      agents: group.setups.map((setup) => ({
+        agent: EVAL_HARNESSES[setup.harness]!.achAgent,
+        models: [setup.model],
+      })),
+      tasks: input.taskIds.map((taskId) => ({ dir: join(runDir, "tasks", taskId) })),
+      trials: input.trials,
+      variant: "{agent}:{task}:{model}",
+      budget: { wallMs: input.wallMs },
+    };
+    writeFileSync(join(runDir, planFile(group.key)), `${JSON.stringify(plan, null, 2)}\n`);
+    const prefix = group.key === "current" ? "" : `${group.key} → `;
+    for (const agent of plan.agents)
+      for (const task of input.taskIds)
+        for (const model of agent.models)
+          for (let trial = 1; trial <= input.trials; trial++)
+            executionOrder.push(`${prefix}${agent.agent} → ${task} → ${model} → ${trial}`);
+  }
   const manifest = await newManifest(id, input, achDir, {
     taskHashes,
     executionOrder,
@@ -230,7 +247,7 @@ async function startRealRun(
       Array.from(
         { length: input.trials },
         (_, trial) =>
-          `${group.config} → ${EVAL_HARNESSES[setup.harness]?.achAgent ?? setup.harness} → ${taskId} → ${setup.model} → ${trial + 1}`,
+          `${group.key} → ${EVAL_HARNESSES[setup.harness]?.achAgent ?? setup.harness} → ${taskId} → ${setup.model} → ${trial + 1}`,
       ),
     ),
   );
@@ -461,6 +478,7 @@ export function readEvalResults(
     warnings: evalWarnings(input, setups, interrupted.length, repairedTornLedger),
     progress: evalProgress(dbPath, manifest),
     real: input.kind === "real" ? readRealResults(db, runDir, input, cells) : null,
+    augmentVerdicts: augmentVerdicts(cells, input.setups),
   };
 }
 
@@ -526,13 +544,11 @@ function initializeRunner(dbPath: string): void {
 }
 
 function runGroups(runDir: string): RunGroup[] {
-  return groupOrder
-    .map((config) => ({
-      config,
-      planPath: join(runDir, planFile[config]),
-      ledgerPath: join(runDir, ledgerFile[config]),
-    }))
-    .filter((group) => existsSync(group.planPath));
+  return groupKeysOnDisk(runDir, "plan").map((key) => ({
+    ...groupId(configOfGroup(key), key.split("+").slice(1) as RunGroup["augments"]),
+    planPath: join(runDir, planFile(key)),
+    ledgerPath: join(runDir, ledgerFile(key)),
+  }));
 }
 
 function spawnRun(
@@ -579,8 +595,7 @@ function spawnRun(
         const ran = groups.slice(0, index + 1);
         // ach exits non-zero when any cell errored; later groups still run so one crash does not drop them.
         const failed =
-          failure ??
-          (exitCode === 0 ? null : `ach exited ${exitCode} in the ${group.config} group`);
+          failure ?? (exitCode === 0 ? null : `ach exited ${exitCode} in the ${group.key} group`);
         if (index + 1 === groups.length) return finish(latest, failed == null ? 0 : 1, failed, ran);
         try {
           runFrom(index + 1, latest, failed);
@@ -631,7 +646,7 @@ function spawnGroup(
   const harnesses = [
     ...new Set(
       manifest.input.setups
-        .filter((setup) => setup.config === group.config)
+        .filter((setup) => groupId(setup.config, setup.augments).key === group.key)
         .map((setup) => setup.harness),
     ),
   ];
@@ -642,7 +657,12 @@ function spawnGroup(
     AGENTIC_CODING_HARNESS_HERMETIC_ROOT: hermeticRoot ?? undefined,
     AGENT_BENCHMARKS_EVAL_RUN: manifest.id,
   };
-  const bin = writeHarnessShims(runDir, harnesses, hermeticRoot == null, env.PATH ?? "");
+  for (const harness of harnesses)
+    Object.assign(
+      env,
+      resolveRecipe(harness, group.config, group.augments, group.key, augmentsDir(runDir)).env,
+    );
+  const bin = writeHarnessShims(runDir, group, harnesses, hermeticRoot == null, env.PATH ?? "");
   if (bin != null) env.PATH = `${bin}:${env.PATH ?? ""}`;
   for (const [key, value] of Object.entries(env)) if (value === undefined) delete env[key];
   const child = Bun.spawn(args, {
@@ -658,61 +678,129 @@ function spawnGroup(
   void pipeOutput(child.stdout, log, manifest.id, null).catch((error) =>
     console.error(`[eval/runner] stdout pipe failed for ${manifest.id}`, error),
   );
-  void pipeOutput(child.stderr, log, manifest.id, group.config).catch((error) =>
+  void pipeOutput(child.stderr, log, manifest.id, group.key).catch((error) =>
     console.error(`[eval/runner] stderr pipe failed for ${manifest.id}`, error),
   );
   return child;
 }
 
 /** Headless flags ach cannot set or that installed CLIs no longer accept, fixed by a shim placed first on
- * PATH. `real` is the shell-quoted path of the installed CLI. */
-const HARNESS_SHIMS: { harness: string; realTasksOnly: boolean; body: (real: string) => string }[] =
-  [
-    {
-      // `codex exec` defaults to a read-only sandbox; real tasks need the interactive default.
-      harness: "codex",
-      realTasksOnly: true,
-      body: (real) =>
-        `if [ "$1" = exec ]; then shift; exec ${real} exec --sandbox workspace-write "$@"; fi\nexec ${real} "$@"`,
-    },
-    {
-      // Copilot CLI 1.0.114 rejects ach's `--usage-output-file`; ach then reads usage from events.jsonl.
-      // ach's `--no-auto-update` makes the launcher run an older cached CLI (1.0.76) whose `auto` routes
-      // with `hydra`, not Copilot Fusion (`auto_v2`); without it the CLI matches the catalog's version.
-      // shortcut: an update downloaded mid-run applies at the next cell's launch; pin COPILOT_CLI_DIST_DIR if that drift matters.
-      // `copilot-fusion` is the archive's label for Fusion sessions; the CLI selects Fusion as `auto`.
-      harness: "copilot",
-      realTasksOnly: false,
-      body: (real) =>
-        [
-          "skip= model=",
-          'for arg do shift; if [ -n "$skip" ]; then skip=; continue; fi',
-          '  if [ -n "$model" ]; then model=; [ "$arg" = copilot-fusion ] && arg=auto; fi',
-          '  case "$arg" in --usage-output-file) skip=1; continue;; --usage-output-file=*|--no-auto-update) continue;;',
-          "    --model) model=1;; --model=copilot-fusion) arg=--model=auto;; esac",
-          '  set -- "$@" "$arg"; done',
-          `exec ${real} "$@"`,
-        ].join("\n"),
-    },
-  ];
+ * PATH. `real` is the shell-quoted path of the installed CLI; `extra` is the group's shell-quoted recipe
+ * args, which the shim appends after the caller's own. */
+const HARNESS_SHIMS: {
+  harness: string;
+  realTasksOnly: boolean;
+  body: (real: string, extra: string) => string;
+}[] = [
+  {
+    // `codex exec` defaults to a read-only sandbox; real tasks need the interactive default.
+    harness: "codex",
+    realTasksOnly: true,
+    body: (real, extra) =>
+      `if [ "$1" = exec ]; then shift; exec ${real} exec --sandbox workspace-write "$@" ${extra}; fi\nexec ${real} "$@"`,
+  },
+  {
+    // Copilot CLI 1.0.114 rejects ach's `--usage-output-file`; ach then reads usage from events.jsonl.
+    // ach's `--no-auto-update` makes the launcher run an older cached CLI (1.0.76) whose `auto` routes
+    // with `hydra`, not Copilot Fusion (`auto_v2`); without it the CLI matches the catalog's version.
+    // shortcut: an update downloaded mid-run applies at the next cell's launch; pin COPILOT_CLI_DIST_DIR if that drift matters.
+    // `copilot-fusion` is the archive's label for Fusion sessions; the CLI selects Fusion as `auto`.
+    harness: "copilot",
+    realTasksOnly: false,
+    body: (real, extra) =>
+      [
+        "skip= model=",
+        'for arg do shift; if [ -n "$skip" ]; then skip=; continue; fi',
+        '  if [ -n "$model" ]; then model=; [ "$arg" = copilot-fusion ] && arg=auto; fi',
+        '  case "$arg" in --usage-output-file) skip=1; continue;; --usage-output-file=*|--no-auto-update) continue;;',
+        "    --model) model=1;; --model=copilot-fusion) arg=--model=auto;; esac",
+        '  set -- "$@" "$arg"; done',
+        `exec ${real} "$@" ${extra}`,
+      ].join("\n"),
+  },
+];
 
+const JSON_ESCAPE = `sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g'`;
+
+/** Runs a group's prepare commands once per cell workspace, before the agent starts. The marker file
+ * makes a second CLI invocation in the same workspace skip it; the commands' output stays out of git diffs. */
+function prepareBlock(
+  runDir: string,
+  group: RunGroupId,
+  harness: string,
+  steps: { command: string; exclude: string[] }[],
+): string {
+  const marker = `.ab-prep-${group.key.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+  const excluded = [marker, ...steps.flatMap((step) => step.exclude)].map(shellQuote).join(" ");
+  const log = shellQuote(prepLogPath(runDir));
+  const script = steps.map((step) => step.command).join(" && ");
+  return [
+    `if [ "$PWD" != ${shellQuote(join(runDir, "cwd"))} ] && [ ! -e ${shellQuote(marker)} ]; then`,
+    "  now() { perl -MTime::HiRes=time -e 'printf \"%d\", time*1000' 2>/dev/null || echo $(( $(date +%s) * 1000 )); }",
+    `  esc() { printf '%s' "$1" | tr '\\n\\t\\r' '   ' | cut -c1-300 | ${JSON_ESCAPE}; }`,
+    "  start=$(now)",
+    "  if exclude=$(git rev-parse --git-path info/exclude 2>/dev/null); then",
+    '    mkdir -p "$(dirname "$exclude")"',
+    `    for path in ${excluded}; do grep -qxF "$path" "$exclude" 2>/dev/null || echo "$path" >> "$exclude"; done`,
+    "  fi",
+    `  out=$( { ${script}; } 2>&1 ); code=$?`,
+    "  ms=$(( $(now) - start ))",
+    `  mkdir -p ${shellQuote(dirname(prepLogPath(runDir)))}`,
+    "  if [ $code -eq 0 ]; then",
+    `    : > ${shellQuote(marker)}`,
+    `    printf '{"groupKey":"%s","harness":"%s","cwd":"%s","ms":%s,"ok":true,"error":null}\\n' ${shellQuote(group.key)} ${shellQuote(harness)} "$(esc "$PWD")" "$ms" >> ${log}`,
+    "  else",
+    `    msg="augment prepare failed (exit $code): $(esc "$out")"`,
+    `    printf '{"groupKey":"%s","harness":"%s","cwd":"%s","ms":%s,"ok":false,"error":"%s"}\\n' ${shellQuote(group.key)} ${shellQuote(harness)} "$(esc "$PWD")" "$ms" "$msg" >> ${log}`,
+    '    echo "$msg" >&2',
+    `    exit ${PREP_EXIT_CODE}`,
+    "  fi",
+    "fi",
+  ].join("\n");
+}
+
+/** Writes the group's recipe files and one PATH shim per harness in `runDir/bin/<group key>/`.
+ * Returns that directory, or null when no harness in the group needs a shim. */
 export function writeHarnessShims(
   runDir: string,
+  group: RunGroupId,
   harnesses: readonly string[],
   realTask: boolean,
   path: string,
 ): string | null {
-  const bin = join(runDir, "bin");
+  const bin = join(runDir, "bin", group.key);
+  const dir = augmentsDir(runDir);
+  const fileHashes: Record<string, string> = {};
   let wrote = false;
-  for (const shim of HARNESS_SHIMS) {
-    if (!harnesses.includes(shim.harness) || (shim.realTasksOnly && !realTask)) continue;
-    const installed = Bun.which(shim.harness, { PATH: path });
+  for (const harness of harnesses) {
+    const shim = HARNESS_SHIMS.find(
+      (candidate) => candidate.harness === harness && (!candidate.realTasksOnly || realTask),
+    );
+    const recipe = resolveRecipe(harness, group.config, group.augments, group.key, dir);
+    const extra = recipe.args.map(shellQuote).join(" ");
+    if (shim == null && extra === "" && recipe.prepare.length === 0) continue;
+    const installed = Bun.which(harness, { PATH: path });
     if (installed == null) continue;
+    Object.assign(fileHashes, writeRecipeFiles(dir, recipe.files));
+    const real = shellQuote(installed);
+    const body = shim == null ? `exec ${real} "$@" ${extra}` : shim.body(real, extra);
+    const probeGuard = `case "$1" in --version|-v|--help|-h) exec ${real} "$@";; esac`;
+    const lines = [
+      "#!/bin/sh",
+      ...(group.augments.length > 0 || group.config === "clean" ? [probeGuard] : []),
+      ...(recipe.prepare.length > 0 ? [prepareBlock(runDir, group, harness, recipe.prepare)] : []),
+      body,
+    ];
     mkdirSync(bin, { recursive: true });
-    writeFileSync(join(bin, shim.harness), `#!/bin/sh\n${shim.body(shellQuote(installed))}\n`, {
-      mode: 0o755,
-    });
+    writeFileSync(join(bin, harness), `${lines.join("\n")}\n`, { mode: 0o755 });
     wrote = true;
+  }
+  if (Object.keys(fileHashes).length > 0) {
+    const hashPath = join(dir, "sha256.json");
+    const known = existsSync(hashPath)
+      ? (JSON.parse(readFileSync(hashPath, "utf8")) as Record<string, string>)
+      : {};
+    writeFileSync(hashPath, `${JSON.stringify({ ...known, ...fileHashes }, null, 2)}\n`);
   }
   return wrote ? bin : null;
 }
@@ -760,8 +848,8 @@ function installLedgerWatch(dbPath: string, runDir: string, id: string): void {
     },
   });
   function emit() {
-    const body = Object.values(ledgerFile)
-      .map((name) => join(runDir, name))
+    const body = groupKeysOnDisk(runDir, "ledger")
+      .map((key) => join(runDir, ledgerFile(key)))
       .map((path) => (existsSync(path) ? readFileSync(path, "utf8") : ""))
       .join("\0");
     if (body === last) return;
@@ -827,7 +915,11 @@ function updateRun(
   });
 }
 
-function validateInput(raw: unknown, achDir: string): BenchmarkRunInput {
+export function validateInput(
+  raw: unknown,
+  achDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): BenchmarkRunInput {
   if (raw == null || typeof raw !== "object" || Array.isArray(raw))
     throw new EvalRequestError("body must be an object", 400);
   const input = raw as Partial<Omit<BenchmarkRunInput, "kind">> & { kind?: unknown };
@@ -842,7 +934,7 @@ function validateInput(raw: unknown, achDir: string): BenchmarkRunInput {
   )
     throw new EvalRequestError(`setups must contain 1..${EVAL_LIMITS.maxSetups} entries`, 400);
   const keys = new Set<string>();
-  for (const setup of input.setups) {
+  const setups: EvalSetup[] = input.setups.map((setup) => {
     if (
       setup == null ||
       typeof setup !== "object" ||
@@ -854,21 +946,32 @@ function validateInput(raw: unknown, achDir: string): BenchmarkRunInput {
       throw new EvalRequestError(`unknown harness: ${setup.harness}`, 400);
     if (!/^[\w.:/@-]{1,128}$/.test(setup.model))
       throw new EvalRequestError("model has unsupported characters", 400);
-    if (setup.config !== undefined && setup.config !== "current")
+    if (setup.config !== undefined && setup.config !== "current" && setup.config !== "clean")
       throw new EvalRequestError(
-        "benchmark setups run with the current configuration only",
+        "benchmark setups run with the current or clean configuration only",
         400,
         "config_unsupported",
       );
-    const key = `${setup.harness}:${setup.model}`;
-    if (keys.has(key)) throw new EvalRequestError(`duplicate setup: ${key}`, 400);
-    keys.add(key);
+    const config = setup.config ?? "current";
+    const normalized: EvalSetup = {
+      harness: setup.harness,
+      model: setup.model,
+      config,
+      augments: validateSetupConfig(
+        setup.harness,
+        config,
+        (setup as { augments?: unknown }).augments,
+        env,
+      ),
+    };
+    rejectDuplicateSetup(keys, normalized);
     if (
       String(setup.harness) !== "null" &&
-      Bun.which(EVAL_HARNESSES[setup.harness]!.achAgent) == null
+      Bun.which(EVAL_HARNESSES[setup.harness]!.achAgent, { PATH: env.PATH ?? "" }) == null
     )
       throw new EvalRequestError(`${setup.harness} is not installed`, 503, "harness_missing");
-  }
+    return normalized;
+  });
   const taskSet = new Set(readEvalTasks(achDir).map((source) => source.task.id));
   if (
     !Array.isArray(input.taskIds) ||
@@ -891,11 +994,7 @@ function validateInput(raw: unknown, achDir: string): BenchmarkRunInput {
   return {
     kind: "benchmark",
     name: input.name.trim(),
-    setups: input.setups.map((setup) => ({
-      harness: setup.harness,
-      model: setup.model,
-      config: "current",
-    })),
+    setups,
     taskIds: input.taskIds,
     trials: input.trials!,
     wallMs: input.wallMs!,
@@ -986,10 +1085,14 @@ function readManifest(runDir: string): EvalRunManifest | null {
   }
 }
 
-/** Manifests written before real-task runs have no `kind` and setups without `config`. */
+/** Manifests written before real-task runs have no `kind` and setups without `config`; older ones also lack `augments`. */
 function parseManifest(stored: EvalRunManifest): EvalRunManifest {
   const input = stored.input as EvalRunInput | Omit<BenchmarkRunInput, "kind">;
-  const setups = input.setups.map((setup) => ({ ...setup, config: setup.config ?? "current" }));
+  const setups = input.setups.map((setup) => ({
+    ...setup,
+    config: setup.config ?? "current",
+    augments: setup.augments ?? [],
+  }));
   return {
     ...stored,
     input: "kind" in input ? { ...input, setups } : { ...input, kind: "benchmark", setups },
@@ -1025,7 +1128,7 @@ async function pipeOutput(
   stream: ReadableStream<Uint8Array>,
   log: FileSink,
   id: string,
-  progressConfig: EvalConfigMode | null,
+  progressGroup: string | null,
 ): Promise<void> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -1035,13 +1138,13 @@ async function pipeOutput(
     if (done) break;
     const text = decoder.decode(value, { stream: true });
     log.write(value);
-    if (progressConfig != null) {
+    if (progressGroup != null) {
       pending += text;
       const lines = pending.split("\n");
       pending = lines.pop() ?? "";
       for (const line of lines) {
         const match = /^\[[^\]]+\]\s+(.+?)\s+running$/.exec(line);
-        if (match != null) currentCells.set(id, apiCellId(progressConfig, match[1]!));
+        if (match != null) currentCells.set(id, apiCellId(progressGroup, match[1]!));
       }
     }
   }

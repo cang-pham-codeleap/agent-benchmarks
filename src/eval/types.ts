@@ -1,11 +1,26 @@
 export type EvalHarness = "claude" | "codex" | "copilot" | "opencode" | "omp" | "droid";
 
-export type EvalConfigMode = "current" | "default";
+/** `clean` keeps the user's login but drops their hooks, plugins, MCP servers, and instructions. */
+export type EvalConfigMode = "current" | "default" | "clean";
+
+export const EVAL_AUGMENT_IDS = [
+  "rtk",
+  "codegraph",
+  "caveman",
+  "ponytail",
+  "ptc",
+  "bash-cap",
+] as const;
+export type AugmentId = (typeof EVAL_AUGMENT_IDS)[number];
+
+export type AugmentKind = "shell-proxy" | "mcp" | "prompt-mode" | "harness-flag";
 
 export interface EvalSetup {
   harness: EvalHarness;
   model: string;
   config: EvalConfigMode;
+  /** Sorted and unique; empty for a setup without augments. */
+  augments: AugmentId[];
 }
 
 export type EvalPresetId = "smoke" | "quick" | "reliability" | "custom";
@@ -200,6 +215,8 @@ export interface EvalCell {
   outcome: CellOutcome;
   agentMs: number | null;
   verifyMs: number | null;
+  /** Augment preparation (e.g. building a code index) before the agent started; null without augments. */
+  prepMs: number | null;
   endToEndMs: number | null;
   tokens: CellTokens | null;
   cost: CellCost;
@@ -273,6 +290,8 @@ export interface EvalResults {
   progress: { done: number; total: number; currentCell: string | null; liveCellId: string | null };
   /** Null for benchmark runs. */
   real: RealResults | null;
+  /** One row per augmented setup that has a same harness, model, and config baseline without augments. */
+  augmentVerdicts: AugmentVerdict[];
 }
 
 export const EVAL_DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -298,6 +317,53 @@ export interface EvalHarnessInfo {
   defaultConfigProblem: string | null;
 }
 
+export interface EvalAugmentInfo {
+  id: AugmentId;
+  label: string;
+  kind: AugmentKind;
+  description: string;
+  sourceUrl: string;
+  /** Harnesses with a recipe for this augment. */
+  harnesses: EvalHarness[];
+  available: boolean;
+  /** Why it cannot run on this machine; null when available. */
+  problem: string | null;
+}
+
+export type AugmentVerdictKind = "adopt" | "quality-risk" | "no-saving" | "inconclusive";
+
+export interface AugmentVerdict {
+  baseline: string;
+  augmented: string;
+  harness: EvalHarness;
+  model: string;
+  config: EvalConfigMode;
+  augments: AugmentId[];
+  /** (task, trial) pairs graded in both arms. */
+  pairs: number;
+  /** Fewest graded trials of any task in the pairs. */
+  minTrials: number;
+  /** Augmented pass share minus baseline pass share over the pairs. */
+  passDelta: number | null;
+  /** Pairs the augmented arm passed and the baseline failed. */
+  better: number;
+  worse: number;
+  /** Relative change in mean total tokens over the pairs; -0.2 is 20% fewer. */
+  tokenDelta: number | null;
+  /** Relative change in mean cost over the pairs; null unless every paired cell is priced. */
+  costDelta: number | null;
+  savingBasis: "cost" | "tokens" | null;
+  /** Mean augment preparation time per augmented cell, outside agent time. */
+  prepMs: number | null;
+  verdict: AugmentVerdictKind;
+  reason: string;
+}
+
+export interface AugmentPoolEntry extends Omit<AugmentVerdict, "baseline" | "augmented"> {
+  harnessVersion: string | null;
+  runIds: string[];
+}
+
 export interface EvalPreset {
   id: Exclude<EvalPresetId, "custom">;
   label: string;
@@ -319,6 +385,7 @@ export interface EvalCatalog {
     realDefaultWallMs: number;
   };
   activeRunId: string | null;
+  augments: EvalAugmentInfo[];
 }
 
 export interface EvalProgressEvent {

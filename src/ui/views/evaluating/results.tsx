@@ -23,7 +23,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { type EvalResults, type EvalRunManifest, GRADED_OUTCOME } from "../../../eval/types.ts";
 import { durationPrecise, money } from "../../format.ts";
-import { setupText } from "./real-results.tsx";
+import { setupText } from "../evaluating-form.ts";
+import { AugmentVerdictTable } from "./augments.tsx";
 
 const percent = (value: number | null) =>
   value == null ? "Unavailable" : `${(value * 100).toFixed(1)}%`;
@@ -125,6 +126,11 @@ export function EvalResultsView({
                           <Badge variant="outline">{summary.setup.harness}</Badge>
                           <span>{summary.setup.model}</span>
                           <Badge variant="secondary">{summary.setup.config}</Badge>
+                          {summary.setup.augments.map((id) => (
+                            <Badge key={id} variant="outline">
+                              +{id}
+                            </Badge>
+                          ))}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -354,6 +360,9 @@ export function EvalResultsView({
             )}
           </CardContent>
         </Card>
+        {results.augmentVerdicts.length > 0 && (
+          <AugmentVerdictTable verdicts={results.augmentVerdicts} />
+        )}
         {results.interrupted.length > 0 && (
           <Card>
             <CardContent>

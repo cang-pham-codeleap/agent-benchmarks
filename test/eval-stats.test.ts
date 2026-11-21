@@ -25,6 +25,7 @@ function cell(
     tokens: null,
     cost: { kind: "priced", usd: 0.2, basis: "list-price-estimate" },
     observedModel: null,
+    prepMs: null,
     session: null,
     raw: { status: outcome, exitStatus: null, verify: null, error: null, runId: null },
     ...overrides,
@@ -32,8 +33,8 @@ function cell(
 }
 
 const setups: EvalSetup[] = [
-  { harness: "claude", model: "a", config: "current" },
-  { harness: "codex", model: "b", config: "current" },
+  { harness: "claude", model: "a", config: "current", augments: [] },
+  { harness: "codex", model: "b", config: "current", augments: [] },
 ];
 
 describe("evaluation statistics", () => {
@@ -99,7 +100,7 @@ describe("evaluation statistics", () => {
   });
 
   test("keeps a setup that never ran out of everyone else's pass rate", () => {
-    const current: EvalSetup = { harness: "claude", model: "a", config: "current" };
+    const current: EvalSetup = { harness: "claude", model: "a", config: "current", augments: [] };
     const defaults: EvalSetup = { ...current, config: "default" };
     const cells = [
       cell(setupKey(current), "t1", 1, "passed"),

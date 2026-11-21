@@ -1,13 +1,7 @@
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { artifactDir } from "./paths.ts";
-import type {
-  CheckResult,
-  DiffStat,
-  EvalConfigMode,
-  RealCellSummary,
-  RepoProfile,
-} from "./types.ts";
+import { artifactDir, isGroupKey } from "./paths.ts";
+import type { CheckResult, DiffStat, RealCellSummary, RepoProfile } from "./types.ts";
 
 export interface RealSpec {
   runDir: string;
@@ -97,7 +91,7 @@ async function runCommand(
 
 export async function verifyCell(
   spec: RealSpec,
-  group: EvalConfigMode,
+  group: string,
   cellId: string,
   workspace: string,
 ): Promise<RealCellResult> {
@@ -152,11 +146,11 @@ export async function verifyCell(
 if (import.meta.main) {
   try {
     const specPath = process.argv[2] ?? process.env.AGENT_BENCHMARKS_REAL_SPEC;
-    const group = (process.argv[3] ?? process.env.AGENT_BENCHMARKS_REAL_GROUP) as EvalConfigMode;
+    const group = process.argv[3] ?? process.env.AGENT_BENCHMARKS_REAL_GROUP;
     const cellId = process.env.ACH_CELL_ID;
-    if (specPath == null || (group !== "current" && group !== "default") || cellId == null)
+    if (specPath == null || group == null || !isGroupKey(group) || cellId == null)
       throw new Error(
-        "usage: real-verify.ts <real-spec.json> <current|default> with ACH_CELL_ID set",
+        "usage: real-verify.ts <real-spec.json> <run group key> with ACH_CELL_ID set",
       );
     const spec = JSON.parse(readFileSync(specPath, "utf8")) as RealSpec;
     const result = await verifyCell(

@@ -38,6 +38,10 @@ This indexes the local agent logs it finds, starts the web UI at <http://127.0.0
 - Real-task evaluations that run Claude Code, Codex, Copilot CLI, Oh My Pi, and
   other harnesses headless on a replayed commit or your own prompt, then score
   each against hidden tests, checks, and the human diff.
+- Augment comparisons that run the same agent with and without a token-saving
+  add-on (RTK, CodeGraph, Caveman, Ponytail, OMP's programmatic tool calling, a
+  Bash output cap) on a clean config, then mark each add-on adopt, quality-risk,
+  no-saving, or inconclusive from paired cells, pooled across runs.
 - A local HTTP API with an OpenAPI 3.1 contract.
 
 ## Supported agents

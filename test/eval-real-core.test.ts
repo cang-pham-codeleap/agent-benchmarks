@@ -202,8 +202,8 @@ describe("prepareRealRun and real-verify", () => {
     input = {
       ...validate(replayInput()),
       setups: [
-        { harness: "claude", model: "sonnet", config: "current" },
-        { harness: "claude", model: "sonnet", config: "default" },
+        { harness: "claude", model: "sonnet", config: "current", augments: [] },
+        { harness: "claude", model: "sonnet", config: "default", augments: [] },
       ],
     };
     const prepared = real.prepareRealRun(input, runDir(), {});
@@ -231,7 +231,9 @@ describe("prepareRealRun and real-verify", () => {
 
     const [current, fallback] = prepared.groups;
     expect(current?.config).toBe("current");
-    expect(current?.setups).toEqual([{ harness: "claude", model: "sonnet", config: "current" }]);
+    expect(current?.setups).toEqual([
+      { harness: "claude", model: "sonnet", config: "current", augments: [] },
+    ]);
     expect(current?.ledgerPath).toBe(join(runDir(), "ledger.jsonl"));
     expect(fallback?.config).toBe("default");
     expect(fallback?.planPath).toBeNull();

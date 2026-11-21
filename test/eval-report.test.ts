@@ -9,9 +9,9 @@ import type {
 } from "../src/eval/types.ts";
 
 const SETUPS: EvalSetup[] = [
-  { harness: "claude", model: "sonnet", config: "current" },
-  { harness: "claude", model: "sonnet", config: "default" },
-  { harness: "codex", model: "gpt-5", config: "current" },
+  { harness: "claude", model: "sonnet", config: "current", augments: [] },
+  { harness: "claude", model: "sonnet", config: "default", augments: [] },
+  { harness: "codex", model: "gpt-5", config: "current", augments: [] },
 ];
 
 function cell(setup: EvalSetup, outcome: EvalCell["outcome"]): EvalCell {
@@ -34,6 +34,7 @@ function cell(setup: EvalSetup, outcome: EvalCell["outcome"]): EvalCell {
         ? { kind: "unavailable", reason: "not-run" }
         : { kind: "priced", usd: 0.42, basis: "harness-reported" },
     observedModel: setup.model,
+    prepMs: null,
     session: null,
     raw: {
       status: "done",
@@ -183,6 +184,27 @@ const results: EvalResults = {
       },
     },
   },
+  augmentVerdicts: [
+    {
+      baseline: "claude:sonnet:default",
+      augmented: "claude:sonnet:default+rtk",
+      harness: "claude",
+      model: "sonnet",
+      config: "default",
+      augments: ["rtk"],
+      pairs: 24,
+      minTrials: 3,
+      passDelta: 0.0417,
+      better: 2,
+      worse: 1,
+      tokenDelta: -0.2,
+      costDelta: null,
+      savingBasis: "tokens",
+      prepMs: 2_500,
+      verdict: "adopt",
+      reason: "Saved 20% <tokens> with no quality loss.",
+    },
+  ],
 };
 
 const artifacts: Record<string, CellArtifacts> = {
@@ -235,5 +257,24 @@ describe("renderReport", () => {
     expect(html).toContain("failed (exit 1)");
     expect(html).toContain("<td>7</td><td>12</td><td>none</td>");
     expect(html).toContain("default config needs &lt;token&gt;");
+  });
+
+  test("lists augment verdicts and omits the section without them", () => {
+    expect(html).toContain("<h2>Augments</h2>");
+    expect(html).toContain("<td>claude · sonnet · default +rtk</td>");
+    expect(html).toContain("<td>adopt</td><td>24</td><td>+4.2 pts</td>");
+    expect(html).toContain("<td>-20.0% (tokens)</td><td>2 / 1</td><td>");
+    expect(html).toContain("Saved 20% &lt;tokens&gt; with no quality loss.");
+    const without = renderReport({ ...results, augmentVerdicts: [] }, () => null);
+    expect(without).not.toContain("<h2>Augments</h2>");
+  });
+
+  test("setup labels include augments", () => {
+    const augmented: EvalSetup = { ...SETUPS[1]!, augments: ["rtk", "ptc"] };
+    const labelled = renderReport(
+      { ...results, setups: [{ ...results.setups[1]!, setup: augmented }] },
+      () => null,
+    );
+    expect(labelled).toContain("claude · sonnet · default · +rtk +ptc");
   });
 });
