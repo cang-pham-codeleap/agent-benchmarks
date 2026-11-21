@@ -74,11 +74,10 @@ describe("Tools and MCP presentation", () => {
     expect(tools).toContain("...data.mcp.map((row) => row.mcp_server)");
     expect(tools).toContain("...data.tools.map((row) => row.mcp_server)");
     expect(tools).toContain("server: row.mcp_server,");
-    expect(tools).toContain('value={`server:${row.mcp_server}`}');
+    expect(tools).toContain("value={`server:${row.mcp_server}`}");
     expect(tools).toContain("title={row.mcp_server}");
     expect(tools).not.toMatch(/value=\{(formatMcpServer|mcpServerLabel)\(/);
     expect(tools).not.toMatch(/server: (formatMcpServer|mcpServerLabel)\(/);
     expect(tools).not.toContain("formatMcpServer(");
   });
-
 });

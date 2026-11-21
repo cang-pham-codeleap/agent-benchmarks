@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { normalizeTranscript } from "@letta-ai/trajectory";
 import {
+  agentBenchmarksRuleModelTotals,
   buildLegacyExport,
   compareLegacySessionTotals,
   compareModelTotals,
@@ -21,7 +22,6 @@ import {
   compareSessionTotals,
   compareStructure,
   costAgentBenchmarksModelGroups,
-  agentBenchmarksRuleModelTotals,
   type LegacySession,
   lettaStructure,
   type ModelTotals,
@@ -207,8 +207,9 @@ describe("opencode parity comparisons", () => {
       },
     ]);
     expect(
-      compareRecordedCost(agentBenchmarks, [{ ...(reference[0] as ModelTotals), doubleCharged: 0 }])[0]
-        ?.level,
+      compareRecordedCost(agentBenchmarks, [
+        { ...(reference[0] as ModelTotals), doubleCharged: 0 },
+      ])[0]?.level,
     ).toBe("mismatch");
   });
 
@@ -225,7 +226,10 @@ describe("opencode parity comparisons", () => {
       model({ provider: "example", model: "example-free", cost: 0, costSource: "reported" }),
     ];
     expect(compareRecordedCost(agentBenchmarks, reference)).toEqual([
-      { level: "info", text: expect.stringContaining("example/example-free: no Agent Benchmarks rate") },
+      {
+        level: "info",
+        text: expect.stringContaining("example/example-free: no Agent Benchmarks rate"),
+      },
       {
         level: "ok",
         text: "example/example-unpriced: Agent Benchmarks reported 0.0012345 vs recorded 0.0012345 (no Agent Benchmarks rate)",

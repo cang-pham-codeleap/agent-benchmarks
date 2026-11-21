@@ -22,7 +22,7 @@ describe("report export privacy review", () => {
       "function ReportExportButton(",
     );
 
-    expect(reviewSheet).toContain("<Dialog open={open}");
+    expect(reviewSheet).toMatch(/<Dialog\s+open=\{open\}/);
     expect(reviewSheet).toContain("<DialogContent");
     expect(reviewSheet).toContain("onCloseAutoFocus");
     expect(reviewSheet).toContain("returnFocus.current.focus()");

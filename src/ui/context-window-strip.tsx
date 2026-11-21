@@ -52,7 +52,9 @@ export function ContextWindowUnavailable({ timeline }: { timeline: ContextWindow
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Context window</h2>
-          <p className="text-sm text-muted-foreground">How full the model's context window was at each API call across the session.</p>
+          <p className="text-sm text-muted-foreground">
+            How full the model's context window was at each API call across the session.
+          </p>
         </div>
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground [&_strong]:mr-1 [&_strong]:text-foreground">
           {timeline.window_tokens != null ? (
@@ -238,7 +240,10 @@ export function ContextWindowStrip({
           auto-compact zone
         </text>
         {[0.25, 0.5, 0.75].map((fraction) => (
-          <g className="[&_line]:stroke-border [&_text]:fill-muted-foreground [&_text]:text-[10px]" key={`grid-${fraction}`}>
+          <g
+            className="[&_line]:stroke-border [&_text]:fill-muted-foreground [&_text]:text-[10px]"
+            key={`grid-${fraction}`}
+          >
             <line
               x1={plotLeft}
               x2={plotRight}
@@ -257,7 +262,11 @@ export function ContextWindowStrip({
           y1={yAt(windowTokens)}
           y2={yAt(windowTokens)}
         />
-        <text className="fill-muted-foreground text-[10px]" x={plotLeft + 4} y={STRIP_WINDOW_LABEL_Y}>
+        <text
+          className="fill-muted-foreground text-[10px]"
+          x={plotLeft + 4}
+          y={STRIP_WINDOW_LABEL_Y}
+        >
           window · {compact(windowTokens)}
           {timeline.window_inferred ? " (inferred)" : ""}
         </text>
@@ -295,7 +304,10 @@ export function ContextWindowStrip({
           })}
         </g>
         {compactionMarks.map(({ compaction, x }) => (
-          <g className="[&_line]:stroke-chart-2 [&_line]:[stroke-dasharray:3_3]" key={`compaction-mark-${compaction.seq}`}>
+          <g
+            className="[&_line]:stroke-chart-2 [&_line]:[stroke-dasharray:3_3]"
+            key={`compaction-mark-${compaction.seq}`}
+          >
             <line x1={x} x2={x} y1={STRIP_PLOT_TOP} y2={baseY} />
             <rect
               fill="transparent"
@@ -474,7 +486,9 @@ export function ContextWindowStrip({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Context window</h2>
-          <p className="text-sm text-muted-foreground">How full the model's context window was at each API call across the session.</p>
+          <p className="text-sm text-muted-foreground">
+            How full the model's context window was at each API call across the session.
+          </p>
         </div>
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground [&_strong]:mr-1 [&_strong]:text-foreground">
           <span>

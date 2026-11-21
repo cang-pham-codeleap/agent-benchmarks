@@ -38,8 +38,8 @@ import {
   type IngestIssueCode,
   type Issue,
   type Json,
-  type NormalizedBlock,
   modelWithoutProvider,
+  type NormalizedBlock,
   type ParsedSession,
   reasoningEffortLevels,
   recordedReasoningEffort,
@@ -60,13 +60,13 @@ import { parseAtifDocument } from "./sources/atif.ts";
 import { parseClaudeSession } from "./sources/claude.ts";
 import { forkHistoryStart, parseCodexSession } from "./sources/codex.ts";
 import { parseCopilotSession } from "./sources/copilot.ts";
-import { parseDroidSession } from "./sources/droid.ts";
 import {
   type CursorSource,
   CursorSourceError,
   parseCursorSession,
   readCursorSource,
 } from "./sources/cursor.ts";
+import { parseDroidSession } from "./sources/droid.ts";
 import { parseGeminiSession } from "./sources/gemini.ts";
 import { parseHermesSession } from "./sources/hermes.ts";
 import {
@@ -75,6 +75,7 @@ import {
   HermesStore,
   HermesStoreError,
 } from "./sources/hermes-store.ts";
+import { parseOmpSession } from "./sources/omp.ts";
 import { parseOpenCodeSession } from "./sources/opencode.ts";
 import { parseOpenCodeLegacySession } from "./sources/opencode-legacy.ts";
 import {
@@ -85,7 +86,6 @@ import {
   OpenCodeStore,
   readOpenCodeModelsCache,
 } from "./sources/opencode-store.ts";
-import { parseOmpSession } from "./sources/omp.ts";
 import { parsePiSession, piSessionIdFromStem } from "./sources/pi.ts";
 import { parseVscodeCopilotSession } from "./sources/vscode-copilot.ts";
 import { queryRow, queryRows, runStatement } from "./sqlite-statements.ts";
@@ -214,7 +214,13 @@ export function discover(
     collect(config.piDir, "pi", false, isSessionJsonl, out);
   }
   if (config.ompDir != null) {
-    collect(config.ompDir, "omp", false, (name) => isSessionJsonl(name) && name !== "changes.jsonl", out);
+    collect(
+      config.ompDir,
+      "omp",
+      false,
+      (name) => isSessionJsonl(name) && name !== "changes.jsonl",
+      out,
+    );
   }
   if (config.droidDir != null) {
     collect(config.droidDir, "droid", false, isSessionJsonl, out);
@@ -536,7 +542,9 @@ export function sync(
   let droidConfigHash = "";
   if (files.some((file) => file.tool === "droid")) {
     try {
-      droidConfigHash = createHash("sha256").update(readFileSync(join(homedir(), ".factory", "settings.json"))).digest("hex");
+      droidConfigHash = createHash("sha256")
+        .update(readFileSync(join(homedir(), ".factory", "settings.json")))
+        .digest("hex");
     } catch {
       droidConfigHash = "missing";
     }
@@ -630,13 +638,19 @@ export function sync(
           stats = fstatSync(fd);
           if (file.tool === "droid") {
             droidSettings = readDroidSettings(file.path);
-            sidecarHash = createHash("sha256").update(droidSettings ?? "\0").update(droidConfigHash).digest("hex");
+            sidecarHash = createHash("sha256")
+              .update(droidSettings ?? "\0")
+              .update(droidConfigHash)
+              .digest("hex");
           }
-          const prior = queryRow<{ size: number; mtime: number; ingest_revision: number; hash: string | null }>(
-            db,
-            "SELECT size, mtime, ingest_revision, hash FROM ingest_source WHERE path = ?1",
-            [file.path],
-          );
+          const prior = queryRow<{
+            size: number;
+            mtime: number;
+            ingest_revision: number;
+            hash: string | null;
+          }>(db, "SELECT size, mtime, ingest_revision, hash FROM ingest_source WHERE path = ?1", [
+            file.path,
+          ]);
           if (
             prior != null &&
             prior.size === stats.size &&
@@ -1606,7 +1620,8 @@ export function resolveSubagentParents(db: Database): void {
     const info = row.tool === "atif" ? inferAtifSubagent(row, atifFileRefs) : inferSubagent(row);
     inferred.set(row.id, info);
     sessionBySource.set(sourceKey(row.tool, row.source_session_id), row.id);
-    if (row.tool === "omp" && row.source_path != null) ompByPath.set(resolve(row.source_path), row.id);
+    if (row.tool === "omp" && row.source_path != null)
+      ompByPath.set(resolve(row.source_path), row.id);
     if (!info.isSubagent) {
       if (info.rootKey != null) {
         rootByClaudeSession.set(info.rootKey, row.id);
@@ -1620,7 +1635,8 @@ export function resolveSubagentParents(db: Database): void {
       continue;
     }
     const rootKey = info.rootKey;
-    const parentPath = row.tool === "omp" ? asString(get(parseObject(row.raw_meta), "parentSessionPath")) : null;
+    const parentPath =
+      row.tool === "omp" ? asString(get(parseObject(row.raw_meta), "parentSessionPath")) : null;
     const rootId =
       (parentPath == null ? null : ompByPath.get(resolve(parentPath))) ??
       (rootKey == null || row.tool === "atif" ? null : rootByClaudeSession.get(rootKey)) ??
@@ -2336,10 +2352,11 @@ function writeSession(
   try {
     for (const message of s.messages) {
       const storedRaw = encodeMessageRaw(canonicalJson(message.raw), message.raw);
-      const messageProvider = asString(get(get(message.raw, "message"), "provider"))
-        ?? asString(get(message.raw, "provider"))
-        ?? asString(get(message.raw, "providerID"))
-        ?? asString(get(get(message.raw, "model"), "providerID"));
+      const messageProvider =
+        asString(get(get(message.raw, "message"), "provider")) ??
+        asString(get(message.raw, "provider")) ??
+        asString(get(message.raw, "providerID")) ??
+        asString(get(get(message.raw, "model"), "providerID"));
       const effectiveProvider = message.provider ?? messageProvider;
       if (effectiveProvider != null && (storedRaw.rawMeta != null || messageProvider == null)) {
         storedRaw.rawMeta = JSON.stringify({
@@ -2636,11 +2653,17 @@ function sourceFileForPath(path: string, roots: SourceRoots): SourceFile | null 
   if (isCopilotSessionLog(path, copilotDir)) {
     return { tool: "copilot", path, archived: false };
   }
-  if ((ompDir != null && isInside(resolve(ompDir), resolve(path))) || /(?:^|[/\\])\.omp[/\\]agent[/\\]sessions[/\\]/.test(path)) {
+  if (
+    (ompDir != null && isInside(resolve(ompDir), resolve(path))) ||
+    /(?:^|[/\\])\.omp[/\\]agent[/\\]sessions[/\\]/.test(path)
+  ) {
     if (name === "changes.jsonl") return null;
     return { tool: "omp", path, archived: false };
   }
-  if ((droidDir != null && isInside(resolve(droidDir), resolve(path))) || /(?:^|[/\\])\.factory[/\\]sessions[/\\]/.test(path)) {
+  if (
+    (droidDir != null && isInside(resolve(droidDir), resolve(path))) ||
+    /(?:^|[/\\])\.factory[/\\]sessions[/\\]/.test(path)
+  ) {
     return { tool: "droid", path, archived: false };
   }
   if (isPiSessionLog(path, piDir)) {

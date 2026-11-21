@@ -123,7 +123,16 @@ export function getSettings(options: SettingsOptions = {}): UserSettings {
 }
 
 export function getAchDir(options: SettingsOptions = {}): string {
-  return getSettings(options).achDir ?? join((options.homeDir ?? homedir()) || ".", "Documents", "sources", "_oss-study", "agentic-coding-harness");
+  return (
+    getSettings(options).achDir ??
+    join(
+      (options.homeDir ?? homedir()) || ".",
+      "Documents",
+      "sources",
+      "_oss-study",
+      "agentic-coding-harness",
+    )
+  );
 }
 
 export function saveSettings(

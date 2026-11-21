@@ -1338,7 +1338,11 @@ describe("cost source", () => {
       Object.fromEntries(
         listSessions(db, { tool: "opencode" }).map((s) => [s.source_session_id, s.cost_source]),
       ),
-    ).toEqual({ ses_agentBenchmarks: "agent-benchmarks", ses_reported: "reported", ses_mixed: "mixed" });
+    ).toEqual({
+      ses_agentBenchmarks: "agent-benchmarks",
+      ses_reported: "reported",
+      ses_mixed: "mixed",
+    });
     db.close();
   });
 

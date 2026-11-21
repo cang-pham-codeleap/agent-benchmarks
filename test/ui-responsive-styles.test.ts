@@ -4,7 +4,9 @@ import { readUiFile } from "./ui-source.ts";
 describe("responsive UI behavior", () => {
   test("shows one search trigger at each screen size", () => {
     const shell = readUiFile("main.tsx");
-    expect(shell).toMatch(/aria-label="Open command palette"[^>]*className="hidden[^\"]*md:inline-flex/);
+    expect(shell).toMatch(
+      /aria-label="Open command palette"[^>]*className="hidden[^"]*md:inline-flex/,
+    );
     expect(shell).toMatch(/aria-label="Search"[^>]*className="md:hidden"/);
   });
 

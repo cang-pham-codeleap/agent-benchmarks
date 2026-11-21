@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   type AnalyticsChartMetric,
   type AnalyticsChartVariant,
@@ -93,7 +101,6 @@ export function ShareChartButton({
     [],
   );
 
-
   const copyText = async (value: string, success: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -152,9 +159,19 @@ export function ShareChartButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-      <Button variant="outline" size="sm" aria-label={shareCardButtonLabel(input.kind)} disabled={disabled} onClick={() => { setOpen(true); void renderPreview(); }} type="button">
-        <Icon name="share" /> Share
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label={shareCardButtonLabel(input.kind)}
+          disabled={disabled}
+          onClick={() => {
+            setOpen(true);
+            void renderPreview();
+          }}
+          type="button"
+        >
+          <Icon name="share" /> Share
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
@@ -163,20 +180,71 @@ export function ShareChartButton({
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            {busy ? <div className="rounded-md bg-muted p-8 text-center text-sm">Rendering locally…</div> : previewUrl == null ? <div className="rounded-md bg-muted p-8 text-center text-sm">Preview unavailable</div> : <img alt={altText} src={previewUrl} className="w-full rounded-md" />}
+            {busy ? (
+              <div className="rounded-md bg-muted p-8 text-center text-sm">Rendering locally…</div>
+            ) : previewUrl == null ? (
+              <div className="rounded-md bg-muted p-8 text-center text-sm">Preview unavailable</div>
+            ) : (
+              <img alt={altText} src={previewUrl} className="w-full rounded-md" />
+            )}
             <p className="mt-2 text-sm text-muted-foreground">2× high-density PNG · 2400 × 1260</p>
           </div>
-          <PrivacyReviewLists className="grid gap-4 sm:grid-cols-2" excluded={SHARE_EXCLUDED_FIELDS} excludedLabel="Always excluded" included={SHARE_INCLUDED_FIELDS} includedLabel="Included" />
-          <div className="grid gap-4 text-sm sm:grid-cols-2"><div><strong>Caption</strong><p>{caption}</p></div><div><strong>Alt text</strong><p>{altText}</p></div></div>
+          <PrivacyReviewLists
+            className="grid gap-4 sm:grid-cols-2"
+            excluded={SHARE_EXCLUDED_FIELDS}
+            excludedLabel="Always excluded"
+            included={SHARE_INCLUDED_FIELDS}
+            includedLabel="Included"
+          />
+          <div className="grid gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <strong>Caption</strong>
+              <p>{caption}</p>
+            </div>
+            <div>
+              <strong>Alt text</strong>
+              <p>{altText}</p>
+            </div>
+          </div>
         </div>
         <DialogFooter className="flex-wrap">
-          <Button variant="outline" disabled={png == null || busy} onClick={() => void copyImage()} type="button"><Icon name="copy" /> Copy image</Button>
-          <Button variant="outline" disabled={png == null || busy} onClick={download} type="button"><Icon name="download" /> Download PNG</Button>
-          <Button variant="outline" disabled={png == null || busy} onClick={() => void nativeShare()} type="button"><Icon name="share" /> Share…</Button>
-          <Button variant="outline" onClick={() => void copyText(caption, "Caption copied.")} type="button">Copy caption</Button>
-          <Button variant="outline" onClick={() => void copyText(altText, "Alt text copied.")} type="button">Copy alt text</Button>
+          <Button
+            variant="outline"
+            disabled={png == null || busy}
+            onClick={() => void copyImage()}
+            type="button"
+          >
+            <Icon name="copy" /> Copy image
+          </Button>
+          <Button variant="outline" disabled={png == null || busy} onClick={download} type="button">
+            <Icon name="download" /> Download PNG
+          </Button>
+          <Button
+            variant="outline"
+            disabled={png == null || busy}
+            onClick={() => void nativeShare()}
+            type="button"
+          >
+            <Icon name="share" /> Share…
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => void copyText(caption, "Caption copied.")}
+            type="button"
+          >
+            Copy caption
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => void copyText(altText, "Alt text copied.")}
+            type="button"
+          >
+            Copy alt text
+          </Button>
         </DialogFooter>
-        <p aria-live="polite" className="text-sm text-muted-foreground">{status ?? "Nothing leaves this machine until you act."}</p>
+        <p aria-live="polite" className="text-sm text-muted-foreground">
+          {status ?? "Nothing leaves this machine until you act."}
+        </p>
       </DialogContent>
     </Dialog>
   );

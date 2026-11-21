@@ -710,7 +710,9 @@ describe("openDb", () => {
         )
         .all(q) as { id: number; rank: number; hl: string }[];
 
-    expect(match("typescript")).toMatchObject([{ id: 100, hl: "porting agent-benchmarks to [typescript]" }]);
+    expect(match("typescript")).toMatchObject([
+      { id: 100, hl: "porting agent-benchmarks to [typescript]" },
+    ]);
 
     db.exec("UPDATE block SET text = 'nothing to see here' WHERE id = 100");
     expect(match("typescript")).toHaveLength(0);

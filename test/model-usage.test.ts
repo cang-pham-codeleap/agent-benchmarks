@@ -148,11 +148,19 @@ describe("per-model usage", () => {
       CASE WHEN seq = 1 THEN 'anthropic' ELSE 'github-copilot' END)
       WHERE session_id = ?1 AND role = 'assistant'`).run(id);
     const rows = materializeModelUsage(db, id);
-    expect(db.query("SELECT provider, model FROM session_model_usage WHERE session_id = ?1 ORDER BY provider").all(id)).toEqual([
+    expect(
+      db
+        .query(
+          "SELECT provider, model FROM session_model_usage WHERE session_id = ?1 ORDER BY provider",
+        )
+        .all(id),
+    ).toEqual([
       { provider: "anthropic", model: "claude-opus-5-5" },
       { provider: "github-copilot", model: "claude-opus-5-5" },
     ]);
-    expect(totalCost(sessionCostParts(rows, { model: null, usage: usageOf(OPUS_55_A) }))).toBeCloseTo(cost, 10);
+    expect(
+      totalCost(sessionCostParts(rows, { model: null, usage: usageOf(OPUS_55_A) })),
+    ).toBeCloseTo(cost, 10);
     closeDb(db);
   });
 

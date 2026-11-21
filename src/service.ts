@@ -9,8 +9,8 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { DEFAULT_SERVE_PORT } from "./serve-defaults.ts";
 import { detectInstall, type InstallInfo } from "./install.ts";
+import { DEFAULT_SERVE_PORT } from "./serve-defaults.ts";
 
 export type ServiceManager = "launchd" | "systemd";
 
@@ -235,7 +235,8 @@ export async function serviceStatus(options: ServiceOptions = {}): Promise<Servi
   } else {
     const probe = await run(["systemctl", "--user", "show-environment"]);
     if (probe.code !== 0) {
-      reason ??= "No systemd user session is available, so Agent Benchmarks cannot register a service.";
+      reason ??=
+        "No systemd user session is available, so Agent Benchmarks cannot register a service.";
     } else {
       const active = await run(["systemctl", "--user", "is-active", SYSTEMD_UNIT]);
       running = active.stdout.trim() === "active";
@@ -267,7 +268,9 @@ export async function installService(
   }
   const binary = spec.binary ?? serviceBinary(options).path;
   if (binary == null) {
-    throw new ServiceUnavailableError(before.reason ?? "Agent Benchmarks could not find its own binary.");
+    throw new ServiceUnavailableError(
+      before.reason ?? "Agent Benchmarks could not find its own binary.",
+    );
   }
   // The service starts in launchd's or systemd's working directory, not the
   // caller's, so a relative --db would open a different file or none at all.

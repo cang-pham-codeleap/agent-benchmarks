@@ -253,17 +253,20 @@ describe("invalid flag values", () => {
     },
   ];
 
-  test.each(cases)("agent-benchmarks $argv is a usage error", async ({ argv, message, details }) => {
-    const human = await run(["--db", archive, ...argv]);
-    expect(human).toEqual({ code: 2, stdout: "", stderr: `error: ${message}\n` });
+  test.each(cases)(
+    "agent-benchmarks $argv is a usage error",
+    async ({ argv, message, details }) => {
+      const human = await run(["--db", archive, ...argv]);
+      expect(human).toEqual({ code: 2, stdout: "", stderr: `error: ${message}\n` });
 
-    const json = await run(["--db", archive, "--json", ...argv]);
-    expect(json.code).toBe(2);
-    expect(json.stdout).toBe("");
-    expect(JSON.parse(json.stderr)).toMatchObject({
-      error: { code: "invalid_argument", message, ...details },
-    });
-  });
+      const json = await run(["--db", archive, "--json", ...argv]);
+      expect(json.code).toBe(2);
+      expect(json.stdout).toBe("");
+      expect(JSON.parse(json.stderr)).toMatchObject({
+        error: { code: "invalid_argument", message, ...details },
+      });
+    },
+  );
 
   test("valid values still run", async () => {
     const tool = await run(["--db", archive, "--json", "ls", "--tool", "claude_code"]);
@@ -328,14 +331,17 @@ describe("errors under --json", () => {
     expect(lastErrorLine(result).error.code).toBe(code);
   });
 
-  test.each(cases)("agent-benchmarks $argv without --json stays plain text", async ({ argv, exit }) => {
-    const result = await run(["--db", archive, ...argv]);
-    expect(result.code).toBe(exit);
-    expect(result.stdout).toBe("");
-    expect(result.stderr).not.toBe("");
-    expect(result.stderr.startsWith("{")).toBe(false);
-    expect(() => JSON.parse(result.stderr.split("\n").filter(Boolean).at(-1) ?? "")).toThrow();
-  });
+  test.each(cases)(
+    "agent-benchmarks $argv without --json stays plain text",
+    async ({ argv, exit }) => {
+      const result = await run(["--db", archive, ...argv]);
+      expect(result.code).toBe(exit);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).not.toBe("");
+      expect(result.stderr.startsWith("{")).toBe(false);
+      expect(() => JSON.parse(result.stderr.split("\n").filter(Boolean).at(-1) ?? "")).toThrow();
+    },
+  );
 
   test("the error is one line, and a command group's help precedes it", async () => {
     const unknown = await run(["--db", archive, "--json", "sesion", "ls"]);

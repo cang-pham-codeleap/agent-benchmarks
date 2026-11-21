@@ -139,8 +139,11 @@ describe("resolveConfig", () => {
     expect(at({ LOCALAPPDATA: "/local" }, "win32")).toBe("/local/hermes");
     expect(at({}, "win32")).toBe("/h/AppData/Local/hermes");
     expect(
-      resolveConfig({ hermesDir: "/flag", env: { AGENT_BENCHMARKS_HERMES_DIR: "/d" }, homeDir: "/h" })
-        .hermesDir,
+      resolveConfig({
+        hermesDir: "/flag",
+        env: { AGENT_BENCHMARKS_HERMES_DIR: "/d" },
+        homeDir: "/h",
+      }).hermesDir,
     ).toBe("/flag");
   });
 
@@ -149,8 +152,10 @@ describe("resolveConfig", () => {
       "/cp/session-state",
     );
     expect(
-      resolveConfig({ env: { COPILOT_HOME: "/cp", AGENT_BENCHMARKS_COPILOT_DIR: "/d" }, homeDir: "/h" })
-        .copilotDir,
+      resolveConfig({
+        env: { COPILOT_HOME: "/cp", AGENT_BENCHMARKS_COPILOT_DIR: "/d" },
+        homeDir: "/h",
+      }).copilotDir,
     ).toBe("/d");
     expect(resolveConfig({ env: { COPILOT_HOME: "" }, homeDir: "/h" }).copilotDir).toBe(
       "/h/.copilot/session-state",

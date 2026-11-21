@@ -832,7 +832,11 @@ describe("OpenCode 2.x step timing", () => {
       type: "tool",
       id,
       name: "read",
-      state: { status: "completed", input: { path: "/agent-benchmarks-fixture/example/a" }, content: [] },
+      state: {
+        status: "completed",
+        input: { path: "/agent-benchmarks-fixture/example/a" },
+        content: [],
+      },
       time,
     });
     const { session } = parseOpenCodeSession(

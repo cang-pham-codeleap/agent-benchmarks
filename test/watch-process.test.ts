@@ -92,7 +92,8 @@ describe("agent-benchmarks watch process", () => {
         await Bun.sleep(25);
       }
     };
-    const completed = () => events.filter((e) => e["event.name"] === "agent-benchmarks.sync.completed");
+    const completed = () =>
+      events.filter((e) => e["event.name"] === "agent-benchmarks.sync.completed");
 
     try {
       await waitFor(() => completed().length > 0, "the startup sync");

@@ -8,7 +8,9 @@ const prompt =
 
 describe("Cursor CLI transcript context", () => {
   test("removes leading terminal private-use glyphs without removing emoji", () => {
-    expect(stripMarkupTags("\uf407 PR20: Make PR 20 pipeline green")).toBe("PR20: Make PR 20 pipeline green");
+    expect(stripMarkupTags("\uf407 PR20: Make PR 20 pipeline green")).toBe(
+      "PR20: Make PR 20 pipeline green",
+    );
     expect(stripMarkupTags("🚀 Launch")).toBe("🚀 Launch");
     expect(stripMarkupTags("▏ Progress")).toBe("▏ Progress");
   });

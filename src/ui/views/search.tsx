@@ -256,11 +256,15 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
     <div className="flex flex-col gap-6 p-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
-        <p className="text-sm text-muted-foreground">Full-text search across every message and tool call in your session logs.</p>
+        <p className="text-sm text-muted-foreground">
+          Full-text search across every message and tool call in your session logs.
+        </p>
       </header>
 
       <form className="relative" onSubmit={(event) => event.preventDefault()}>
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"><Icon name="search" /></span>
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <Icon name="search" />
+        </span>
         <Input
           className="!pl-10"
           aria-label="Search session logs"
@@ -329,7 +333,11 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
       ) : null}
 
       <div className="space-y-4">
-        {searching && hits.length === 0 ? <div className="text-sm text-muted-foreground" role="status">Searching…</div> : null}
+        {searching && hits.length === 0 ? (
+          <div className="text-sm text-muted-foreground" role="status">
+            Searching…
+          </div>
+        ) : null}
         {!searching && query.trim().length < 2 ? (
           <EmptyState
             action={
@@ -356,11 +364,7 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
         {!searching && query.trim().length >= 2 && hits.length === 0 ? (
           <EmptyState
             action={
-              <Button
-                variant="outline"
-                onClick={() => updateSearchRoute("")}
-                type="button"
-              >
+              <Button variant="outline" onClick={() => updateSearchRoute("")} type="button">
                 Clear search
               </Button>
             }
@@ -371,7 +375,11 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
         ) : null}
         <div aria-label="Search results" id="search-results-listbox" role="listbox">
           {groups.map((group) => (
-            <section className="overflow-hidden rounded-md border" key={group.sessionId} role="presentation">
+            <section
+              className="overflow-hidden rounded-md border"
+              key={group.sessionId}
+              role="presentation"
+            >
               <header className="flex items-center justify-between gap-4 bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
                 <div className="flex min-w-0 flex-col gap-1">
                   <strong className="truncate font-medium text-foreground">{group.title}</strong>
@@ -409,12 +417,7 @@ export function SearchView({ dateRange, path }: { dateRange: DateRangeSelection;
           ))}
         </div>
         {hasMore ? (
-          <Button
-            variant="outline"
-            disabled={searching}
-            onClick={loadMore}
-            type="button"
-          >
+          <Button variant="outline" disabled={searching} onClick={loadMore} type="button">
             {searching
               ? "Loading…"
               : exactRemaining == null

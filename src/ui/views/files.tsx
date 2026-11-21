@@ -93,14 +93,43 @@ export function FilesView({
       <div className="flex flex-wrap gap-4">
         <fieldset className="flex flex-wrap items-center gap-2">
           <legend className="text-sm text-muted-foreground">Group by</legend>
-          <Button variant={group === "path" ? "secondary" : "outline"} aria-pressed={group === "path"} onClick={() => setGroup("path")} type="button">Files</Button>
-          <Button variant={group === "ext" ? "secondary" : "outline"} aria-pressed={group === "ext"} onClick={() => setGroup("ext")} type="button">Languages</Button>
+          <Button
+            variant={group === "path" ? "secondary" : "outline"}
+            aria-pressed={group === "path"}
+            onClick={() => setGroup("path")}
+            type="button"
+          >
+            Files
+          </Button>
+          <Button
+            variant={group === "ext" ? "secondary" : "outline"}
+            aria-pressed={group === "ext"}
+            onClick={() => setGroup("ext")}
+            type="button"
+          >
+            Languages
+          </Button>
         </fieldset>
         <fieldset className="flex flex-wrap items-center gap-2">
           <legend className="text-sm text-muted-foreground">Operation</legend>
-          <Button variant={op == null ? "secondary" : "outline"} aria-pressed={op == null} onClick={() => setOp(null)} type="button">All ops</Button>
+          <Button
+            variant={op == null ? "secondary" : "outline"}
+            aria-pressed={op == null}
+            onClick={() => setOp(null)}
+            type="button"
+          >
+            All ops
+          </Button>
           {(["read", "edit", "write", "delete"] as const).map((name) => (
-            <Button variant={op === name ? "secondary" : "outline"} aria-pressed={op === name} key={name} onClick={() => setOp(name)} type="button">{capitalize(name)}</Button>
+            <Button
+              variant={op === name ? "secondary" : "outline"}
+              aria-pressed={op === name}
+              key={name}
+              onClick={() => setOp(name)}
+              type="button"
+            >
+              {capitalize(name)}
+            </Button>
           ))}
         </fieldset>
       </div>
@@ -108,7 +137,9 @@ export function FilesView({
       <Card>
         <CardHeader>
           <CardTitle>{group === "ext" ? "Languages" : "Hotspots"}</CardTitle>
-          <p className="text-sm text-muted-foreground">Per-operation counts from tool-call evidence, ordered by activity</p>
+          <p className="text-sm text-muted-foreground">
+            Per-operation counts from tool-call evidence, ordered by activity
+          </p>
         </CardHeader>
         {fileError != null ? (
           <ApiFailureState error={fileError} onRetry={() => setFilesRetryKey((key) => key + 1)} />
@@ -121,106 +152,122 @@ export function FilesView({
             title="No file activity"
           />
         ) : (
-          <CardContent><div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <SortableHeader
-                    label={group === "ext" ? "Extension" : "File"}
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="key"
-                  />
-                  {group === "path" ? (
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
                     <SortableHeader
-                      label="Project"
+                      label={group === "ext" ? "Extension" : "File"}
                       onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
                       sort={fileSort}
-                      sortKey="project"
+                      sortKey="key"
                     />
-                  ) : null}
-                  <SortableHeader
-                    align="right"
-                    label="Reads"
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="reads"
-                  />
-                  <SortableHeader
-                    align="right"
-                    label="Edits"
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="edits"
-                  />
-                  <SortableHeader
-                    align="right"
-                    label="Writes"
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="writes"
-                  />
-                  <SortableHeader
-                    align="right"
-                    label="Deletes"
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="deletes"
-                  />
-                  <SortableHeader
-                    align="right"
-                    label="Sessions"
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="sessions"
-                  />
-                  <SortableHeader
-                    align="right"
-                    label="Total"
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="total"
-                  />
-                  <SortableHeader
-                    align="right"
-                    label="Modified"
-                    onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
-                    sort={fileSort}
-                    sortKey="last_touched_at"
-                  />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedFileRows.map((row) => (
-                  <TableRow key={`${group}-${row.project ?? ""}-${row.key}`}>
-                    <TableCell className="max-w-xs truncate font-mono">
-                      <Link href={`/search?q=${encodeURIComponent(`"${row.key}"`)}`}>
-                        {row.key}
-                      </Link>
-                    </TableCell>
                     {group === "path" ? (
-                      <TableCell className="text-muted-foreground" title={row.project ?? ""}>
-                        {row.project == null ? (
-                          <span className="text-muted-foreground">-</span>
-                        ) : (
-                          <Link href={projectSessionsHref(row.project)}>
-                            {basename(row.project)}
-                          </Link>
-                        )}
-                      </TableCell>
+                      <SortableHeader
+                        label="Project"
+                        onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                        sort={fileSort}
+                        sortKey="project"
+                      />
                     ) : null}
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.reads)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.edits)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.writes)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.deletes)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(row.sessions)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatInt(fileTotal(row))}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{relativeTime(row.last_touched_at)}</TableCell>
+                    <SortableHeader
+                      align="right"
+                      label="Reads"
+                      onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                      sort={fileSort}
+                      sortKey="reads"
+                    />
+                    <SortableHeader
+                      align="right"
+                      label="Edits"
+                      onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                      sort={fileSort}
+                      sortKey="edits"
+                    />
+                    <SortableHeader
+                      align="right"
+                      label="Writes"
+                      onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                      sort={fileSort}
+                      sortKey="writes"
+                    />
+                    <SortableHeader
+                      align="right"
+                      label="Deletes"
+                      onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                      sort={fileSort}
+                      sortKey="deletes"
+                    />
+                    <SortableHeader
+                      align="right"
+                      label="Sessions"
+                      onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                      sort={fileSort}
+                      sortKey="sessions"
+                    />
+                    <SortableHeader
+                      align="right"
+                      label="Total"
+                      onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                      sort={fileSort}
+                      sortKey="total"
+                    />
+                    <SortableHeader
+                      align="right"
+                      label="Modified"
+                      onSort={(key) => setFileSort((sort) => nextSort(sort, key))}
+                      sort={fileSort}
+                      sortKey="last_touched_at"
+                    />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div></CardContent>
+                </TableHeader>
+                <TableBody>
+                  {sortedFileRows.map((row) => (
+                    <TableRow key={`${group}-${row.project ?? ""}-${row.key}`}>
+                      <TableCell className="max-w-xs truncate font-mono">
+                        <Link href={`/search?q=${encodeURIComponent(`"${row.key}"`)}`}>
+                          {row.key}
+                        </Link>
+                      </TableCell>
+                      {group === "path" ? (
+                        <TableCell className="text-muted-foreground" title={row.project ?? ""}>
+                          {row.project == null ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : (
+                            <Link href={projectSessionsHref(row.project)}>
+                              {basename(row.project)}
+                            </Link>
+                          )}
+                        </TableCell>
+                      ) : null}
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatInt(row.reads)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatInt(row.edits)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatInt(row.writes)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatInt(row.deletes)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatInt(row.sessions)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatInt(fileTotal(row))}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {relativeTime(row.last_touched_at)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
         )}
       </Card>
     </div>

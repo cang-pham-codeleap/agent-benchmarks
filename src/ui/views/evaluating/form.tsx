@@ -157,6 +157,7 @@ export function EvalForm({
           {input.setups.map((setup, index) => {
             const info = catalog.harnesses.find((harness) => harness.harness === setup.harness);
             return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: setups have no id and are edited by position
               <div key={index} className="flex flex-wrap items-end gap-3 rounded-md border p-3">
                 <label className="grid min-w-48 flex-1 gap-2 text-sm">
                   Harness

@@ -20,8 +20,14 @@ const SHADCN_THEME_TOKENS = [
 ] as const;
 
 const CHART_TOKENS = [
-  "--card-foreground", "--muted-foreground", "--border", "--card",
-  "--chart-1", "--chart-2", "--chart-3", "--chart-4",
+  "--card-foreground",
+  "--muted-foreground",
+  "--border",
+  "--card",
+  "--chart-1",
+  "--chart-2",
+  "--chart-3",
+  "--chart-4",
 ] as const;
 
 describe("theme tokens", () => {
@@ -40,7 +46,6 @@ describe("theme tokens", () => {
     expect(main).toContain('removeStorage("agent-benchmarks-theme")');
   });
 
-
   test("chart tokens match what chartColors() reads", () => {
     const readNames = [...main.matchAll(/value\("(--[a-z0-9-]+)"\)/g)].map((match) => match[1]);
     expect([...new Set(readNames)].sort()).toEqual([...CHART_TOKENS].sort());
@@ -52,5 +57,4 @@ describe("theme tokens", () => {
     expect(main).toContain('"rgba(255, 255, 255, 0.05)"');
     expect(main).toContain('"rgba(20, 20, 20, 0.05)"');
   });
-
 });

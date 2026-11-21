@@ -8,7 +8,10 @@ export function stripGoldenVolatility(
       return "0.0.0-dev";
     }
     if (key === "artifact") {
-      return value.replaceAll(`Agent Benchmarks ${agentBenchmarksVersion}`, "Agent Benchmarks 0.0.0-dev");
+      return value.replaceAll(
+        `Agent Benchmarks ${agentBenchmarksVersion}`,
+        "Agent Benchmarks 0.0.0-dev",
+      );
     }
     if (key === "href") {
       return value.replace(/^\/sessions\/\d+(?=#message-\d+$)/, "/sessions/<ID>");

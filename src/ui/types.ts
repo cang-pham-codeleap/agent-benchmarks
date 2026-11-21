@@ -267,7 +267,6 @@ export type UserSettings = {
   ide: string;
 };
 
-
 export type BackgroundStatus = {
   supported: boolean;
   manager: "launchd" | "systemd" | null;

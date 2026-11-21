@@ -32,7 +32,7 @@ test("every bundled task is in the catalog under its own category", () => {
   for (const { task } of sources) {
     expect(task.category).not.toBe(task.language);
     expect(task.description.length).toBeLessThanOrEqual(110);
-    (mix[task.category] ??= []).push(task.difficulty ?? "none");
+    mix[task.category] = [...(mix[task.category] ?? []), task.difficulty ?? "none"];
   }
   for (const difficulties of Object.values(mix))
     expect(difficulties.sort()).toEqual(["easy", "easy", "hard", "medium", "medium"]);

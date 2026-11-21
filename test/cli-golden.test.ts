@@ -151,11 +151,13 @@ function stageAtifFlat(atifDir: string): void {
 
 function normalizeCliGolden(name: string, value: unknown): unknown {
   const normalized = stripGoldenVolatility(value, AGENT_BENCHMARKS_VERSION);
-  const stable = JSON.parse(JSON.stringify(normalized, (key, item) =>
-    key === "estimated_cost_usd" && typeof item === "number"
-      ? Math.round(item * 1e12) / 1e12
-      : item,
-  ));
+  const stable = JSON.parse(
+    JSON.stringify(normalized, (key, item) =>
+      key === "estimated_cost_usd" && typeof item === "number"
+        ? Math.round(item * 1e12) / 1e12
+        : item,
+    ),
+  );
   if (name !== "ls" || !Array.isArray(stable)) {
     return stable;
   }
@@ -273,7 +275,10 @@ describe("CLI golden parity", () => {
       const result = await runCli(argsForTs(dbPath, command));
       expect(result.code, `${name} exited nonzero: ${result.stderr}`).toBe(0);
       const actual = normalizeCliGolden(name, JSON.parse(result.stdout));
-      const expected = normalizeCliGolden(name, await Bun.file(join(goldenDir, "cli", `${name}.json`)).json());
+      const expected = normalizeCliGolden(
+        name,
+        await Bun.file(join(goldenDir, "cli", `${name}.json`)).json(),
+      );
       expect(actual, name).toEqual(expected);
     }
   });

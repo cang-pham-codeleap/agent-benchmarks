@@ -5,8 +5,8 @@ import { resolve, sep } from "node:path";
 import type { Config } from "./config.ts";
 import { LATEST_SCHEMA_VERSION } from "./db.ts";
 import { discover, INGEST_PIPELINE_REVISION } from "./ingest.ts";
-import { TOOLS, type Tool } from "./model.ts";
 import { detectInstall, type InstallChannel } from "./install.ts";
+import { TOOLS, type Tool } from "./model.ts";
 import { AGENT_BENCHMARKS_VERSION } from "./version.ts";
 
 export interface DoctorReport {

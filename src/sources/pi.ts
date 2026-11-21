@@ -25,8 +25,12 @@ import {
 /** Entry types Pi writes that carry nothing Agent Benchmarks stores (session-format.md). */
 const IGNORED_TYPES = new Set(["context_edit", "custom", "label"]);
 const OMP_IGNORED_TYPES = new Set([
-  "session_init", "credential_pin", "ttsr_injection", "mode_change",
-  "service_tier_change", "reset_boundary",
+  "session_init",
+  "credential_pin",
+  "ttsr_injection",
+  "mode_change",
+  "service_tier_change",
+  "reset_boundary",
 ]);
 
 /** The largest magnitude a JavaScript Date can hold (ECMA-262 21.4.1.1). */
@@ -149,7 +153,10 @@ export function parsePiSession(
         if (headerTime != null) {
           startedAt = earlier(startedAt, headerTime);
         }
-        const forked = options.isSubagent || asString(entry.parentSession) == null ? Number.NaN : timeOf(headerTime);
+        const forked =
+          options.isSubagent || asString(entry.parentSession) == null
+            ? Number.NaN
+            : timeOf(headerTime);
         forkedAt = Number.isFinite(forked) ? forked : null;
         break;
       }
@@ -262,8 +269,12 @@ export function parsePiSession(
         const recordedProvider = asString(entry.provider)?.trim().toLowerCase() || null;
         currentProvider = model == null ? null : recordedProvider;
         if (
-          options.omp && modelId == null && recordedProvider == null && model != null &&
-          separator > 0 && separator < model.length - 1
+          options.omp &&
+          modelId == null &&
+          recordedProvider == null &&
+          model != null &&
+          separator > 0 &&
+          separator < model.length - 1
         ) {
           currentProvider = model.slice(0, separator).toLowerCase();
         }

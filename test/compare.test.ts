@@ -20,11 +20,18 @@ test("comparison rolls up descendant usage and excludes unpriced tasks from cost
       (4, 'pi', 'other', 'claude-sonnet-4-5', 0, NULL, 4, 70, 80, 'failed', '2026-01-01'),
       (5, 'pi', 'unknown', 'unknown-model', 1, 4, 5, 90, 100, NULL, '2026-02-01');
   `);
-  const [cell] = compareCells(db, { from: '2026-01-01', to: '2026-01-01' });
+  const [cell] = compareCells(db, { from: "2026-01-01", to: "2026-01-01" });
   expect(cell).toMatchObject({
-    tool: 'pi', model: 'claude-sonnet-4-5', tasks: 2, sessions: 5,
-    costUsd: 6, unpricedTasks: 1, costPerTaskMedian: 6,
-    subagentCostShare: 5 / 6, completedRate: 0.5, failedRate: 0.5,
+    tool: "pi",
+    model: "claude-sonnet-4-5",
+    tasks: 2,
+    sessions: 5,
+    costUsd: 6,
+    unpricedTasks: 1,
+    costPerTaskMedian: 6,
+    subagentCostShare: 5 / 6,
+    completedRate: 0.5,
+    failedRate: 0.5,
     tokens: { input: 250, output: 300 },
   });
   closeDb(db);
@@ -50,15 +57,18 @@ test("comparison separates root providers and rolls up usage by provider and mod
   `);
   const cells = compareCells(db);
   expect(cells).toHaveLength(3);
-  expect(cells.find((cell) => cell.provider === 'alpha')).toMatchObject({
-    tool: 'pi', model: 'claude-sonnet-4-5', tasks: 1, sessions: 3,
+  expect(cells.find((cell) => cell.provider === "alpha")).toMatchObject({
+    tool: "pi",
+    model: "claude-sonnet-4-5",
+    tasks: 1,
+    sessions: 3,
     modelUsage: [
-      { provider: 'alpha', model: 'claude-sonnet-4-5', requests: 4, input: 60, output: 80 },
-      { provider: 'beta', model: 'claude-sonnet-4-5', requests: 2, input: 30, output: 40 },
+      { provider: "alpha", model: "claude-sonnet-4-5", requests: 4, input: 60, output: 80 },
+      { provider: "beta", model: "claude-sonnet-4-5", requests: 2, input: 30, output: 40 },
     ],
   });
   expect(cells.find((cell) => cell.provider === null)?.modelUsage).toMatchObject([
-    { provider: null, model: 'claude-sonnet-4-5', requests: 1 },
+    { provider: null, model: "claude-sonnet-4-5", requests: 1 },
   ]);
   closeDb(db);
 });

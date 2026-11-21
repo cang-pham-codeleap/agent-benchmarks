@@ -17,7 +17,6 @@ import {
   recommendationFacts,
 } from "../src/ui/views/insights.tsx";
 
-
 function count(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
 }
@@ -101,9 +100,8 @@ describe("Insights rows", () => {
     expect(html).toContain(
       "mcp__warehouse-inventory-reconciliation__reconcile_purchase_order_line_items",
     );
-    expect(html).toContain('>16 sessions</strong>');
+    expect(html).toContain(">16 sessions</strong>");
   });
-
 
   test("a row without an impact label shows no badge and never the tone name", () => {
     const html = renderToStaticMarkup(<RecommendationRow row={catalogRow()} {...handlers} />);
@@ -165,7 +163,6 @@ describe("Insights plan panel", () => {
     expect(memoryLayerCopy("Procedural")).toBe("Loaded when a task calls for it");
     expect(memoryLayerCopy("Archive")).toBe("Archive");
   });
-
 });
 
 describe("Insights prompt preview", () => {
@@ -195,7 +192,9 @@ describe("Insights prompt preview", () => {
     });
     const prompt = handoffPrompt(short);
     expect(isLongPrompt(prompt)).toBe(false);
-    const shortHtml = renderToStaticMarkup(<PromptPreview agentLabel="Claude" canLaunch row={short} />);
+    const shortHtml = renderToStaticMarkup(
+      <PromptPreview agentLabel="Claude" canLaunch row={short} />,
+    );
     expect(shortHtml).toContain('data-state="open"');
     expect(shortHtml).toContain(prompt);
     expect(shortHtml).toContain("agent-benchmarks recommendations mark");
@@ -265,7 +264,6 @@ describe("Insights row actions", () => {
     expect(buttons[1]).not.toContain('disabled=""');
     expect(launching).toContain("Copy setup prompt");
   });
-
 });
 
 describe("Insights page sections", () => {

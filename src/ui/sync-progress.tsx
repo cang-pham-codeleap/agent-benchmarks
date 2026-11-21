@@ -50,7 +50,10 @@ export function SyncProgressNotice({
 }) {
   const fraction = complete ? 1 : syncFraction(progress);
   return (
-    <div className="space-y-2 rounded-md border bg-card p-4 text-sm" data-complete={complete ? "true" : undefined}>
+    <div
+      className="space-y-2 rounded-md border bg-card p-4 text-sm"
+      data-complete={complete ? "true" : undefined}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <strong className="font-medium">
           {complete ? syncCompleteLabel(progress) : syncProgressLabel(progress)}
@@ -61,7 +64,9 @@ export function SyncProgressNotice({
           </span>
         ) : null}
         {fraction != null && !complete ? (
-          <span className="ml-auto tabular-nums text-muted-foreground">{percentText(fraction)}</span>
+          <span className="ml-auto tabular-nums text-muted-foreground">
+            {percentText(fraction)}
+          </span>
         ) : null}
       </div>
       <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-muted">

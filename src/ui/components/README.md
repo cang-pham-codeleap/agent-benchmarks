@@ -3,6 +3,7 @@
 This guide establishes the conventions for views using **Tailwind v4** and vendored **shadcn/ui** components.
 
 ## Golden Rule
+
 **Use Tailwind utilities and existing semantic tokens; do not add custom palettes.**
 Use the primitives vendored under `@/components/ui/` (`src/ui/components/ui/`).
 
@@ -10,30 +11,30 @@ Use the primitives vendored under `@/components/ui/` (`src/ui/components/ui/`).
 
 ## 1. Primitives Inventory (`@/components/ui/`)
 
-| UI Need | Primitive to Use | Import Path |
-|---|---|---|
-| Buttons, icon triggers, CTA | `Button`, `buttonVariants` | `@/components/ui/button` |
-| Cards, grouped panels, metric tiles | `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter` | `@/components/ui/card` |
-| Status tags, pills, source tags | `Badge` (from `@/components/ui/badge` or `@/badges` for domain badges) | `@/components/ui/badge` |
-| Data tables, session lists | `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | `@/components/ui/table` |
-| Inputs, search fields | `Input` | `@/components/ui/input` |
-| Dropdowns, selects | `Select`, `SelectTrigger`, `SelectContent`, `SelectItem` | `@/components/ui/select` |
-| Filter toggles, checkboxes | `Checkbox` | `@/components/ui/checkbox` |
-| Menus, context menus | `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem` | `@/components/ui/dropdown-menu` |
-| Flyouts, anchored popovers | `Popover`, `PopoverTrigger`, `PopoverContent` | `@/components/ui/popover` |
-| Hover help, hints | `Tooltip`, `TooltipTrigger`, `TooltipContent` | `@/components/ui/tooltip` |
-| Segmented controls, view tabs | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | `@/components/ui/tabs` |
-| Visual dividers | `Separator` | `@/components/ui/separator` |
-| Placeholders, loading states | `Skeleton` | `@/components/ui/skeleton` |
-| Scroll containers | `ScrollArea`, `ScrollBar` | `@/components/ui/scroll-area` |
-| Drawers, slide-out panels | `Sheet`, `SheetTrigger`, `SheetContent`, `SheetHeader`, `SheetTitle` | `@/components/ui/sheet` |
-| Modals, confirmation dialogs | `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle` | `@/components/ui/dialog` |
-| Command palette, quick jump | `Command`, `CommandInput`, `CommandList`, `CommandItem` | `@/components/ui/command` |
-| App shell sidebar | `Sidebar`, `SidebarHeader`, `SidebarContent`, `SidebarFooter` | `@/components/ui/sidebar` |
-| Disclosures, accordion items | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | `@/components/ui/collapsible` |
-| Grouped toggles | `ToggleGroup`, `ToggleGroupItem` | `@/components/ui/toggle-group` |
-| Form labels | `Label` | `@/components/ui/label` |
-| Warnings, banners, error notices | `Alert`, `AlertTitle`, `AlertDescription` | `@/components/ui/alert` |
+| UI Need                             | Primitive to Use                                                                 | Import Path                     |
+| ----------------------------------- | -------------------------------------------------------------------------------- | ------------------------------- |
+| Buttons, icon triggers, CTA         | `Button`, `buttonVariants`                                                       | `@/components/ui/button`        |
+| Cards, grouped panels, metric tiles | `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`                   | `@/components/ui/card`          |
+| Status tags, pills, source tags     | `Badge` (from `@/components/ui/badge` or `@/badges` for domain badges)           | `@/components/ui/badge`         |
+| Data tables, session lists          | `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`        | `@/components/ui/table`         |
+| Inputs, search fields               | `Input`                                                                          | `@/components/ui/input`         |
+| Dropdowns, selects                  | `Select`, `SelectTrigger`, `SelectContent`, `SelectItem`                         | `@/components/ui/select`        |
+| Filter toggles, checkboxes          | `Checkbox`                                                                       | `@/components/ui/checkbox`      |
+| Menus, context menus                | `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem` | `@/components/ui/dropdown-menu` |
+| Flyouts, anchored popovers          | `Popover`, `PopoverTrigger`, `PopoverContent`                                    | `@/components/ui/popover`       |
+| Hover help, hints                   | `Tooltip`, `TooltipTrigger`, `TooltipContent`                                    | `@/components/ui/tooltip`       |
+| Segmented controls, view tabs       | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`                                 | `@/components/ui/tabs`          |
+| Visual dividers                     | `Separator`                                                                      | `@/components/ui/separator`     |
+| Placeholders, loading states        | `Skeleton`                                                                       | `@/components/ui/skeleton`      |
+| Scroll containers                   | `ScrollArea`, `ScrollBar`                                                        | `@/components/ui/scroll-area`   |
+| Drawers, slide-out panels           | `Sheet`, `SheetTrigger`, `SheetContent`, `SheetHeader`, `SheetTitle`             | `@/components/ui/sheet`         |
+| Modals, confirmation dialogs        | `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`        | `@/components/ui/dialog`        |
+| Command palette, quick jump         | `Command`, `CommandInput`, `CommandList`, `CommandItem`                          | `@/components/ui/command`       |
+| App shell sidebar                   | `Sidebar`, `SidebarHeader`, `SidebarContent`, `SidebarFooter`                    | `@/components/ui/sidebar`       |
+| Disclosures, accordion items        | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent`                        | `@/components/ui/collapsible`   |
+| Grouped toggles                     | `ToggleGroup`, `ToggleGroupItem`                                                 | `@/components/ui/toggle-group`  |
+| Form labels                         | `Label`                                                                          | `@/components/ui/label`         |
+| Warnings, banners, error notices    | `Alert`, `AlertTitle`, `AlertDescription`                                        | `@/components/ui/alert`         |
 
 ---
 
@@ -42,10 +43,12 @@ Use the primitives vendored under `@/components/ui/` (`src/ui/components/ui/`).
 Use standard Tailwind spacing units (multiples of 4px / 0.25rem):
 
 - **Page containers**:
+
   ```tsx
   <div className="flex flex-col gap-6 p-6">
   ```
 - **Page header pattern**:
+
   ```tsx
   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
     <div>
@@ -58,6 +61,7 @@ Use standard Tailwind spacing units (multiples of 4px / 0.25rem):
   </div>
   ```
 - **Stat grid pattern**:
+
   ```tsx
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     {/* StatCard or Card components */}
@@ -65,6 +69,7 @@ Use standard Tailwind spacing units (multiples of 4px / 0.25rem):
   ```
 - **Table pattern**:
   Wrap all tabular displays in a bordered card container:
+
   ```tsx
   <div className="rounded-md border">
     <Table>

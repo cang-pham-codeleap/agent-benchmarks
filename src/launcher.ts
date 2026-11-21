@@ -116,7 +116,8 @@ export async function launchAgent(
 async function resolveLaunchDir(
   options: LaunchOptions,
 ): Promise<{ dir: string; missing: string | null }> {
-  const override = options.env?.AGENT_BENCHMARKS_SKILLS_DIR ?? process.env.AGENT_BENCHMARKS_SKILLS_DIR;
+  const override =
+    options.env?.AGENT_BENCHMARKS_SKILLS_DIR ?? process.env.AGENT_BENCHMARKS_SKILLS_DIR;
   if (override != null) {
     return { dir: override, missing: null };
   }
@@ -268,7 +269,10 @@ async function sweepStaleLaunchDirs(now = Date.now()): Promise<void> {
     return;
   }
   for (const entry of entries) {
-    if (!entry.startsWith("agent-benchmarks-launch-") && !entry.startsWith("agent-benchmarks-warp-")) {
+    if (
+      !entry.startsWith("agent-benchmarks-launch-") &&
+      !entry.startsWith("agent-benchmarks-warp-")
+    ) {
       continue;
     }
     const path = join(root, entry);

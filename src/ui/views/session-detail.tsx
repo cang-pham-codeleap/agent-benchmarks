@@ -3,7 +3,12 @@ import { createPortal, flushSync } from "react-dom";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SESSION_MESSAGE_PAGE_MAX } from "../../api-limits.ts";
 import { getJson } from "../api.ts";
@@ -96,7 +101,10 @@ export function DeleteSessionDialog({
     return null;
   }
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" ref={backdropRef}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      ref={backdropRef}
+    >
       <section
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
@@ -113,7 +121,8 @@ export function DeleteSessionDialog({
           </div>
           <Button
             aria-label="Close delete confirmation"
-            variant="ghost" size="icon"
+            variant="ghost"
+            size="icon"
             disabled={pending}
             onClick={requestClose}
             type="button"
@@ -133,12 +142,7 @@ export function DeleteSessionDialog({
           ) : null}
         </div>
         <footer className="flex justify-end gap-2">
-          <Button
-            variant="outline"
-            disabled={pending}
-            onClick={requestClose}
-            type="button"
-          >
+          <Button variant="outline" disabled={pending} onClick={requestClose} type="button">
             Cancel
           </Button>
           <Button variant="destructive" disabled={pending} onClick={onConfirm} type="button">
@@ -746,30 +750,38 @@ export function SessionDetailView({
                 title="Review session report"
               />
               <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label={`More actions for ${detailTitle}`}><Icon name="ellipsis" /></Button></DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                {archiveAction != null ? (
-                  <DropdownMenuItem
-                    disabled={sessionStatePending != null}
-                    onSelect={() => mutateSessionState(archiveAction)}
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={`More actions for ${detailTitle}`}
                   >
-                    <Icon name="archive" />
-                    <span>
-                      {archiveAction === "visible" ? "Unarchive session" : "Archive session"}
-                    </span>
+                    <Icon name="ellipsis" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {archiveAction != null ? (
+                    <DropdownMenuItem
+                      disabled={sessionStatePending != null}
+                      onSelect={() => mutateSessionState(archiveAction)}
+                    >
+                      <Icon name="archive" />
+                      <span>
+                        {archiveAction === "visible" ? "Unarchive session" : "Archive session"}
+                      </span>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={sessionStatePending != null}
+                    onSelect={() => {
+                      setSessionStateError(null);
+                      setDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Icon name="trash" />
+                    <span>Delete session</span>
                   </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem
-                  variant="destructive"
-                  disabled={sessionStatePending != null}
-                  onSelect={() => {
-                    setSessionStateError(null);
-                    setDeleteDialogOpen(true);
-                  }}
-                >
-                  <Icon name="trash" />
-                  <span>Delete session</span>
-                </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -842,7 +854,10 @@ export function SessionDetailView({
                   : "Unavailable"}
               </strong>
               {costSourceLabel(detail.summary.cost_source) != null ? (
-                <span className="text-muted-foreground"> {costSourceLabel(detail.summary.cost_source)}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  {costSourceLabel(detail.summary.cost_source)}
+                </span>
               ) : null}
             </span>
           </div>
@@ -868,12 +883,14 @@ export function SessionDetailView({
           ) : null}
         </Alert>
       ) : sessionStateNotice != null ? (
-        <Alert role="status">
-          {sessionStateNotice}
-        </Alert>
+        <Alert role="status">{sessionStateNotice}</Alert>
       ) : null}
       {sessionStateError != null && !deleteDialogOpen ? (
-        <Alert variant="destructive" className="flex flex-wrap items-center justify-between gap-4" role="alert">
+        <Alert
+          variant="destructive"
+          className="flex flex-wrap items-center justify-between gap-4"
+          role="alert"
+        >
           <span>{sessionStateError}</span>
           {archiveAction != null ? (
             <Button
@@ -898,7 +915,10 @@ export function SessionDetailView({
         />
       ) : null}
 
-      <Link className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground [&_svg]:size-4" href={sessionsHref}>
+      <Link
+        className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground [&_svg]:size-4"
+        href={sessionsHref}
+      >
         <Icon name="arrowLeft" />
         Sessions
       </Link>
@@ -972,7 +992,8 @@ export function SessionDetailView({
               ) : null}
               <span className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline" size="sm"
+                  variant="outline"
+                  size="sm"
                   disabled={loadingMore}
                   onClick={() => void loadPreviousMessages()}
                   type="button"
@@ -984,7 +1005,8 @@ export function SessionDetailView({
                       : "Load earlier"}
                 </Button>
                 <Button
-                  variant="outline" size="sm"
+                  variant="outline"
+                  size="sm"
                   onClick={() => void jumpToMessage(0)}
                   type="button"
                 >
@@ -1017,7 +1039,8 @@ export function SessionDetailView({
                 <>
                   <span>Couldn’t load the next messages: {loadMoreError}</span>
                   <Button
-                    variant="outline" size="sm"
+                    variant="outline"
+                    size="sm"
                     onClick={() => void loadMoreMessages()}
                     type="button"
                   >
@@ -1114,21 +1137,17 @@ export function IngestIssuesPanel({
             {unknownSummary.count > 0 ? (
               <div className="rounded-md border bg-muted/50 p-3">
                 <div className="text-muted-foreground">
-                  Agent Benchmarks safely preserved or ignored {formatInt(unknownSummary.count)} unknown
-                  source {unknownSummary.count === 1 ? "record type" : "record types"}
+                  Agent Benchmarks safely preserved or ignored {formatInt(unknownSummary.count)}{" "}
+                  unknown source {unknownSummary.count === 1 ? "record type" : "record types"}
                   {unknownSummary.types.length > 0
                     ? `: ${unknownSummary.types.map((type) => `“${type}”`).join(", ")}`
                     : ""}
-                  .{" "}
-                  Review the unknown record types before re-syncing.
+                  . Review the unknown record types before re-syncing.
                 </div>
               </div>
             ) : null}
             {otherIssues.map((issue) => (
-              <div
-                className="rounded-md border bg-muted/50 p-3"
-                key={issue.id}
-              >
+              <div className="rounded-md border bg-muted/50 p-3" key={issue.id}>
                 <div>
                   <div>
                     <code className="font-mono">{issue.code}</code>
@@ -1158,8 +1177,20 @@ export function SessionDetailSkeleton() {
       <Skeleton className="h-4 w-24" />
       <SessionEconomicsSkeleton />
       <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <Card className="gap-3 p-4">{["one", "two", "three", "four"].map((key) => <Skeleton className="h-4 w-full" key={key} />)}</Card>
-        <div className="space-y-4">{["prompt", "reply", "tool", "followup", "summary"].map((key) => <Card className="gap-3 p-4" key={key}><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" /></Card>)}</div>
+        <Card className="gap-3 p-4">
+          {["one", "two", "three", "four"].map((key) => (
+            <Skeleton className="h-4 w-full" key={key} />
+          ))}
+        </Card>
+        <div className="space-y-4">
+          {["prompt", "reply", "tool", "followup", "summary"].map((key) => (
+            <Card className="gap-3 p-4" key={key}>
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1170,7 +1201,9 @@ export function SessionEconomicsSkeleton() {
     <Card aria-label="Loading activity breakdown" className="gap-3 p-6" role="status">
       <Skeleton className="h-5 w-48" />
       <Skeleton className="h-4 w-2/3" />
-      {["context", "planning", "code", "communicating"].map((key) => <Skeleton className="h-4 w-full" key={key} />)}
+      {["context", "planning", "code", "communicating"].map((key) => (
+        <Skeleton className="h-4 w-full" key={key} />
+      ))}
     </Card>
   );
 }

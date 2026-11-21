@@ -105,7 +105,10 @@ const SESSIONS: [project: number, day: string, prompt: string][] = [
 }
 
 const run = (...args: string[]) =>
-  runCli(["--db", dbPath, "--no-sync", ...args], { env: { AGENT_BENCHMARKS_NO_SYNC: "1" }, homeDir: home });
+  runCli(["--db", dbPath, "--no-sync", ...args], {
+    env: { AGENT_BENCHMARKS_NO_SYNC: "1" },
+    homeDir: home,
+  });
 
 async function titles(...args: string[]): Promise<string[]> {
   const result = await run("--json", "ls", ...args);
@@ -136,7 +139,15 @@ function runFrom(cwd: string, ...args: string[]): { code: number; stdout: string
       "--no-sync",
       ...args,
     ],
-    { cwd, env: { ...process.env, AGENT_BENCHMARKS_NO_SYNC: "1", HOME: home, AGENT_BENCHMARKS_DB: undefined } },
+    {
+      cwd,
+      env: {
+        ...process.env,
+        AGENT_BENCHMARKS_NO_SYNC: "1",
+        HOME: home,
+        AGENT_BENCHMARKS_DB: undefined,
+      },
+    },
   );
   return {
     code: result.exitCode,

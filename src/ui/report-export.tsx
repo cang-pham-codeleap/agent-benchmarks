@@ -1,6 +1,13 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ApiError } from "./api.ts";
 import { ApiFailureState } from "./api-failure.tsx";
 import { EmptyState, PrivacyReviewLists } from "./common.tsx";
@@ -51,14 +58,42 @@ export function ExportReviewSheet({
   title: string;
 }) {
   const returnFocus = useRef<HTMLElement | null>(null);
-  return <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-    <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }} onCloseAutoFocus={(event) => { if (returnFocus.current != null) { event.preventDefault(); returnFocus.current.focus(); } }}>
-      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>Privacy review</DialogDescription></DialogHeader>
-      <PrivacyReviewLists className="grid gap-4 sm:grid-cols-2" excluded={excluded} excludedLabel="It never includes" included={includes} includedLabel="This report includes" />
-      {notice}
-      <DialogFooter>{actions}</DialogFooter>
-    </DialogContent>
-  </Dialog>;
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+        onOpenAutoFocus={() => {
+          returnFocus.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          if (returnFocus.current != null) {
+            event.preventDefault();
+            returnFocus.current.focus();
+          }
+        }}
+      >
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>Privacy review</DialogDescription>
+        </DialogHeader>
+        <PrivacyReviewLists
+          className="grid gap-4 sm:grid-cols-2"
+          excluded={excluded}
+          excludedLabel="It never includes"
+          included={includes}
+          includedLabel="This report includes"
+        />
+        {notice}
+        <DialogFooter>{actions}</DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export function ReportExportButton({
@@ -111,25 +146,23 @@ export function ReportExportButton({
 
   return (
     <>
-      <Button
-        onClick={() => setOpen(true)}
-        type="button"
-      >
+      <Button onClick={() => setOpen(true)} type="button">
         <Icon name="eye" />
         View report
       </Button>
       <ExportReviewSheet
         actions={
           <>
-            <Button variant="outline"
-              disabled={printing}
-              onClick={printReport}
-              type="button"
-            >
+            <Button variant="outline" disabled={printing} onClick={printReport} type="button">
               <Icon name="filePdf" />
               Save as PDF
             </Button>
-            <a className={buttonVariants({ variant: "outline" })} download href={href} onClick={closeReview}>
+            <a
+              className={buttonVariants({ variant: "outline" })}
+              download
+              href={href}
+              onClick={closeReview}
+            >
               <Icon name="fileCode" />
               Download HTML
             </a>
@@ -141,7 +174,16 @@ export function ReportExportButton({
         }
         excluded={excluded}
         includes={includes}
-        notice={error != null ? <div role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{error}</div> : null}
+        notice={
+          error != null ? (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive p-3 text-sm text-destructive"
+            >
+              {error}
+            </div>
+          ) : null
+        }
         onClose={closeReview}
         open={open}
         title={title}
@@ -173,18 +215,15 @@ export function ReportRouteExportActions({
         <Icon name="fileCode" />
         Download HTML
       </Button>
-      <Button
-        disabled={printDisabled}
-        onClick={() => setReviewOpen(true)}
-        type="button"
-      >
+      <Button disabled={printDisabled} onClick={() => setReviewOpen(true)} type="button">
         <Icon name="filePdf" />
         Save as PDF
       </Button>
       <ExportReviewSheet
         actions={
           <>
-            <Button variant="outline"
+            <Button
+              variant="outline"
               disabled={printDisabled}
               onClick={() => {
                 closeReview();
@@ -195,7 +234,12 @@ export function ReportRouteExportActions({
               <Icon name="filePdf" />
               Save as PDF
             </Button>
-            <a className={buttonVariants({ variant: "outline" })} download href={downloadHref} onClick={closeReview}>
+            <a
+              className={buttonVariants({ variant: "outline" })}
+              download
+              href={downloadHref}
+              onClick={closeReview}
+            >
               <Icon name="fileCode" />
               Download HTML
             </a>

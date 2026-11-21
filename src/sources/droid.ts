@@ -51,7 +51,7 @@ export function parseDroidSession(
       const globalSettings = parseSourceJson(
         globalSettingsContent === undefined
           ? readFileSync(join(homedir(), ".factory", "settings.json"), "utf8")
-          : globalSettingsContent ?? "null",
+          : (globalSettingsContent ?? "null"),
       );
       const customModels = get(globalSettings, "customModels");
       if (Array.isArray(customModels)) {
@@ -116,21 +116,27 @@ export function parseDroidSession(
     for (const item of contentItems) {
       if (!isObject(item)) continue;
       if (item.type === "text" || item.type === "thinking") {
-        blocks.push(block(blocks.length, item.type === "text" ? "text" : "thinking", {
-          text: asString(item.text) ?? asString(item.thinking),
-        }));
+        blocks.push(
+          block(blocks.length, item.type === "text" ? "text" : "thinking", {
+            text: asString(item.text) ?? asString(item.thinking),
+          }),
+        );
       } else if (item.type === "tool_use") {
-        blocks.push(block(blocks.length, "tool_use", {
-          toolName: asString(item.name),
-          toolUseId: asString(item.id),
-          toolInput: item.input,
-        }));
+        blocks.push(
+          block(blocks.length, "tool_use", {
+            toolName: asString(item.name),
+            toolUseId: asString(item.id),
+            toolInput: item.input,
+          }),
+        );
       } else if (item.type === "tool_result") {
-        blocks.push(block(blocks.length, "tool_result", {
-          toolUseId: asString(item.tool_use_id),
-          toolResult: contentText(item.content),
-          isError: item.is_error === true,
-        }));
+        blocks.push(
+          block(blocks.length, "tool_result", {
+            toolUseId: asString(item.tool_use_id),
+            toolResult: contentText(item.content),
+            isError: item.is_error === true,
+          }),
+        );
       }
     }
     if (title == null && role === "user") {
@@ -142,7 +148,7 @@ export function parseDroidSession(
       sourceUuid: asString(entry.id),
       parentSourceUuid: asString(entry.parentId),
       role,
-      model: role === "assistant" ? asString(message.modelId) ?? model : null,
+      model: role === "assistant" ? (asString(message.modelId) ?? model) : null,
       stopReason: null,
       timestamp,
       usage: null,

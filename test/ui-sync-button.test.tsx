@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { readUiFile } from "./ui-source.ts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SyncButton } from "../src/ui/sync-button.tsx";
+import { readUiFile } from "./ui-source.ts";
 
 const topbar = (busy: boolean, label: "Sync" | "Update") =>
   renderToStaticMarkup(

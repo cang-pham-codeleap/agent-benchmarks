@@ -8,7 +8,10 @@ async function fixture(): Promise<string> {
 
 describe("parseClaudeSession", () => {
   test("uses the recorded provider when one is present", () => {
-    const content = JSON.stringify({ type: "assistant", message: { role: "assistant", model: "claude-opus-5", provider: "Proxy", content: [] } });
+    const content = JSON.stringify({
+      type: "assistant",
+      message: { role: "assistant", model: "claude-opus-5", provider: "Proxy", content: [] },
+    });
     expect(parseClaudeSession("s", content).session.provider).toBe("proxy");
   });
 

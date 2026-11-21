@@ -374,7 +374,10 @@ describe("token economics", () => {
       "UPDATE session_economics SET format_version = 11, vector_json = ?1 WHERE session_id = ?2",
     ).run(JSON.stringify(oldVector), id);
     expect(
-      sync(db, { claudeDir: "/agent-benchmarks-fixture/missing", codexDir: "/agent-benchmarks-fixture/missing" }),
+      sync(db, {
+        claudeDir: "/agent-benchmarks-fixture/missing",
+        codexDir: "/agent-benchmarks-fixture/missing",
+      }),
     ).toMatchObject({ ingested: 0 });
     const result = tokenEconomicsForSession(db, id);
     expect(result?.buckets.find((b) => b.bucket === "code")?.generation_tokens).toBe(20);

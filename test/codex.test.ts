@@ -17,11 +17,16 @@ describe("parseCodexSession", () => {
     expect(session.sourceSessionId).toBe("sess-codex-1");
     expect(session.cwd).toBe("/Users/dev/proj");
     expect(session.model).toBe("gpt-5.4");
-    const models = ["openai/gpt-5.5", "cx/gpt-5.5"].map((model) =>
-      parseCodexSession("fallback", [
-        JSON.stringify({ type: "session_meta", payload: { model_provider: "OpenAI" } }),
-        JSON.stringify({ type: "turn_context", payload: { model } }),
-      ].join("\n"), new Map()).session.model,
+    const models = ["openai/gpt-5.5", "cx/gpt-5.5"].map(
+      (model) =>
+        parseCodexSession(
+          "fallback",
+          [
+            JSON.stringify({ type: "session_meta", payload: { model_provider: "OpenAI" } }),
+            JSON.stringify({ type: "turn_context", payload: { model } }),
+          ].join("\n"),
+          new Map(),
+        ).session.model,
     );
     expect([session.provider, ...models]).toEqual(["openai", "gpt-5.5", "cx/gpt-5.5"]);
     expect(session.reasoningEffort).toBe("high");

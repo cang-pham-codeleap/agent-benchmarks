@@ -251,7 +251,6 @@ describe("rules the code depends on", () => {
     expect(missedByJs).toEqual([]);
   });
 
-
   test("adding a message metadata path needs a backfill for existing archives", () => {
     expect(METADATA_PATHS).toEqual([
       ["isSidechain"],

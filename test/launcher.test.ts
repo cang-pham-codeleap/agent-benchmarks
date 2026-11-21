@@ -210,7 +210,10 @@ describe("launcher", () => {
 
     test("every fallback directory is in the copyable command", async () => {
       const unsupported = { platform: "linux" as const };
-      const override = await launch({ ...unsupported, env: { AGENT_BENCHMARKS_SKILLS_DIR: "/work/a" } });
+      const override = await launch({
+        ...unsupported,
+        env: { AGENT_BENCHMARKS_SKILLS_DIR: "/work/a" },
+      });
       expect(override.result.command).toStartWith("cd '/work/a' && claude ");
 
       const gone = await launch({ ...unsupported, dir: join(workDir, "deleted-worktree") });

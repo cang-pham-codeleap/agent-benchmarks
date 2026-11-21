@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { readUiSource, sourceBetween, sourceFrom } from "./ui-source.ts";
 
 const main = readUiSource();
-const insightsView = sourceBetween(main, "function InsightsView(", "export function InsightsSignalsSkeleton(");
+const insightsView = sourceBetween(
+  main,
+  "function InsightsView(",
+  "export function InsightsSignalsSkeleton(",
+);
 
 describe("Insights information hierarchy", () => {
   test("explains how archive evidence becomes future-agent improvements", () => {
@@ -15,9 +19,8 @@ describe("Insights information hierarchy", () => {
     expect(main).not.toContain("Set up for future runs");
   });
 
-
   test("uses expandable comparison rows instead of featured catalog cards", () => {
-    expect(main).toContain('aria-expanded={expanded}');
+    expect(main).toContain("aria-expanded={expanded}");
     expect(main).toContain("row.impact_label");
     expect(main).not.toContain("function RecommendationCard(");
     expect(main).not.toContain("is-featured");

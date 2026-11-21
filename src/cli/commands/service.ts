@@ -26,7 +26,9 @@ export function registerServiceCommands(ctx: CliContext): void {
 
   service
     .command("install")
-    .description("start Agent Benchmarks at login and now, serving the UI and syncing in the background")
+    .description(
+      "start Agent Benchmarks at login and now, serving the UI and syncing in the background",
+    )
     .option("--port <n>", "port the service serves the UI on", parseInteger, DEFAULT_SERVE_PORT)
     .action((commandOptions: { port?: number }) =>
       ctx.run(async () => {

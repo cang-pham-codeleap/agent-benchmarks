@@ -318,7 +318,10 @@ describe("watch mode", () => {
 
   test("runSyncOnce creates the archive directory owner-only", () => {
     const base = freshConfig();
-    const config = { ...base, dbPath: join(dirname(base.dbPath), "archive", "agent-benchmarks.db") };
+    const config = {
+      ...base,
+      dbPath: join(dirname(base.dbPath), "archive", "agent-benchmarks.db"),
+    };
 
     runSyncOnce(config);
 

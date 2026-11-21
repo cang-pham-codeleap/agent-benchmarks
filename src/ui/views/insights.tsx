@@ -1,7 +1,12 @@
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
@@ -40,7 +45,9 @@ export function RecommendationHero({
           <h3>{row.title}</h3>
           {isPresent(row.impact_label) ? <strong>{row.impact_label}</strong> : null}
         </div>
-        {facts.summary != null ? <p className="text-sm text-muted-foreground">{facts.summary}</p> : null}
+        {facts.summary != null ? (
+          <p className="text-sm text-muted-foreground">{facts.summary}</p>
+        ) : null}
         <RecommendationDetail facts={facts} row={row} {...handlers} />
       </div>
     </article>
@@ -178,11 +185,7 @@ export function RecommendationActions({
   return (
     <div className="flex flex-wrap gap-2">
       {action === "launch" ? (
-        <Button
-          disabled={busy != null}
-          onClick={() => onComplete(row)}
-          type="button"
-        >
+        <Button disabled={busy != null} onClick={() => onComplete(row)} type="button">
           <Icon name={ACTION_COPY.launch.icon} />
           {busy === "launch"
             ? ACTION_COPY.launch.pendingLabel
@@ -192,7 +195,8 @@ export function RecommendationActions({
         </Button>
       ) : null}
       {action === "launch" || action === "copy" ? (
-        <Button variant="outline"
+        <Button
+          variant="outline"
           disabled={busy === "copy"}
           onClick={() => (action === "copy" ? onComplete(row) : onCopy(row))}
           type="button"
@@ -202,7 +206,8 @@ export function RecommendationActions({
         </Button>
       ) : null}
       {action === "mark" ? (
-        <Button variant="outline"
+        <Button
+          variant="outline"
           disabled={busy != null}
           onClick={() => onComplete(row)}
           type="button"
@@ -213,8 +218,19 @@ export function RecommendationActions({
       ) : null}
       {row.url != null ? (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`More actions for ${row.title}`}><Icon name="ellipsis" /></Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end"><DropdownMenuItem asChild><a href={row.url} rel="noreferrer" target="_blank"><span>{row.link_label ?? "Docs"}</span><span aria-hidden="true">↗</span></a></DropdownMenuItem></DropdownMenuContent>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={`More actions for ${row.title}`}>
+              <Icon name="ellipsis" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <a href={row.url} rel="noreferrer" target="_blank">
+                <span>{row.link_label ?? "Docs"}</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
     </div>
@@ -321,14 +337,14 @@ export function PromptPreview({
           </span>
         </CollapsibleTrigger>
         <CollapsibleContent>
-        <pre className="mt-2 overflow-auto whitespace-pre-wrap text-sm">{prompt}</pre>
-        {canLaunch ? (
-          <p className="text-sm text-muted-foreground">
-            Run adds one last line that asks the agent to mark this insight done when it has
-            verified the work:
-            <code className="block">agent-benchmarks recommendations mark {row.key}</code>
-          </p>
-        ) : null}
+          <pre className="mt-2 overflow-auto whitespace-pre-wrap text-sm">{prompt}</pre>
+          {canLaunch ? (
+            <p className="text-sm text-muted-foreground">
+              Run adds one last line that asks the agent to mark this insight done when it has
+              verified the work:
+              <code className="block">agent-benchmarks recommendations mark {row.key}</code>
+            </p>
+          ) : null}
         </CollapsibleContent>
       </Collapsible>
     </div>
@@ -520,8 +536,8 @@ export function InsightsView({
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
         <p className="text-sm text-muted-foreground">
-          Agent Benchmarks finds recurring patterns in your local sessions, ranks the ones worth acting on,
-          and suggests durable improvements for future agent runs.
+          Agent Benchmarks finds recurring patterns in your local sessions, ranks the ones worth
+          acting on, and suggests durable improvements for future agent runs.
         </p>
       </header>
 
@@ -533,7 +549,11 @@ export function InsightsView({
       ) : null}
       {copyFeedback != null ? (
         <div
-          className={copyFeedback.kind === "error" ? "rounded-md border border-destructive p-4 text-sm text-destructive" : "rounded-md border p-4 text-sm"}
+          className={
+            copyFeedback.kind === "error"
+              ? "rounded-md border border-destructive p-4 text-sm text-destructive"
+              : "rounded-md border p-4 text-sm"
+          }
           role={copyFeedback.kind === "error" ? "alert" : "status"}
         >
           {copyFeedback.message}
@@ -548,7 +568,9 @@ export function InsightsView({
             <p>Evidence-backed signals from your own sessions, ranked by expected impact.</p>
           </div>
           {signals.length > 0 ? (
-            <span className="text-sm text-muted-foreground">{formatInt(signals.length)} active</span>
+            <span className="text-sm text-muted-foreground">
+              {formatInt(signals.length)} active
+            </span>
           ) : null}
         </div>
 
@@ -583,8 +605,8 @@ export function InsightsView({
             <span className="text-sm text-muted-foreground">Not from your session logs</span>
             <h2>Setup ideas</h2>
             <p>
-              General suggestions that apply to any project. Agent Benchmarks did not derive them from your
-              archive.
+              General suggestions that apply to any project. Agent Benchmarks did not derive them
+              from your archive.
             </p>
           </div>
         </div>
@@ -613,7 +635,9 @@ export function InsightsView({
               <h2>Already implemented</h2>
               <p>Improvements you have already marked complete.</p>
             </div>
-            <span className="text-sm text-muted-foreground">{formatInt(implementedRows.length)} saved</span>
+            <span className="text-sm text-muted-foreground">
+              {formatInt(implementedRows.length)} saved
+            </span>
           </div>
           <div className="grid gap-3">
             {implementedRows.map((row) => (
@@ -639,7 +663,6 @@ export function InsightsSignalsSkeleton() {
     </div>
   );
 }
-
 
 export function ImplementedRecommendationCard({ row }: { row: Recommendation }) {
   const implementedLabel =

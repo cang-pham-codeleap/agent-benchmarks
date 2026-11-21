@@ -93,7 +93,8 @@ async function withServe<T>(c: ServeCase, run: (port: number) => Promise<T>): Pr
   mkdirSync(vscodeCopilotDir, { recursive: true });
 
   const env = { ...process.env, ...(c.env ?? {}) };
-  if (!(c.env && "AGENT_BENCHMARKS_TRUSTED_PEERS" in c.env)) delete env.AGENT_BENCHMARKS_TRUSTED_PEERS;
+  if (!(c.env && "AGENT_BENCHMARKS_TRUSTED_PEERS" in c.env))
+    delete env.AGENT_BENCHMARKS_TRUSTED_PEERS;
 
   const proc = Bun.spawn(
     [

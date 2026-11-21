@@ -941,7 +941,9 @@ describe("recommendations", () => {
         project_label: "agent-benchmarks",
         project_remote: "github.com/example/agent-benchmarks",
       });
-      expect(hot[0]?.prompt).toStartWith('Work in the "agent-benchmarks" repository at "/work/agent-benchmarks".');
+      expect(hot[0]?.prompt).toStartWith(
+        'Work in the "agent-benchmarks" repository at "/work/agent-benchmarks".',
+      );
       expect(hot[0]?.prompt).toContain('passing --project "/work/agent-benchmarks"');
 
       const churn = rows.filter((row) => row.key.startsWith("signal:churn:"));
@@ -1193,7 +1195,9 @@ describe("recommendations", () => {
 
   test("only project rows say this repo, and the abandoned row names no missing filter", () => {
     const db = base();
-    db.exec("UPDATE project SET path = '/work/agent-benchmarks', root_path = '/work/agent-benchmarks'");
+    db.exec(
+      "UPDATE project SET path = '/work/agent-benchmarks', root_path = '/work/agent-benchmarks'",
+    );
     seedTool(db, "fetch", "mcp", "svc", 25, 5);
     seedTool(db, "mcp__svc__a", "mcp", "svc", 60, 0);
     seedTool(db, "Bash", "builtin", null, 250, 0);
@@ -1218,7 +1222,9 @@ describe("recommendations", () => {
         .sort(),
     );
     for (const row of scoped) {
-      expect(row.prompt, row.key).toStartWith('Work in the "agent-benchmarks" repository at "/work/agent-benchmarks".');
+      expect(row.prompt, row.key).toStartWith(
+        'Work in the "agent-benchmarks" repository at "/work/agent-benchmarks".',
+      );
     }
     const repoWords = /this repo|this project|our repo/i;
     const unscoped = rows.filter((row) => row.project_path == null);

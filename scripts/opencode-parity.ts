@@ -116,7 +116,10 @@ export function compareModelTotals(
   return lines;
 }
 
-export function compareRecordedCost(agentBenchmarks: ModelTotals[], reference: ModelTotals[]): ParityLine[] {
+export function compareRecordedCost(
+  agentBenchmarks: ModelTotals[],
+  reference: ModelTotals[],
+): ParityLine[] {
   const lines: ParityLine[] = [];
   const byKey = new Map(agentBenchmarks.map((row) => [modelKey(row), row]));
   for (const expected of [...reference].sort((a, b) => modelKey(a).localeCompare(modelKey(b)))) {
@@ -193,7 +196,10 @@ export function compareSessionTotals(
     check("cacheWrite", actual.cacheWrite, expected.cacheWrite);
     lines.push(
       over.length === 0
-        ? { level: "ok", text: `${expected.sessionId}: Agent Benchmarks totals at or below session_v2` }
+        ? {
+            level: "ok",
+            text: `${expected.sessionId}: Agent Benchmarks totals at or below session_v2`,
+          }
         : expected.migrated === true
           ? {
               level: "info",
@@ -496,7 +502,9 @@ function legacyStepSums(
   return sums;
 }
 
-export function agentBenchmarksRuleModelTotals(rows: readonly OpenCodeAssistantRow[]): ModelTotals[] {
+export function agentBenchmarksRuleModelTotals(
+  rows: readonly OpenCodeAssistantRow[],
+): ModelTotals[] {
   const totals = new Map<string, ModelTotals>();
   for (const row of rows) {
     if (row.legacyPreferred || row.inherited) {
@@ -933,7 +941,9 @@ export function compareStructure(
 ): ParityLine[] {
   const lines: ParityLine[] = [];
   const onlyLetta = [...letta.toolCalls.keys()].filter((id) => !agentBenchmarks.toolCalls.has(id));
-  const onlyAgentBenchmarks = [...agentBenchmarks.toolCalls.keys()].filter((id) => !letta.toolCalls.has(id));
+  const onlyAgentBenchmarks = [...agentBenchmarks.toolCalls.keys()].filter(
+    (id) => !letta.toolCalls.has(id),
+  );
   let names = 0;
   let outcomes = 0;
   for (const [id, call] of agentBenchmarks.toolCalls) {
@@ -1064,7 +1074,9 @@ function lettaCrossCheck(opencode: Database, agentBenchmarks: Database): ParityL
       lines.push({ level: "info", text: `${session.id}: Letta could not normalize it (${code})` });
       continue;
     }
-    lines.push(...compareStructure(session.id, agentBenchmarksSide, lettaStructure(result.records)));
+    lines.push(
+      ...compareStructure(session.id, agentBenchmarksSide, lettaStructure(result.records)),
+    );
     const diagnostics = diagnosticsLine(session.id, result.diagnostics);
     if (diagnostics != null) {
       lines.push(diagnostics);
@@ -1073,7 +1085,8 @@ function lettaCrossCheck(opencode: Database, agentBenchmarks: Database): ParityL
   return lines;
 }
 
-export interface AgentBenchmarksModelGroup extends Omit<ModelTotals, "reasoning" | "cost" | "costSource"> {
+export interface AgentBenchmarksModelGroup
+  extends Omit<ModelTotals, "reasoning" | "cost" | "costSource"> {
   recorded: number;
 }
 
@@ -1246,7 +1259,9 @@ function main(): void {
     );
     const agentBenchmarksSessions = readAgentBenchmarksSessionTotals(agentBenchmarks);
     console.log("== per session: Agent Benchmarks assistant-only vs session_v2");
-    mismatches += print(compareSessionTotals(agentBenchmarksSessions, readOpenCodeSessionTotals(opencode)));
+    mismatches += print(
+      compareSessionTotals(agentBenchmarksSessions, readOpenCodeSessionTotals(opencode)),
+    );
     const legacySessions = readLegacySessionTotals(opencode);
     if (legacySessions.length > 0) {
       console.log("== per session: Agent Benchmarks vs 1.x session columns (informational)");

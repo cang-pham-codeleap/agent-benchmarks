@@ -27,7 +27,9 @@ describe("Gemini CLI source copy", () => {
 
   test("names Gemini CLI alongside Claude Code and Codex in product copy", () => {
     const copy = main.replace(/\s+/g, " ");
-    expect(copy).toContain("Every agent session log on this device, plus imported ATIF trajectories.");
+    expect(copy).toContain(
+      "Every agent session log on this device, plus imported ATIF trajectories.",
+    );
     expect(copy).toContain(
       "session logs Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, and Pi already write",
     );

@@ -4,7 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { getJson } from "../api.ts";
 import dosuOfficialUrl from "../assets/dosu-official.svg";
 import { Badge, displayModelLabel, ModelBadge, ReasoningBadge, ToolBadge } from "../badges.tsx";
@@ -102,8 +109,9 @@ export function SessionsView({
     cardSummary.sessions,
     cardSummary.usage_sessions,
   );
-  const visibleTotal =
-    compareFilters.length ? null : project == null && repo == null
+  const visibleTotal = compareFilters.length
+    ? null
+    : project == null && repo == null
       ? (data.summary?.sessions ?? null)
       : (currentScopedSummary?.sessions ?? null);
   const listTotal = includeArchived ? null : visibleTotal;
@@ -202,24 +210,51 @@ export function SessionsView({
         <DateRangeControl bounds={data.dateBounds} range={dateRange} onChange={onDateRangeChange} />
       </header>
 
-      {compareFilters.length === 0 ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard icon="sessions" label="Sessions" value={formatInt(cardSummary.sessions)} />
-        <StatCard icon="messages" label="Messages" value={formatInt(cardSummary.messages)} />
-        <StatCard icon="money" label="Est. cost" value={estCost.text} valueTitle={estCost.title} />
-      </div> : null}
+      {compareFilters.length === 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard icon="sessions" label="Sessions" value={formatInt(cardSummary.sessions)} />
+          <StatCard icon="messages" label="Messages" value={formatInt(cardSummary.messages)} />
+          <StatCard
+            icon="money"
+            label="Est. cost"
+            value={estCost.text}
+            valueTitle={estCost.title}
+          />
+        </div>
+      ) : null}
 
-      <Card aria-busy={pageLoading || refreshing} className="gap-0 overflow-hidden py-0 [contain:layout_paint] [overflow-anchor:none]">
+      <Card
+        aria-busy={pageLoading || refreshing}
+        className="gap-0 overflow-hidden py-0 [contain:layout_paint] [overflow-anchor:none]"
+      >
         <div className="flex flex-wrap items-center justify-between gap-4 p-6">
           <h2 className="text-lg font-semibold">Sessions</h2>
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={includeArchived} onCheckedChange={(checked) => visit(sessionsArchivedHref(path, checked === true))} />
+              <Checkbox
+                checked={includeArchived}
+                onCheckedChange={(checked) => visit(sessionsArchivedHref(path, checked === true))}
+              />
               <span>Show archived</span>
             </label>
-            <Input aria-label="Filter sessions" className="w-64 max-w-full" onChange={(event) => setQuery(event.target.value)} placeholder="Filter by title, model, or tool..." value={query} />
+            <Input
+              aria-label="Filter sessions"
+              className="w-64 max-w-full"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter by title, model, or tool..."
+              value={query}
+            />
           </div>
         </div>
-        {compareFilters.length ? <div className="flex flex-wrap gap-2 px-6 pb-4">{compareFilters.map((key) => <span className="rounded-md border bg-muted px-2 py-1 text-xs" key={key}>{key}: {params.get(key) || "Unknown"}</span>)}</div> : null}
+        {compareFilters.length ? (
+          <div className="flex flex-wrap gap-2 px-6 pb-4">
+            {compareFilters.map((key) => (
+              <span className="rounded-md border bg-muted px-2 py-1 text-xs" key={key}>
+                {key}: {params.get(key) || "Unknown"}
+              </span>
+            ))}
+          </div>
+        ) : null}
         {project != null ? (
           <div className="flex flex-wrap gap-2 px-6 pb-4">
             <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs">
@@ -235,7 +270,10 @@ export function SessionsView({
         ) : null}
         {repo != null ? (
           <div className="flex flex-wrap gap-2 px-6 pb-4">
-            <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs" title={`${repo}, including its worktrees`}>
+            <span
+              className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs"
+              title={`${repo}, including its worktrees`}
+            >
               Repository: <strong>{basename(repo)}</strong>
               <Link
                 aria-label="Clear repository filter"
@@ -249,9 +287,17 @@ export function SessionsView({
         <div className="@container border-y">
           <Table className="min-w-[1084px] table-fixed">
             <colgroup>
-              <col className="w-[156px]" /><col /><col className="w-[160px]" /><col className="w-[180px]" />
-              <col className="hidden w-[120px] @min-[1448px]:table-column" /><col className="hidden w-[72px] @min-[1448px]:table-column" /><col className="hidden w-[60px] @min-[1448px]:table-column" />
-              <col className="hidden w-[112px] @min-[1196px]:table-column" /><col className="w-[72px]" /><col className="w-[92px]" /><col className="w-[144px]" />
+              <col className="w-[156px]" />
+              <col />
+              <col className="w-[160px]" />
+              <col className="w-[180px]" />
+              <col className="hidden w-[120px] @min-[1448px]:table-column" />
+              <col className="hidden w-[72px] @min-[1448px]:table-column" />
+              <col className="hidden w-[60px] @min-[1448px]:table-column" />
+              <col className="hidden w-[112px] @min-[1196px]:table-column" />
+              <col className="w-[72px]" />
+              <col className="w-[92px]" />
+              <col className="w-[144px]" />
             </colgroup>
             <TableHeader>
               <TableRow>
@@ -260,9 +306,13 @@ export function SessionsView({
                 <TableHead>Project</TableHead>
                 <TableHead>Model</TableHead>
                 <TableHead className="hidden @min-[1448px]:table-cell">Effort</TableHead>
-                <TableHead className="hidden text-right @min-[1448px]:table-cell">Peak ctx</TableHead>
+                <TableHead className="hidden text-right @min-[1448px]:table-cell">
+                  Peak ctx
+                </TableHead>
                 <TableHead className="hidden text-right @min-[1448px]:table-cell">Comp.</TableHead>
-                <TableHead className="hidden text-right @min-[1196px]:table-cell">Subagents</TableHead>
+                <TableHead className="hidden text-right @min-[1196px]:table-cell">
+                  Subagents
+                </TableHead>
                 <TableHead className="text-right">Msgs</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Started</TableHead>
@@ -274,7 +324,9 @@ export function SessionsView({
             </TableBody>
           </Table>
         </div>
-        {emptyMessage == null ? null : <p className="p-6 text-sm text-muted-foreground">{emptyMessage}</p>}
+        {emptyMessage == null ? null : (
+          <p className="p-6 text-sm text-muted-foreground">{emptyMessage}</p>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-4 p-6 text-sm text-muted-foreground">
           <span>
             {sessionsCaption(
@@ -328,7 +380,19 @@ export function SessionTableSkeletonRows() {
   return SESSION_TABLE_SKELETON_KEYS.map((key) => (
     <TableRow key={key}>
       {Array.from({ length: 11 }, (_, index) => (
-        <TableCell className={index >= 4 && index <= 6 ? "hidden @min-[1448px]:table-cell" : index === 7 ? "hidden @min-[1196px]:table-cell" : undefined} key={index}><Skeleton className="h-4 w-16 animate-none" /></TableCell>
+        <TableCell
+          className={
+            index >= 4 && index <= 6
+              ? "hidden @min-[1448px]:table-cell"
+              : index === 7
+                ? "hidden @min-[1196px]:table-cell"
+                : undefined
+          }
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton cells
+          key={index}
+        >
+          <Skeleton className="h-4 w-16 animate-none" />
+        </TableCell>
       ))}
     </TableRow>
   ));
@@ -412,7 +476,8 @@ export const SessionTableRow = memo(function SessionTableRow({
             <Button
               aria-expanded={expanded}
               aria-label={`${expanded ? "Collapse" : "Expand"} subagents for ${title}`}
-              variant="ghost" size="icon-xs"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => onToggle(session.id)}
               type="button"
             >
@@ -439,7 +504,9 @@ export const SessionTableRow = memo(function SessionTableRow({
             </Link>
             {session.is_user_archived ? <Badge tone="neutral">Archived</Badge> : null}
           </span>
-          {isSubagent ? <small className="text-muted-foreground">{subagentDescriptor(session)}</small> : null}
+          {isSubagent ? (
+            <small className="text-muted-foreground">{subagentDescriptor(session)}</small>
+          ) : null}
         </span>
       </TableCell>
       <TableCell className="max-w-48 truncate" title={session.project_path ?? ""}>
@@ -471,7 +538,9 @@ export const SessionTableRow = memo(function SessionTableRow({
       <TableCell className="hidden text-right tabular-nums @min-[1196px]:table-cell">
         <SubagentRollup session={session} />
       </TableCell>
-      <TableCell className="text-right tabular-nums text-muted-foreground">{formatInt(session.message_count)}</TableCell>
+      <TableCell className="text-right tabular-nums text-muted-foreground">
+        {formatInt(session.message_count)}
+      </TableCell>
       <TableCell className="text-right tabular-nums">
         {sessionThreadUsageAvailable(session) ? (
           money(sessionThreadCost(session))
@@ -510,6 +579,7 @@ export function DosuProvenanceBadge({
       {(tooltipProps) => (
         <span
           {...tooltipProps}
+          role="img"
           aria-label={dosuBadgeAriaLabel(evidence)}
           className="inline-flex size-6 items-center justify-center rounded-md border [&_img]:size-4"
         >
@@ -561,7 +631,9 @@ export function SubagentRollup({ session }: { session: SessionSummary }) {
     <span className="inline-flex flex-col" title={`${formatInt(count)} subagents`}>
       <span>{formatInt(count)}</span>
       {session.subagent_estimated_cost_usd > 0 ? (
-        <small className="text-muted-foreground">+{money(session.subagent_estimated_cost_usd)}</small>
+        <small className="text-muted-foreground">
+          +{money(session.subagent_estimated_cost_usd)}
+        </small>
       ) : null}
     </span>
   );
