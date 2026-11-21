@@ -802,13 +802,17 @@ with a baseline setup that has the same harness, model, and config and no
 augments.
 
 - **Pairs.** A pair is a (task, trial) cell graded in both arms within one run.
-  Ungraded cells (errors, provider limits, unavailable, pending) are excluded.
+  When the baseline is graded and the augmented cell ends in an agent or setup
+  error, the pair counts as an augmented failure, because the augment can cause
+  those. Provider limits, unavailable, verifier errors, and pending cells are
+  excluded.
 - **Deltas.** `passDelta` is augmented passes minus baseline passes, divided by
   pairs. `better` and `worse` count pairs where only the augmented or only the
   baseline arm passed. `tokenDelta` is mean total tokens (input, output, cache
-  read, cache write) of the augmented arm over the baseline, minus one.
-  `costDelta` is the same for cost, and exists only when every paired cell is
-  priced. The saving is read from cost when available, otherwise from tokens.
+  read, cache write) of the augmented arm over the baseline, minus one, over
+  the pairs graded in both arms. It exists only when every such pair has token
+  usage. `costDelta` is the same for cost and exists only when every such pair
+  is priced. The saving is read from cost when available, otherwise from tokens.
 - **Thresholds.** Fewer than 20 pairs, or fewer than 3 paired trials for any
   task, is `inconclusive`. A pass drop of 5 points or more, or `worse` exceeding
   `better` by 2 or more, is `quality-risk`. Otherwise a saving of at least 10%
@@ -816,5 +820,10 @@ augments.
   else is `no-saving`. With no token or cost data the verdict is `inconclusive`.
 - **Pooling.** `GET /api/evals/augments` pools the raw pairs of all completed
   runs sharing harness, harness version, model, config, and augments, then
-  applies the same rules. Trials per task add up across runs, so two runs that
-  are each too small can together reach a verdict.
+  applies the same rules. Trials of a task add up across runs only when the
+  task's content hash matches. A task without a hash, such as an older run's,
+  counts per run. So two small runs of the same tasks can together reach a
+  verdict, and a changed task never inflates another's trial count.
+- **Limits.** Setups run one group after another, so provider load or cache
+  state can differ between the baseline and the augmented arm. The 10% bar is
+  a fixed rule, not a measured noise floor for each model.

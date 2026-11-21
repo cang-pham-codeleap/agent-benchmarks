@@ -789,6 +789,7 @@ function evalAugmentsRoute({ config, context }: RouteContext): Response {
             return {
               runId: manifest.id,
               harnessVersions: manifest.provenance.harnessVersions,
+              taskHashes: manifest.provenance.taskHashes,
               cells: results.cells,
               setups: manifest.input.setups,
             };

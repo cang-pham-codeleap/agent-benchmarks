@@ -98,9 +98,25 @@ describe("augment verdicts", () => {
     expect(v.verdict).toBe("adopt");
   });
 
-  test("ungraded cells are excluded from pairs", () => {
+  test("an augment that errors the agent counts as a failed pair", () => {
     const v = only(arms(7, 3, 0.2, { augOutcome: (i) => (i < 3 ? "agent-error" : "passed") }));
+    expect(v.pairs).toBe(21);
+    expect(v.worse).toBe(3);
+    expect(v.verdict).toBe("quality-risk");
+  });
+
+  test("infrastructure outcomes are left out of the pairs", () => {
+    const v = only(arms(7, 3, 0.2, { augOutcome: (i) => (i < 3 ? "provider-limit" : "passed") }));
     expect(v.pairs).toBe(18);
+    expect(v.verdict).toBe("inconclusive");
+  });
+
+  test("a saving measured on only some pairs is not claimed", () => {
+    const cells = arms(7, 3, 0.2, { priced: false });
+    const first = cells.find((c) => c.setupKey === AUG_KEY);
+    if (first) first.tokens = null;
+    const v = only(cells);
+    expect(v.tokenDelta).toBeNull();
     expect(v.verdict).toBe("inconclusive");
   });
 
@@ -108,16 +124,19 @@ describe("augment verdicts", () => {
     expect(augmentVerdicts(arms(7, 3, 0.2), [aug])).toEqual([]);
   });
 
-  test("pooling two small runs reaches adopt", () => {
-    const run = (runId: string) => ({
-      runId,
-      harnessVersions: { claude: "1.0" },
-      cells: arms(4, 3, 0.2),
-      setups,
-    });
-    const [a] = poolAugmentVerdicts([run("a")]);
+  const run = (runId: string, harness = "1.0", taskHashes: Record<string, string> = {}) => ({
+    runId,
+    harnessVersions: { claude: harness },
+    taskHashes,
+    cells: arms(4, 3, 0.2),
+    setups,
+  });
+  const sameTasks = { t0: "h0", t1: "h1", t2: "h2", t3: "h3" };
+
+  test("pooling two small runs of the same tasks reaches adopt", () => {
+    const [a] = poolAugmentVerdicts([run("a", "1.0", sameTasks)]);
     expect(a?.verdict).toBe("inconclusive");
-    const pooled = poolAugmentVerdicts([run("a"), run("b")]);
+    const pooled = poolAugmentVerdicts([run("a", "1.0", sameTasks), run("b", "1.0", sameTasks)]);
     expect(pooled).toHaveLength(1);
     expect(pooled[0]?.pairs).toBe(24);
     expect(pooled[0]?.minTrials).toBe(6);
@@ -125,11 +144,18 @@ describe("augment verdicts", () => {
     expect(pooled[0]?.verdict).toBe("adopt");
   });
 
+  test("tasks without a content hash do not merge trials across runs", () => {
+    const [pooled] = poolAugmentVerdicts([run("a"), run("b")]);
+    expect(pooled?.minTrials).toBe(3);
+  });
+
+  test("changed task content does not merge trials across runs", () => {
+    const changed = { t0: "x0", t1: "x1", t2: "x2", t3: "x3" };
+    const [pooled] = poolAugmentVerdicts([run("a", "1.0", sameTasks), run("b", "1.0", changed)]);
+    expect(pooled?.minTrials).toBe(3);
+  });
+
   test("different harness versions are pooled separately", () => {
-    const pooled = poolAugmentVerdicts([
-      { runId: "a", harnessVersions: { claude: "1" }, cells: arms(4, 3, 0.2), setups },
-      { runId: "b", harnessVersions: { claude: "2" }, cells: arms(4, 3, 0.2), setups },
-    ]);
-    expect(pooled).toHaveLength(2);
+    expect(poolAugmentVerdicts([run("a", "1"), run("b", "2")])).toHaveLength(2);
   });
 });
