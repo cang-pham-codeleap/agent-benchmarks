@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+import packageJson from "../package.json" with { type: "json" };
 
 // This direct access is intentionally kept at module scope so `bun build
 // --compile --env=AGENT_BENCHMARKS_BUILD_VERSION*` can replace it in release binaries.
@@ -12,6 +14,8 @@ export interface VersionResolutionOptions {
 }
 
 function describeCheckout(checkoutDir: string): string | null {
+  // An npm install can sit inside another project's repository; describing that would report its version.
+  if (!existsSync(join(checkoutDir, ".git"))) return null;
   try {
     const result = spawnSync("git", ["describe", "--tags", "--always", "--dirty"], {
       cwd: checkoutDir,
@@ -34,7 +38,7 @@ export function resolveAgentBenchmarksVersion(options: VersionResolutionOptions 
   }
 
   const checkoutDir = options.checkoutDir ?? resolve(import.meta.dir, "..");
-  return (options.describe ?? describeCheckout)(checkoutDir) ?? "dev";
+  return (options.describe ?? describeCheckout)(checkoutDir) ?? packageJson.version;
 }
 
 export const AGENT_BENCHMARKS_VERSION = resolveAgentBenchmarksVersion();

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import packageJson from "../package.json" with { type: "json" };
 import { resolveAgentBenchmarksVersion } from "../src/version.ts";
 
 describe("version resolution", () => {
@@ -21,7 +22,9 @@ describe("version resolution", () => {
     ).toBe("v1.0.0-2-gabcdef");
   });
 
-  test("falls back to dev outside a checkout", () => {
-    expect(resolveAgentBenchmarksVersion({ env: {}, describe: () => null })).toBe("dev");
+  test("falls back to the package version outside a checkout", () => {
+    expect(resolveAgentBenchmarksVersion({ env: {}, describe: () => null })).toBe(
+      packageJson.version,
+    );
   });
 });
