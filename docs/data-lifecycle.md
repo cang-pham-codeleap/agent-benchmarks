@@ -927,6 +927,15 @@ clone. The clone stays until you delete the run.
 `evals/repo-profiles.json` remembers the setup command, checks, and
 hidden-test command last used for each repository, keyed by its real path.
 
+`evals/suites/agent-lens-long.json` is a suite of long replay tasks from this
+repository's own history: each one starts at a real commit's parent, gives the
+agent an issue-style prompt, and grades it with that commit's tests. Run it
+from a clone with full history. `bun scripts/replay-suite.ts check <suite>`
+proves each task's hidden tests fail at the parent and pass at the commit.
+`bun scripts/replay-suite.ts run <suite> --setups '<json>'` starts one real
+run per task through the local API, one after another, and rotates the setup
+order per task. Augment verdicts pool those runs by task.
+
 Agent sessions from a run are ordinary harness sessions and are synced into
 the archive like any other. Sessions of a `default` group are read from the
 run's own `ach-state/claude-runs` and `home/codex` after the run.
