@@ -142,7 +142,7 @@ describe("reading combos", () => {
     const problems = Object.fromEntries(
       readCombos(evalDir, checkFor(evalDir)).map((entry) => [entry.id, entry.problem]),
     );
-    expect(problems["unknown-augment"]).toContain("augments must be a list of");
+    expect(problems["unknown-augment"]).toBe("unknown augment: nope");
     expect(problems["missing-task"]).toBe("taskIds must name tasks in the catalog");
     expect(problems["no-harness"]).toBe("codex is not installed");
     expect(problems["too-many"]).toBe("trials must be 1..10");

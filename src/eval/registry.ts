@@ -316,15 +316,11 @@ export function validateSetupConfig(
       "config_unsupported",
     );
   if (rawAugments == null) return [];
-  if (
-    !Array.isArray(rawAugments) ||
-    rawAugments.some((id) => typeof id !== "string" || !registry.has(id))
-  )
-    throw new EvalRequestError(
-      `augments must be a list of: ${[...registry.keys()].join(", ")}`,
-      400,
-      "augment_unknown",
-    );
+  if (!Array.isArray(rawAugments) || rawAugments.some((id) => typeof id !== "string"))
+    throw new EvalRequestError("augments must be a list of augment ids", 400, "augment_unknown");
+  const unknown = rawAugments.find((id) => !registry.has(id));
+  if (unknown !== undefined)
+    throw new EvalRequestError(`unknown augment: ${unknown}`, 400, "augment_unknown");
   const augments = [...new Set(rawAugments as AugmentId[])].sort();
   if (augments.length === 0) return [];
   if (config === "current")
