@@ -935,6 +935,9 @@ proves each task's hidden tests fail at the parent and pass at the commit.
 `bun scripts/replay-suite.ts run <suite> --setups '<json>'` starts one real
 run per task through the local API, one after another, and rotates the setup
 order per task. Augment verdicts pool those runs by task.
+On macOS each running group holds an idle-sleep assertion (`caffeinate -i`).
+Closing the lid on battery still sleeps the machine; the agents lose their
+connections and the affected cells end as timeouts.
 
 Agent sessions from a run are ordinary harness sessions and are synced into
 the archive like any other. Sessions of a `default` group are read from the
