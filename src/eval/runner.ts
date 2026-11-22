@@ -45,7 +45,6 @@ import {
 import {
   apiCellId,
   augmentsDir,
-  configOfGroup,
   groupId,
   groupKeysOnDisk,
   ledgerFile,
@@ -543,12 +542,15 @@ function initializeRunner(dbPath: string): void {
   }
 }
 
-function runGroups(runDir: string): RunGroup[] {
-  return groupKeysOnDisk(runDir, "plan").map((key) => ({
-    ...groupId(configOfGroup(key), key.split("+").slice(1) as RunGroup["augments"]),
-    planPath: join(runDir, planFile(key)),
-    ledgerPath: join(runDir, ledgerFile(key)),
-  }));
+function runGroups(runDir: string, setups: readonly EvalSetup[]): RunGroup[] {
+  const planned = new Set(groupKeysOnDisk(runDir, "plan"));
+  return setupGroups(setups)
+    .filter((group) => planned.has(group.key))
+    .map((group) => ({
+      ...groupId(group.config, group.augments),
+      planPath: join(runDir, planFile(group.key)),
+      ledgerPath: join(runDir, ledgerFile(group.key)),
+    }));
 }
 
 function spawnRun(
@@ -559,7 +561,7 @@ function spawnRun(
   retryFailed: boolean,
 ): void {
   const id = manifest.id;
-  const groups = runGroups(runDir);
+  const groups = runGroups(runDir, manifest.input.setups);
   const log = Bun.file(join(runDir, "ach.log")).writer();
   installLedgerWatch(config.dbPath, runDir, id);
   const stop = async (): Promise<void> => {

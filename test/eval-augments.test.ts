@@ -13,8 +13,8 @@ import { join } from "node:path";
 import { type Config, resolveConfig } from "../src/config.ts";
 import { closeDb, openDb } from "../src/db.ts";
 import { readEvalCells } from "../src/eval/ledger.ts";
-import { groupId, safeCellDir, setupGroups } from "../src/eval/paths.ts";
-import type { BenchmarkRunInput, EvalSetup } from "../src/eval/types.ts";
+import { groupId, safeCellDir } from "../src/eval/paths.ts";
+import type { BenchmarkRunInput } from "../src/eval/types.ts";
 import { sync } from "../src/ingest.ts";
 
 const allowNull = process.env.AGENT_BENCHMARKS_EVAL_ALLOW_NULL;
@@ -165,13 +165,6 @@ describe("augment boundary", () => {
       "duplicate setup: claude:haiku:clean+rtk",
     );
     expect(rejection(benchmark([same, { ...same, augments: [] }]))).toBeNull();
-  });
-
-  test("groups run in the order their first setup was requested", () => {
-    const setup = (augments: string[], harness = "claude") =>
-      ({ harness, model: "haiku", config: "clean", augments }) as EvalSetup;
-    const keys = setupGroups([setup(["rtk"]), setup([]), setup(["rtk"], "omp")]).map((g) => g.key);
-    expect(keys).toEqual(["clean+rtk", "clean"]);
   });
 });
 
@@ -393,7 +386,7 @@ function testConfig(name: string): Config {
 
 describe("augmented benchmark run", () => {
   test.skipIf(achMissing != null)(
-    `runs a clean baseline and an augmented setup as separate groups${achMissing == null ? "" : ` (skipped: ${achMissing})`}`,
+    `runs groups in request order, a clean baseline and an augmented setup apart${achMissing == null ? "" : ` (skipped: ${achMissing})`}`,
     async () => {
       const configDir = join(root, "settings");
       mkdirSync(configDir, { recursive: true });
@@ -414,8 +407,8 @@ describe("augmented benchmark run", () => {
           },
         },
         benchmark([
-          { harness: "null", model: "smoke", config: "clean" },
           { harness: "null", model: "smoke", config: "clean", augments: ["bash-cap"] },
+          { harness: "null", model: "smoke", config: "clean" },
         ]),
       );
       const deadline = Date.now() + 150_000;
@@ -429,17 +422,22 @@ describe("augmented benchmark run", () => {
       const runDir = join(root, "e2e", "archive", "evals", manifest.id);
       expect(existsSync(join(runDir, "plan.clean.json"))).toBe(true);
       expect(existsSync(join(runDir, "plan.clean+bash-cap.json"))).toBe(true);
+      const startedAt = (file: string) =>
+        JSON.parse(readFileSync(join(runDir, file), "utf8").split("\n")[0] ?? "{}").startedAt;
+      expect(startedAt("ledger.clean+bash-cap.jsonl")).toBeLessThan(
+        startedAt("ledger.clean.jsonl"),
+      );
       const db = openDb(config.dbPath);
       try {
         const results = readEvalResults(db, config.dbPath, manifest);
         const task = "null:db-schema-orders:smoke:trial1";
         expect(results.cells.map((cell) => cell.cellId)).toEqual([
-          `clean/${task}`,
           `clean+bash-cap/${task}`,
+          `clean/${task}`,
         ]);
         expect(results.cells.map((cell) => cell.setupKey)).toEqual([
-          "null:smoke:clean",
           "null:smoke:clean+bash-cap",
+          "null:smoke:clean",
         ]);
         expect(results.cells.every((cell) => cell.outcome !== "pending")).toBe(true);
         expect(results.cells.map((cell) => cell.prepMs)).toEqual([null, null]);

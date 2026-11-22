@@ -62,29 +62,40 @@ async function run(suite: Suite, tasks: ReplayTask[], args: Map<string, string>,
   const setups = JSON.parse(args.get("--setups") ?? "null");
   if (!Array.isArray(setups)) throw new Error("--setups must be a JSON array");
   const headers = { "content-type": "application/json", origin: url };
-  for (const [index, task] of tasks.entries()) {
-    // Groups run one after another; rotating the order per task spreads provider drift across arms.
-    const order = setups.map((_, i) => setups[(i + index) % setups.length]);
-    const response = await fetch(`${url}/api/evals`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        kind: "real",
-        name: `replay ${task.id}`,
-        setups: order,
-        trials: Number(args.get("--trials") ?? 3),
-        wallMs: Number(args.get("--wall-ms") ?? 30 * 60_000),
-        repoPath: repo,
-        task: { type: "replay", sha: task.sha, prompt: task.prompt, hiddenPaths: task.hiddenPaths },
-        profile: {
-          setupCommand: suite.setupCommand,
-          checks: suite.checks,
-          hiddenTestCommand: suite.hiddenTestCommand,
-        },
-      }),
-    });
-    const body = (await response.json()) as { id?: string; error?: string };
-    if (body.id == null) throw new Error(`${task.id}: ${response.status} ${JSON.stringify(body)}`);
+  for (const task of tasks) {
+    // Groups run in request order; rotating it by the task's place in the suite spreads provider drift across arms.
+    const shift = suite.tasks.indexOf(task);
+    const order = setups.map((_, i) => setups[(i + shift) % setups.length]);
+    let body: { id?: string; code?: string } = {};
+    for (;;) {
+      const response = await fetch(`${url}/api/evals`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          kind: "real",
+          name: `replay ${task.id}`,
+          setups: order,
+          trials: Number(args.get("--trials") ?? 3),
+          wallMs: Number(args.get("--wall-ms") ?? 30 * 60_000),
+          repoPath: repo,
+          task: {
+            type: "replay",
+            sha: task.sha,
+            prompt: task.prompt,
+            hiddenPaths: task.hiddenPaths,
+          },
+          profile: {
+            setupCommand: suite.setupCommand,
+            checks: suite.checks,
+            hiddenTestCommand: suite.hiddenTestCommand,
+          },
+        }),
+      });
+      body = (await response.json()) as typeof body;
+      if (body.code !== "eval_active") break;
+      await Bun.sleep(60_000);
+    }
+    if (body.id == null) throw new Error(`${task.id}: ${JSON.stringify(body)}`);
     console.log(`${task.id} ${body.id} started`);
     for (;;) {
       await Bun.sleep(60_000);
