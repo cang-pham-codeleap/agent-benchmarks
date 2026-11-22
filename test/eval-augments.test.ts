@@ -442,6 +442,11 @@ describe("augmented benchmark run", () => {
       const manifest = readRunManifest(config.dbPath, started.id);
       expect(manifest?.status).toBe("completed");
       if (manifest == null) throw new Error("manifest disappeared");
+      expect(Object.keys(manifest.provenance.augments ?? {})).toEqual(["bash-cap"]);
+      expect(manifest.provenance.augments?.["bash-cap"]).toMatchObject({
+        source: "user",
+        definition: { recipes: { null: { env: { AB_AUGMENT_TEST: "1" } } } },
+      });
       const runDir = join(root, "e2e", "archive", "evals", manifest.id);
       expect(existsSync(join(runDir, "plan.clean.json"))).toBe(true);
       expect(existsSync(join(runDir, "plan.clean+bash-cap.json"))).toBe(true);

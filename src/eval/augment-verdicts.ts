@@ -195,6 +195,8 @@ export function poolAugmentVerdicts(
     harnessVersions: Partial<Record<EvalHarness, string>>;
     /** Task id to content hash; a task without one only pools with itself in the same run. */
     taskHashes: Record<string, string>;
+    /** Augment id to the hash of the definition the run executed. */
+    augmentHashes: Record<AugmentId, string>;
     cells: readonly EvalCell[];
     setups: readonly EvalSetup[];
   }[],
@@ -206,6 +208,7 @@ export function poolAugmentVerdicts(
       harnessVersion: string | null;
       runIds: string[];
       pairs: Pair[];
+      recipes: Set<string>;
     }
   >();
   for (const run of runs) {
@@ -218,7 +221,13 @@ export function poolAugmentVerdicts(
       const key = JSON.stringify([harness, harnessVersion, model, config, augments]);
       let pool = pools.get(key);
       if (!pool) {
-        pool = { id: { harness, model, config, augments }, harnessVersion, runIds: [], pairs: [] };
+        pool = {
+          id: { harness, model, config, augments },
+          harnessVersion,
+          runIds: [],
+          pairs: [],
+          recipes: new Set(),
+        };
         pools.set(key, pool);
       }
       const pairs = buildPairs(run.cells, setupKey(baseline), setupKey(setup), (taskId) => {
@@ -228,12 +237,14 @@ export function poolAugmentVerdicts(
       if (pairs.length === 0) continue;
       pool.runIds.push(run.runId);
       pool.pairs.push(...pairs);
+      pool.recipes.add(JSON.stringify(augments.map((id) => run.augmentHashes[id] ?? null)));
     }
   }
   return [...pools.values()].map((pool) => ({
     ...pool.id,
     harnessVersion: pool.harnessVersion,
     runIds: [...new Set(pool.runIds)],
+    recipeDrift: pool.recipes.size > 1,
     ...verdictFor(pool.pairs),
   }));
 }

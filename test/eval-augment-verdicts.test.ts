@@ -128,6 +128,7 @@ describe("augment verdicts", () => {
     runId,
     harnessVersions: { claude: harness },
     taskHashes,
+    augmentHashes: { rtk: "recipe-1" },
     cells: arms(4, 3, 0.2),
     setups,
   });
@@ -157,6 +158,17 @@ describe("augment verdicts", () => {
 
   test("different harness versions are pooled separately", () => {
     expect(poolAugmentVerdicts([run("a", "1"), run("b", "2")])).toHaveLength(2);
+  });
+
+  test("runs that executed different augment definitions pool with a drift flag and the same numbers", () => {
+    const steady = poolAugmentVerdicts([run("a", "1.0", sameTasks), run("b", "1.0", sameTasks)]);
+    const edited = poolAugmentVerdicts([
+      run("a", "1.0", sameTasks),
+      { ...run("b", "1.0", sameTasks), augmentHashes: { rtk: "recipe-2" } },
+    ]);
+    expect(steady.map((entry) => entry.recipeDrift)).toEqual([false]);
+    expect(edited.map((entry) => entry.recipeDrift)).toEqual([true]);
+    expect({ ...edited[0], recipeDrift: false }).toEqual(steady[0]!);
   });
 
   test("a one-trial run pooled with a full run leaves its thin tasks out", () => {

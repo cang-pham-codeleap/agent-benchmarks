@@ -1,3 +1,5 @@
+import type { AugmentSnapshot } from "./augments.ts";
+
 export type EvalHarness = "claude" | "codex" | "copilot" | "opencode" | "omp" | "droid";
 
 /** `clean` keeps the user's login but drops their hooks, plugins, MCP servers, and instructions. */
@@ -142,6 +144,8 @@ export interface EvalProvenance {
   harnessVersions: Partial<Record<EvalHarness, string>>;
   taskHashes: Record<string, string>;
   executionOrder: string[];
+  /** Definitions of every augment the run uses, captured at start; absent in older manifests (bundled). */
+  augments?: Record<AugmentId, AugmentSnapshot>;
   /** Null for real-task runs, which isolate with git worktrees instead. */
   hermeticRoot: string | null;
   globalConfigNote: string;
@@ -360,6 +364,8 @@ export interface AugmentVerdict {
 export interface AugmentPoolEntry extends Omit<AugmentVerdict, "baseline" | "augmented"> {
   harnessVersion: string | null;
   runIds: string[];
+  /** The pooled runs captured more than one version of the augment definitions. */
+  recipeDrift: boolean;
 }
 
 export interface EvalPreset {

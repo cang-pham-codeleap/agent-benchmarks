@@ -8,7 +8,13 @@ import {
   type AugmentRecipe,
   EVAL_HARNESSES,
 } from "./registry.ts";
-import type { AugmentId, AugmentKind, AugmentSource, EvalHarness } from "./types.ts";
+import type {
+  AugmentId,
+  AugmentKind,
+  AugmentSource,
+  EvalHarness,
+  EvalProvenance,
+} from "./types.ts";
 
 export const BUNDLED_AUGMENTS_DIR = join(import.meta.dir, "..", "..", "evals", "augments");
 export const EVAL_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -76,6 +82,13 @@ export function augmentSnapshot(
     snapshot[id] = { source: augment.source, hash: augment.hash, definition: augment.definition };
   }
   return snapshot;
+}
+
+/** The augments a run executes from: its captured snapshot, or the bundled ones for runs recorded before snapshots. */
+export function runAugments(provenance: EvalProvenance): Record<AugmentId, AugmentSnapshot> {
+  if (provenance.augments != null) return provenance.augments;
+  const bundled = loadAugments(null);
+  return augmentSnapshot(bundled, bundled.keys());
 }
 
 function loadAugment(path: string, id: AugmentId, source: AugmentSource): LoadedAugment {

@@ -1,9 +1,12 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { evalConfigDir, loadAugments } from "../src/eval/augments.ts";
+import { augmentSnapshot, evalConfigDir, loadAugments, runAugments } from "../src/eval/augments.ts";
+import { groupId } from "../src/eval/paths.ts";
 import { augmentInfos, resolveRecipe, writeRecipeFiles } from "../src/eval/registry.ts";
+import { writeHarnessShims } from "../src/eval/runner.ts";
+import type { EvalProvenance } from "../src/eval/types.ts";
 
 const root = mkdtempSync(join(tmpdir(), "eval-user-config-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -110,5 +113,60 @@ describe("user augments", () => {
     expect(evalConfigDir("/data/archive.db", { AGENT_BENCHMARKS_EVAL_DIR: "/team/evals" })).toBe(
       "/team/evals",
     );
+  });
+});
+
+describe("augment snapshot", () => {
+  const provenance = (augments?: EvalProvenance["augments"]): EvalProvenance => ({
+    achDir: "/ach",
+    achCommit: "abc",
+    achDirty: false,
+    harnessVersions: {},
+    taskHashes: {},
+    executionOrder: [],
+    hermeticRoot: null,
+    globalConfigNote: "",
+    ...(augments == null ? {} : { augments }),
+  });
+
+  test("a run executes the definition captured at start after the file is edited", () => {
+    const dir = userDir("snapshot", {
+      "demo.json": augment({ claude: { args: ["--demo", "v1"] } }),
+    });
+    const captured = provenance(augmentSnapshot(loadAugments(dir), ["demo"]));
+    writeFileSync(
+      join(dir, "augments", "demo.json"),
+      augment({ claude: { args: ["--demo", "v2"] } }),
+    );
+    expect(loadAugments(dir).get("demo")?.hash).not.toBe(captured.augments?.demo?.hash);
+
+    const fakeBin = join(root, "snapshot-bin");
+    mkdirSync(fakeBin, { recursive: true });
+    writeFileSync(join(fakeBin, "claude"), `#!/bin/sh\nfor arg do printf '%s\\n' "$arg"; done\n`);
+    chmodSync(join(fakeBin, "claude"), 0o755);
+    const definitions = Object.fromEntries(
+      Object.entries(runAugments(captured)).map(([id, entry]) => [id, entry.definition]),
+    );
+    const bin = writeHarnessShims(
+      join(root, "snapshot-run"),
+      groupId("default", ["demo"]),
+      ["claude"],
+      false,
+      fakeBin,
+      definitions,
+    );
+    if (bin == null) throw new Error("no shim written");
+    const argv = Bun.spawnSync([join(bin, "claude"), "-p", "hi"]).stdout.toString();
+    expect(argv.trimEnd().split("\n")).toEqual(["-p", "hi", "--demo", "v1"]);
+  });
+
+  test("a manifest without a snapshot runs the bundled definitions", () => {
+    const legacy = runAugments(provenance());
+    const bundled = loadAugments(null);
+    expect(Object.keys(legacy).sort()).toEqual([...bundled.keys()].sort());
+    for (const [id, entry] of Object.entries(legacy)) {
+      expect(entry.source).toBe("bundled");
+      expect(entry.hash).toBe(bundled.get(id)?.hash ?? "");
+    }
   });
 });

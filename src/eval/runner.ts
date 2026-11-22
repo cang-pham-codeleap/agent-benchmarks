@@ -24,9 +24,10 @@ import { getAchDir } from "../settings.ts";
 import { augmentVerdicts } from "./augment-verdicts.ts";
 import {
   type AugmentRegistry,
-  augmentDefinitions,
+  augmentSnapshot,
   evalConfigDir,
   loadAugments,
+  runAugments,
 } from "./augments.ts";
 import { readEvalTasks } from "./catalog.ts";
 import { EvalRequestError } from "./errors.ts";
@@ -177,7 +178,8 @@ async function startBenchmarkRun(
   raw: unknown,
   achDir: string,
 ): Promise<EvalRunManifest> {
-  const input = validateInput(raw, achDir, loadAugments(evalConfigDir(config.dbPath)));
+  const registry = loadAugments(evalConfigDir(config.dbPath));
+  const input = validateInput(raw, achDir, registry);
   const id = crypto.randomUUID();
   const runDir = runDirFor(config.dbPath, id);
   prepareRunDir(runDir, input.setups);
@@ -211,7 +213,7 @@ async function startBenchmarkRun(
           for (let trial = 1; trial <= input.trials; trial++)
             executionOrder.push(`${prefix}${agent.agent} → ${task} → ${model} → ${trial}`);
   }
-  const manifest = await newManifest(id, input, achDir, {
+  const manifest = await newManifest(id, input, achDir, registry, {
     taskHashes,
     executionOrder,
     hermeticRoot: `/private/tmp/agent-benchmarks-hermetic/${id}`,
@@ -225,7 +227,8 @@ async function startRealRun(
   raw: unknown,
   achDir: string,
 ): Promise<EvalRunManifest> {
-  const input = validateRealInput(raw, loadAugments(evalConfigDir(config.dbPath)));
+  const registry = loadAugments(evalConfigDir(config.dbPath));
+  const input = validateRealInput(raw, registry);
   const id = crypto.randomUUID();
   const runDir = runDirFor(config.dbPath, id);
   const { taskId, baseSha, groups } = prepareRealRunDir(input, runDir);
@@ -261,7 +264,7 @@ async function startRealRun(
   const taskHash = createHash("sha256")
     .update(JSON.stringify({ baseSha, task: input.task, profile: input.profile }))
     .digest("hex");
-  const manifest = await newManifest(id, input, achDir, {
+  const manifest = await newManifest(id, input, achDir, registry, {
     taskHashes: { [taskId]: taskHash },
     executionOrder,
     hermeticRoot: null,
@@ -299,6 +302,7 @@ async function newManifest(
   id: string,
   input: EvalRunInput,
   achDir: string,
+  registry: AugmentRegistry,
   provenance: Pick<EvalRunManifest["provenance"], "taskHashes" | "executionOrder" | "hermeticRoot">,
 ): Promise<EvalRunManifest> {
   const harnessVersions: EvalRunManifest["provenance"]["harnessVersions"] = {};
@@ -324,6 +328,10 @@ async function newManifest(
       achDirty: (gitValue(achDir, "status", "--porcelain") ?? "") !== "",
       harnessVersions,
       ...provenance,
+      augments: augmentSnapshot(
+        registry,
+        input.setups.flatMap((setup) => setup.augments),
+      ),
       globalConfigNote:
         "User-global harness configuration (~/.claude, ~/.omp, and peers) is part of the harness under test.",
     },
@@ -667,7 +675,12 @@ function spawnGroup(
     AGENTIC_CODING_HARNESS_HERMETIC_ROOT: hermeticRoot ?? undefined,
     AGENT_BENCHMARKS_EVAL_RUN: manifest.id,
   };
-  const definitions = runDefinitions(manifest);
+  const definitions = Object.fromEntries(
+    Object.entries(runAugments(manifest.provenance)).map(([id, augment]) => [
+      id,
+      augment.definition,
+    ]),
+  );
   for (const harness of harnesses)
     Object.assign(
       env,
@@ -788,11 +801,6 @@ function prepareBlock(
     "  fi",
     "fi",
   ].join("\n");
-}
-
-/** The augment definitions a run executes from. */
-function runDefinitions(_manifest: EvalRunManifest): Record<AugmentId, AugmentDefinition> {
-  return augmentDefinitions(loadAugments(null));
 }
 
 /** Writes the group's recipe files and one PATH shim per harness in `runDir/bin/<group key>/`.

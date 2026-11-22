@@ -18,9 +18,9 @@ Each phase ends with its named check passing before the next starts. Commit per 
 
 ## Phase 3: Snapshot and drift (US1 scenario 5, US4, FR-009..FR-011)
 
-- [ ] T009 `EvalProvenance.augments` snapshot written at benchmark and real run start; `runGroup` / `writeHarnessShims` / resume resolve from it; legacy manifests fall back to bundled.
-- [ ] T010 `poolAugmentVerdicts` takes per-run augment hashes and sets `recipeDrift`; `evalAugmentsRoute` supplies them.
-- [ ] T011 Tests: editing the user augment file after start leaves the run's resolved recipe unchanged; legacy manifest resolves to bundled; two runs with different hashes in one pool set `recipeDrift` and leave verdict numbers equal to the no-drift case.
+- [x] T009 `EvalProvenance.augments` snapshot written at benchmark and real run start; `runGroup` / `writeHarnessShims` / resume resolve from it; legacy manifests fall back to bundled.
+- [x] T010 `poolAugmentVerdicts` takes per-run augment hashes and sets `recipeDrift`; `evalAugmentsRoute` supplies them.
+- [x] T011 Tests: editing the user augment file after start leaves the run's resolved recipe unchanged; legacy manifest resolves to bundled; two runs with different hashes in one pool set `recipeDrift` and leave verdict numbers equal to the no-drift case.
 
 ## Phase 4: Combos backend (US2, US3, FR-013..FR-016, FR-018)
 

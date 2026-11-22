@@ -2034,7 +2034,7 @@ components:
     AugmentPoolEntry:
       type: object
       required:
-        [harness, model, config, augments, harnessVersion, runIds, pairs, minTrials, passDelta, better, worse, tokenDelta, costDelta, savingBasis, prepMs, verdict, reason]
+        [harness, model, config, augments, harnessVersion, runIds, recipeDrift, pairs, minTrials, passDelta, better, worse, tokenDelta, costDelta, savingBasis, prepMs, verdict, reason]
       properties:
         harness: { $ref: "#/components/schemas/EvaluationHarness" }
         model: { type: string }
@@ -2044,6 +2044,12 @@ components:
           items: { $ref: "#/components/schemas/EvaluationAugmentId" }
         harnessVersion: { type: [string, "null"] }
         runIds: { type: array, items: { type: string } }
+        recipeDrift:
+          type: boolean
+          description: >-
+            The pooled runs executed different versions of an augment definition
+            (manifest snapshot hashes differ; runs without a snapshot count as the
+            bundled definition). The verdict numbers are computed the same way.
         pairs: { type: integer, minimum: 0 }
         minTrials: { type: integer, minimum: 0 }
         passDelta: { type: [number, "null"] }

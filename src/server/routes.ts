@@ -9,6 +9,7 @@ import type { Config } from "../config.ts";
 import type { dateFilterFromSearch } from "../date-filter.ts";
 import { parseFileOperation } from "../distill.ts";
 import { poolAugmentVerdicts } from "../eval/augment-verdicts.ts";
+import { runAugments } from "../eval/augments.ts";
 import { readCatalog } from "../eval/catalog.ts";
 import { EvalRequestError } from "../eval/errors.ts";
 import { repoProfilesPath } from "../eval/paths.ts";
@@ -790,6 +791,12 @@ function evalAugmentsRoute({ config, context }: RouteContext): Response {
               runId: manifest.id,
               harnessVersions: manifest.provenance.harnessVersions,
               taskHashes: manifest.provenance.taskHashes,
+              augmentHashes: Object.fromEntries(
+                Object.entries(runAugments(manifest.provenance)).map(([id, augment]) => [
+                  id,
+                  augment.hash,
+                ]),
+              ),
               cells: results.cells,
               setups: manifest.input.setups,
             };
