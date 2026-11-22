@@ -825,6 +825,10 @@ augments.
   task's content hash matches. A task without a hash, such as an older run's,
   counts per run. So two small runs of the same tasks can together reach a
   verdict, and a changed task never inflates another's trial count.
+  Augment definitions are not part of the pooling key: when the pooled runs
+  recorded different definition hashes for the same augments, the entry has
+  `recipeDrift: true` and the view shows a `recipe drift` warning. The verdict
+  math is the same either way.
 - **Limits.** Setups run one group after another, so provider load or cache
   state can differ between the baseline and the augmented arm. Groups run in
   request order, so rotating the setup order across runs spreads that drift

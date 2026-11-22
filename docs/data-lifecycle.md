@@ -869,7 +869,7 @@ rows. Delete a run's directory to remove it.
 
 | Path | Content |
 | --- | --- |
-| `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit) |
+| `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit, and in `provenance.augments` the definition and sha256 of each augment the run uses) |
 | `plan.json`, `plan.<group>.json` | The `ach` matrix plan of each run group (see below) |
 | `ledger.jsonl`, `ledger.<group>.jsonl` | One `ach` record per cell and trial of each run group |
 | `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/` |
@@ -908,8 +908,16 @@ programmatic tool calling, a Bash output cap) apply only to `clean` and
 `default` setups, because a `current` setup may already contain them. A harness
 without a recipe for an augment rejects it.
 
-An augment recipe is data in `src/eval/registry.ts`: extra args, env, files,
-MCP servers, and an optional prepare step. The group's shim for the harness
+An augment recipe is data in a JSON file: extra args, env, files, MCP servers,
+and an optional prepare step. The bundled ones are in this repository's
+`evals/augments/`; your own go in `augments/` under the eval directory, which
+is `AGENT_BENCHMARKS_EVAL_DIR` or else `evals/` next to the archive, and a file
+with a bundled id replaces the bundled augment. Saved combos go in `combos/`
+there. Both are plain files you edit or delete; see
+[Your own augments and combos](evals-custom.md). A run copies the definitions
+it uses into `manifest.json` when it starts and resumes from that copy, so later
+edits do not change it; manifests without the copy use the bundled definitions.
+The group's shim for the harness
 appends the args and then runs the installed CLI. A prepare step (CodeGraph
 runs `codegraph init`) runs in the cell workspace before the agent starts, once
 per workspace, guarded by a marker file; when the workspace is a git

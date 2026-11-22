@@ -41,7 +41,9 @@ This indexes the local agent logs it finds, starts the web UI at <http://127.0.0
 - Augment comparisons that run the same agent with and without a token-saving
   add-on (RTK, CodeGraph, Caveman, Ponytail, OMP's programmatic tool calling, a
   Bash output cap) on a clean config, then mark each add-on adopt, quality-risk,
-  no-saving, or inconclusive from paired cells, pooled across runs.
+  no-saving, or inconclusive from paired cells, pooled across runs. Define your
+  own augments and saved combos in a directory you own; see
+  [Your own augments and combos](docs/evals-custom.md).
 - A local HTTP API with an OpenAPI 3.1 contract.
 
 ## Supported agents

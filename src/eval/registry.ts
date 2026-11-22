@@ -344,9 +344,9 @@ export function validateSetupConfig(
         "augments_unsupported",
       );
     const problem = augmentProblem(augment, harness, env);
-    if (problem != null)
+    if (problem != null || augment.definition == null)
       throw new EvalRequestError(`${label}: ${problem}`, 503, "augment_unavailable");
-    kinds.push(augment.definition!.kind);
+    kinds.push(augment.definition.kind);
   }
   if (kinds.filter((kind) => kind === "prompt-mode").length > 1)
     throw new EvalRequestError(
