@@ -38,4 +38,4 @@ Each phase ends with its named check passing before the next starts. Commit per 
 
 - [x] T018 `docs/evals-custom.md` (format, `from` rules, override, combos, context-mode example, `ptc` for claude example); `docs/data-lifecycle.md` (`AGENT_BENCHMARKS_EVAL_DIR`, manifest snapshot); `docs/analytics-methodology.md` (augment pool `recipeDrift` warning, verdict math unchanged); README pointer.
 - [x] T019 Full gates: `bun test`, `bunx tsc --noEmit`, `bunx biome check .`, `bun run scripts/pr-policy.ts`.
-- [ ] T020 Browser end-to-end per `quickstart.md`.
+- [x] T020 Browser end-to-end per `quickstart.md`.
