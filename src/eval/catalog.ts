@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAchDir } from "../settings.ts";
 import { evalConfigDir, loadAugments } from "./augments.ts";
+import { readCombos } from "./combos.ts";
 import {
   augmentInfos,
   defaultConfigProblem,
@@ -10,6 +11,7 @@ import {
   EVAL_LIMITS,
   EVAL_PRESETS,
 } from "./registry.ts";
+import { validateInput } from "./runner.ts";
 import {
   EVAL_DIFFICULTIES,
   type EvalCatalog,
@@ -26,6 +28,7 @@ export async function readCatalog(
   const achDir = getAchDir();
   const checkout = checkAchCheckout(achDir);
   const evalDir = evalConfigDir(dbPath);
+  const registry = loadAugments(evalDir);
   return {
     ach: {
       dir: achDir,
@@ -54,8 +57,9 @@ export async function readCatalog(
     presets: Object.values(EVAL_PRESETS),
     limits: { ...EVAL_LIMITS },
     activeRunId,
-    augments: augmentInfos(loadAugments(evalDir)),
+    augments: augmentInfos(registry),
     evalDir,
+    combos: readCombos(evalDir, (raw) => validateInput(raw, achDir, registry)),
   };
 }
 

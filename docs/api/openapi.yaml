@@ -1335,6 +1335,39 @@ paths:
         "500": { $ref: "#/components/responses/InternalError" }
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
+  /api/evals/combos:
+    post:
+      tags: [Evaluations]
+      operationId: saveEvaluationCombo
+      summary: Save a benchmark form as a combo in the user eval directory
+      description: >-
+        Writes `<evalDir>/combos/<id>.json` atomically after the same checks as
+        starting a benchmark run (400 `augment_unknown`, `augments_unsupported`,
+        `config_unsupported`, or `invalid_request`; 503 `harness_missing` or
+        `augment_unavailable`). An invalid id or label is 400 `invalid_request`.
+        An existing id is 409 `combo_exists` unless `overwrite` is true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvaluationComboInput" }
+      responses:
+        "200":
+          description: The saved combo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvaluationCombo" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: A combo with this id exists and `overwrite` is not true (`combo_exists`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
   /api/evals/augments:
     get:
       tags: [Evaluations]
@@ -1874,6 +1907,7 @@ components:
         - background_failed
         - background_unsupported
         - commit_invalid
+        - combo_exists
         - config_unsupported
         - cross_origin_read
         - cross_origin_write
@@ -2066,6 +2100,38 @@ components:
       oneOf:
         - $ref: "#/components/schemas/BenchmarkRunInput"
         - $ref: "#/components/schemas/RealRunInput"
+    EvaluationComboId:
+      type: string
+      pattern: "^[a-z0-9][a-z0-9-]{0,63}$"
+      description: The combo file name without `.json`.
+    EvaluationComboInput:
+      type: object
+      required: [id, label, setups, taskIds, trials, wallMs]
+      properties:
+        id: { $ref: "#/components/schemas/EvaluationComboId" }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        setups: { type: array, minItems: 1, maxItems: 8, items: { $ref: "#/components/schemas/EvaluationSetup" } }
+        taskIds: { type: array, minItems: 1, uniqueItems: true, items: { type: string } }
+        trials: { type: integer, minimum: 1, maximum: 10 }
+        wallMs: { type: integer, minimum: 1, maximum: 3600000 }
+        overwrite: { type: boolean, description: Replace an existing combo with the same id. }
+      additionalProperties: false
+    EvaluationCombo:
+      type: object
+      required: [id, label, setups, taskIds, trials, wallMs, problem]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        setups: { type: array, items: { $ref: "#/components/schemas/EvaluationSetup" } }
+        taskIds: { type: array, items: { type: string } }
+        trials: { type: number }
+        wallMs: { type: number }
+        problem:
+          type: [string, "null"]
+          description: >-
+            Why the combo cannot start as saved on this machine (a shape error
+            leaves the lists empty); the form can still load what exists.
+      additionalProperties: false
     BenchmarkRunInput:
       type: object
       required: [name, setups, taskIds, trials, wallMs, preset]
@@ -2264,7 +2330,7 @@ components:
       additionalProperties: false
     EvaluationCatalog:
       type: object
-      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments, evalDir]
+      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments, evalDir, combos]
       properties:
         augments:
           type: array
@@ -2274,6 +2340,10 @@ components:
           description: >-
             Directory holding the user's `augments/` and `combos/`:
             `AGENT_BENCHMARKS_EVAL_DIR` when set, otherwise `evals` next to the archive.
+        combos:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationCombo" }
+          description: Saved combos from `<evalDir>/combos`, read on every request.
       additionalProperties: true
     EvaluationResults:
       type: object

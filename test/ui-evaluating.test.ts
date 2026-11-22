@@ -74,6 +74,7 @@ const catalog: EvalCatalog = {
     augment("ptc", ["codex"], false),
   ],
   evalDir: "/home/user/.agent-benchmarks/evals",
+  combos: [],
 };
 const input: EvalRunInput = {
   kind: "benchmark",

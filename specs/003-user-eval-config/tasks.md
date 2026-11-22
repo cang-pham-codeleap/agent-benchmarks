@@ -24,9 +24,9 @@ Each phase ends with its named check passing before the next starts. Commit per 
 
 ## Phase 4: Combos backend (US2, US3, FR-013..FR-016, FR-018)
 
-- [ ] T012 `src/eval/combos.ts`: `readCombos`, `saveCombo` (id/label validation, `validateInput` reuse, atomic write, 409 `combo_exists`, creates dir).
-- [ ] T013 Catalog `combos`; route `POST /api/evals/combos` in `src/route-paths.ts`, `src/server/routes.ts`; `docs/api/openapi.yaml`, `docs/api/routes.md`; `test/api-contract.test.ts`. Follow `.claude/skills/api-route-change/SKILL.md`.
-- [ ] T014 Tests: combo with unknown augment / missing task / uninstalled harness / over limit reports problem; save 400 bad id, 409 existing, 200 with overwrite; no `.tmp` left behind; env override is where files land.
+- [x] T012 `src/eval/combos.ts`: `readCombos`, `saveCombo` (id/label validation, `validateInput` reuse, atomic write, 409 `combo_exists`, creates dir).
+- [x] T013 Catalog `combos`; route `POST /api/evals/combos` in `src/route-paths.ts`, `src/server/routes.ts`; `docs/api/openapi.yaml`, `docs/api/routes.md`; `test/api-contract.test.ts`. Follow `.claude/skills/api-route-change/SKILL.md`.
+- [x] T014 Tests: combo with unknown augment / missing task / uninstalled harness / over limit reports problem; save 400 bad id, 409 existing, 200 with overwrite; no `.tmp` left behind; env override is where files land.
 
 ## Phase 5: UI (US2, US1 badge, US4 warning, FR-017)
 

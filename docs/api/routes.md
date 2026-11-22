@@ -331,15 +331,34 @@ hidden path is test-named, the command runs on each one.
 
 Each setup may also carry `config: "clean"` (keeps the login, drops hooks,
 plugins, MCP servers, settings, and instruction files) and `augments`, a list
-of augment ids (`rtk`, `codegraph`, `caveman`, `ponytail`, `ptc`, `bash-cap`).
-Augments are rejected with `current` config and for harnesses without a
-recipe. `GET /api/evals/{id}` returns `augmentVerdicts`, one row per augmented
-setup with a baseline (same harness, model, config, no augments) in that run.
+of augment ids. Augments are rejected with `current` config and for harnesses
+without a recipe. `GET /api/evals/{id}` returns `augmentVerdicts`, one row per
+augmented setup with a baseline (same harness, model, config, no augments) in
+that run.
+
+Augment ids come from JSON files: the bundled `evals/augments/<id>.json`
+(`rtk`, `codegraph`, `caveman`, `ponytail`, `ptc`, `bash-cap`) and the user's
+`<evalDir>/augments/<id>.json`, where `evalDir` is `AGENT_BENCHMARKS_EVAL_DIR`
+or `evals` next to the archive. A user file with a bundled id replaces it.
+`GET /api/evals/catalog` reads both directories on every request and reports
+`evalDir`, each augment's `source` (`bundled` or `user`), and an invalid file
+as unavailable with a `problem` naming the field. Starting a run captures the
+full definition of every augment it uses into `manifest.provenance.augments`;
+the run, including a resume, executes that capture even if the file changes.
 
 `GET /api/evals/augments` pools paired cells across every completed run that
 has an augmented setup, keyed by harness, harness version, model, config, and
 augments, and recomputes the verdict over the pooled pairs. Cancelled and
-failed runs are left out.
+failed runs are left out. `recipeDrift` is true when the pooled runs captured
+different augment definitions; runs without a capture count as bundled.
+
+`GET /api/evals/catalog` also lists `combos`, saved benchmark inputs read from
+`<evalDir>/combos/<id>.json`, each with the `problem` that starting it as saved
+would hit (unknown augment, missing harness or task, over a limit).
+`POST /api/evals/combos` saves one after the same checks as `POST /api/evals`;
+the id is 1–64 lowercase letters, digits, or hyphens. An existing id returns
+`409 combo_exists` unless the body has `overwrite: true`. The file is written
+to a temporary name and renamed, so it is never partial.
 
 `GET /api/evals/{id}` adds `real` for real-task runs: the task, the human
 reference diff stat for replays, and per-cell diff stat, checks, hidden-test

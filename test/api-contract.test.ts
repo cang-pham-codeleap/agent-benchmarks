@@ -341,6 +341,15 @@ describe("local API OpenAPI contract", () => {
         { path: "/api/evals", method: "get", url: "/api/evals" },
         { path: "/api/evals/augments", method: "get", url: "/api/evals/augments" },
         {
+          path: "/api/evals/combos",
+          method: "post",
+          url: "/api/evals/combos",
+          body: { id: "Not Valid", label: "x", setups: [], taskIds: [], trials: 1, wallMs: 1 },
+          requestValid: false,
+          status: 400,
+          expectedCode: "invalid_request",
+        },
+        {
           path: "/api/evals/{id}",
           method: "get",
           url: "/api/evals/00000000-0000-4000-8000-000000000000",

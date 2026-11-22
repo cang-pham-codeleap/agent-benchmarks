@@ -368,6 +368,21 @@ export interface AugmentPoolEntry extends Omit<AugmentVerdict, "baseline" | "aug
   recipeDrift: boolean;
 }
 
+/** A saved benchmark input; the id is the file name in `<evalDir>/combos`. */
+export interface EvalCombo {
+  id: string;
+  label: string;
+  setups: EvalSetup[];
+  taskIds: string[];
+  trials: number;
+  wallMs: number;
+}
+
+export interface EvalComboInfo extends EvalCombo {
+  /** Why the combo cannot start as saved on this machine; null when it can. */
+  problem: string | null;
+}
+
 export interface EvalPreset {
   id: Exclude<EvalPresetId, "custom">;
   label: string;
@@ -392,6 +407,7 @@ export interface EvalCatalog {
   augments: EvalAugmentInfo[];
   /** Directory holding the user's `augments/` and `combos/`. */
   evalDir: string;
+  combos: EvalComboInfo[];
 }
 
 export interface EvalProgressEvent {

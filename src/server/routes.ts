@@ -9,8 +9,9 @@ import type { Config } from "../config.ts";
 import type { dateFilterFromSearch } from "../date-filter.ts";
 import { parseFileOperation } from "../distill.ts";
 import { poolAugmentVerdicts } from "../eval/augment-verdicts.ts";
-import { runAugments } from "../eval/augments.ts";
+import { evalConfigDir, loadAugments, runAugments } from "../eval/augments.ts";
 import { readCatalog } from "../eval/catalog.ts";
+import { saveCombo } from "../eval/combos.ts";
 import { EvalRequestError } from "../eval/errors.ts";
 import { repoProfilesPath } from "../eval/paths.ts";
 import { inspectRepo, readCellArtifacts } from "../eval/real.ts";
@@ -25,6 +26,7 @@ import {
   resumeEvalRun,
   runDirFor,
   startEvalRun,
+  validateInput,
 } from "../eval/runner.ts";
 import {
   canLaunch,
@@ -62,6 +64,7 @@ import {
 import { type SessionUserStateUpdate, setSessionUserState } from "../session-user-state.ts";
 import {
   agentOptions,
+  getAchDir,
   getSettings,
   ideOptions,
   saveSettings,
@@ -398,6 +401,9 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
     GET: ({ config }) => json(listRunManifests(config.dbPath)),
     POST: { body: "json", handle: evalStartRoute },
   },
+  "/api/evals/combos": {
+    POST: { body: "json", handle: evalComboSaveRoute },
+  },
   "/api/evals/repo": {
     GET: evalRepoRoute,
   },
@@ -726,6 +732,16 @@ function markRecommendationRoute(
 async function evalStartRoute(ctx: RouteContext, body: unknown): Promise<Response> {
   try {
     return json(await startEvalRun(ctx.config, ctx.context, body), 201);
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+function evalComboSaveRoute({ config }: RouteContext, body: unknown): Response {
+  try {
+    const evalDir = evalConfigDir(config.dbPath);
+    const registry = loadAugments(evalDir);
+    return json(saveCombo(evalDir, body, (raw) => validateInput(raw, getAchDir(), registry)));
   } catch (error) {
     return evalError(error);
   }
