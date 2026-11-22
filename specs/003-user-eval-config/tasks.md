@@ -30,9 +30,9 @@ Each phase ends with its named check passing before the next starts. Commit per 
 
 ## Phase 5: UI (US2, US1 badge, US4 warning, FR-017)
 
-- [ ] T015 `applyCombo(combo, catalog)` in `src/ui/views/evaluating-form.ts` with unit tests (drops unknown augments/tasks/uninstalled-harness setups, lists dropped, preset `custom`).
-- [ ] T016 `form.tsx`: combos card row (hidden when empty), warning + problem, click → `applyCombo` + dropped `Alert`; "Save as combo…" `Dialog` with 409 overwrite confirm and catalog refresh; `ui/api.ts` client call.
-- [ ] T017 `form.tsx` `user` badge on augment checkbox; `augments.tsx` drift warning on pool rows.
+- [x] T015 `applyCombo(combo, catalog)` in `src/ui/views/evaluating-form.ts` with unit tests (drops unknown augments/tasks/uninstalled-harness setups, lists dropped, preset `custom`).
+- [x] T016 `form.tsx`: combos card row (hidden when empty), warning + problem, click → `applyCombo` + dropped `Alert`; "Save as combo…" `Dialog` with 409 overwrite confirm and catalog refresh; `ui/api.ts` client call.
+- [x] T017 `form.tsx` `user` badge on augment checkbox; `augments.tsx` drift warning on pool rows.
 
 ## Phase 6: Docs and end-to-end
 

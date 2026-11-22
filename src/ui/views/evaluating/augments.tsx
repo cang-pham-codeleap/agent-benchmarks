@@ -155,8 +155,16 @@ export function AugmentPoolPanel({ entries }: { entries: AugmentPoolEntry[] }) {
                   {rows.map((row) => (
                     <TableRow key={`${row.harnessVersion}/${augmentSet(row)}`}>
                       <TableCell>{augmentSet(row)}</TableCell>
-                      <TableCell>
+                      <TableCell className="space-x-2">
                         <VerdictBadge verdict={row.verdict} />
+                        {row.recipeDrift && (
+                          <Badge
+                            variant="outline"
+                            title="These runs used different versions of an augment definition; the verdict pools them anyway."
+                          >
+                            recipe drift
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>{row.pairs}</TableCell>
                       <TableCell>

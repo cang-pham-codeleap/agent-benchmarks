@@ -3,18 +3,22 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type {
   AugmentId,
+  AugmentPoolEntry,
   AugmentVerdict,
   EvalAugmentInfo,
   EvalCatalog,
   EvalCell,
+  EvalComboInfo,
   EvalHarness,
   EvalResults,
   EvalRunInput,
   EvalSetup,
 } from "../src/eval/types.ts";
-import { AugmentVerdictTable } from "../src/ui/views/evaluating/augments.tsx";
+import { AugmentPoolPanel, AugmentVerdictTable } from "../src/ui/views/evaluating/augments.tsx";
+import { EvalForm } from "../src/ui/views/evaluating/form.tsx";
 import { patchFiles, realRow } from "../src/ui/views/evaluating/real-results.tsx";
 import {
+  applyCombo,
   augmentChoices,
   augmentSweep,
   evaluationRunCount,
@@ -275,5 +279,107 @@ describe("augments", () => {
       verdict.reason,
     ])
       expect(html).toContain(text);
+  });
+});
+
+describe("combos", () => {
+  const combo = (patch: Partial<EvalComboInfo> = {}): EvalComboInfo => ({
+    id: "pair",
+    label: "Codex pair",
+    setups: [clean(), clean(["rtk"])],
+    taskIds: ["one"],
+    trials: 3,
+    wallMs: 120000,
+    problem: null,
+    ...patch,
+  });
+  const form = (overrides: Partial<EvalCatalog>, setups = input.setups) =>
+    renderToStaticMarkup(
+      createElement(EvalForm, {
+        catalog: { ...catalog, ...overrides },
+        input: { ...input, setups },
+        onChange: () => {},
+        onStart: () => {},
+        onCombosChange: () => {},
+        busy: false,
+      }),
+    );
+
+  test("loading a combo fills setups, tasks, trials, and timeout as a custom preset", () => {
+    expect(applyCombo(combo(), catalog)).toEqual({
+      input: {
+        kind: "benchmark",
+        name: "Codex pair",
+        setups: [clean(), clean(["rtk"])],
+        taskIds: ["one"],
+        trials: 3,
+        wallMs: 120000,
+        preset: "custom",
+      },
+      dropped: [],
+    });
+  });
+
+  test("loading drops what this machine lacks and lists it", () => {
+    const { input: loaded, dropped } = applyCombo(
+      combo({
+        setups: [
+          clean(["context-mode", "rtk"]),
+          { harness: "claude", model: "haiku", config: "clean", augments: [] },
+        ],
+        taskIds: ["one", "gone"],
+      }),
+      catalog,
+    );
+    expect(loaded.setups).toEqual([clean(["rtk"])]);
+    expect(loaded.taskIds).toEqual(["one"]);
+    expect(dropped).toEqual([
+      "Augment context-mode: not in the catalog",
+      "Setup claude · haiku · clean: claude is not installed",
+      "Task gone: not in the catalog",
+    ]);
+  });
+
+  test("the combos row is hidden without combos and shows a broken combo's problem", () => {
+    expect(form({ combos: [] })).not.toContain("Combos");
+    const html = form({ combos: [combo({ problem: "codex is not installed" })] });
+    for (const text of ["Combos", "Codex pair", "2 setups · 1 tasks × 3", "codex is not installed"])
+      expect(html).toContain(text);
+    expect(html).toContain("Save as combo…");
+  });
+
+  test("a user augment carries a user badge", () => {
+    const user = { ...augment("context-mode", ["codex"], true), source: "user" as const };
+    const html = form({ augments: [user] }, [clean()]);
+    expect(html).toMatch(/context-mode<span[^>]*>user<\/span>/);
+  });
+
+  test("a pool that mixed augment definitions shows a drift warning", () => {
+    const entry: AugmentPoolEntry = {
+      harness: "codex",
+      model: "model",
+      config: "clean",
+      augments: ["rtk"],
+      harnessVersion: "1",
+      runIds: ["a", "b"],
+      pairs: 24,
+      minTrials: 3,
+      passDelta: 0,
+      better: 0,
+      worse: 0,
+      tokenDelta: -0.2,
+      costDelta: null,
+      savingBasis: "tokens",
+      prepMs: null,
+      verdict: "adopt",
+      reason: "Saved tokens.",
+      recipeDrift: false,
+    };
+    const render = (recipeDrift: boolean) =>
+      renderToStaticMarkup(
+        createElement(AugmentPoolPanel, { entries: [{ ...entry, recipeDrift }] }),
+      );
+    expect(render(false)).not.toContain("recipe drift");
+    expect(render(true)).toContain("recipe drift");
   });
 });

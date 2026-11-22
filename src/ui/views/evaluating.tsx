@@ -392,6 +392,7 @@ export function EvaluatingView({
                     onChange={setInput}
                     busy={busy}
                     onStart={() => void mutate("/api/evals", input, true)}
+                    onCombosChange={refresh}
                   />
                 </TabsContent>
                 <TabsContent value="real">

@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useId, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -483,6 +484,7 @@ export function RealTaskForm({
                               }
                             />
                             {augment.label}
+                            {augment.source === "user" && <Badge variant="outline">user</Badge>}
                             {augment.problem && (
                               <span id={`${id}-problem`} className="sr-only">
                                 {augment.problem}

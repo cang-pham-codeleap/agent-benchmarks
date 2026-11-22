@@ -3,6 +3,7 @@ import type {
   BenchmarkRunInput,
   EvalAugmentInfo,
   EvalCatalog,
+  EvalComboInfo,
   EvalPresetId,
   EvalSetup,
   RealRunInput,
@@ -63,6 +64,50 @@ export function augmentSweep(
     ...fresh.slice(0, Math.max(0, catalog.limits.maxSetups - others.length)),
     ...setups.slice(index + 1),
   ];
+}
+
+/** The combo as a custom benchmark input, without what this machine lacks; `dropped` says what was left out. */
+export function applyCombo(
+  combo: EvalComboInfo,
+  catalog: EvalCatalog,
+): { input: BenchmarkRunInput; dropped: string[] } {
+  const dropped = new Set<string>();
+  const seen = new Set<string>();
+  const setups = combo.setups.flatMap((setup) => {
+    if (!catalog.harnesses.some((h) => h.harness === setup.harness && h.installed)) {
+      dropped.add(`Setup ${setupText(setup)}: ${setup.harness} is not installed`);
+      return [];
+    }
+    const augments = setup.augments.filter((id) => {
+      const known = catalog.augments.some((augment) => augment.id === id);
+      if (!known) dropped.add(`Augment ${id}: not in the catalog`);
+      return known;
+    });
+    const next = { ...setup, augments };
+    if (seen.has(setupIdentity(next))) {
+      dropped.add(`Setup ${setupText(next)}: duplicate after dropping augments`);
+      return [];
+    }
+    seen.add(setupIdentity(next));
+    return [next];
+  });
+  const taskIds = combo.taskIds.filter((id) => {
+    const known = catalog.tasks.some((task) => task.id === id);
+    if (!known) dropped.add(`Task ${id}: not in the catalog`);
+    return known;
+  });
+  return {
+    input: {
+      kind: "benchmark",
+      name: combo.label,
+      setups,
+      taskIds,
+      trials: combo.trials,
+      wallMs: combo.wallMs,
+      preset: "custom",
+    },
+    dropped: [...dropped],
+  };
 }
 
 export function presetAfterEdit(
