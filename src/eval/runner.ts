@@ -672,6 +672,12 @@ function spawnGroup(
     stdout: "pipe",
     stderr: "pipe",
   });
+  // macOS idle sleep drops every agent's connection mid-cell, turning the rest of the run into timeouts.
+  if (process.platform === "darwin" && Bun.which("caffeinate") != null)
+    Bun.spawn(["caffeinate", "-i", "-w", String(child.pid)], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
   manifest.pid = child.pid;
   writeManifest(runDir, manifest);
   children.set(manifest.id, child);
