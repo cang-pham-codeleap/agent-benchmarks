@@ -4,7 +4,21 @@
 
 Agent Benchmarks is a private research fork for evaluating models, agent harnesses, and agentic workflows. It shows where coding agents spend tokens, money, and time. It reads the session logs that Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, Pi, Oh My Pi, and Factory Droid already write on your machine, plus [ATIF](https://harborframework.com/docs/agents/atif) trajectories you import, into one searchable archive.
 
-![Real-task evaluation comparing three agent harnesses on Sonnet against the human commit](docs/images/real-task-evaluation.png)
+![Agent Benchmarks in under 30 seconds: Claude Code, Codex, and Copilot session logs in one local archive, with spend trends, cost by model, harness comparison, benchmarks with confidence intervals, side-by-side runs, and real tasks checked against the human commit](docs/images/demo.gif)
+
+[Watch the demo as MP4](docs/images/demo.mp4)
+
+![Weekly sessions and estimated cost, with the busiest hours and days across every agent](docs/images/analytics-charts.png)
+
+| Compare harness × provider × model | Cost and trend by model |
+| --- | --- |
+| ![Compare view ranking harness, provider, and model combinations by priced cost per task](docs/images/compare-harness-model.png) | ![By-model table with weekly session sparklines, token totals, and share of cost](docs/images/analytics-by-model.png) |
+
+| Benchmark results with confidence intervals | Real-task run scored against the human commit |
+| --- | --- |
+| ![Benchmark results for two setups on 25 tasks with pass rate, 95% confidence interval, pass@k, cost per solved task, and a paired comparison](docs/images/benchmark-results.png) | ![Real-task evaluation comparing three agent harnesses on Sonnet against the human commit](docs/images/real-task-evaluation.png) |
+
+![Two recorded benchmark cells side by side, Haiku and DeepSeek flash solving the same virtual-list task](docs/images/benchmark-live-compare.png)
 
 ## Quick start
 
@@ -44,7 +58,8 @@ This indexes the local agent logs it finds, starts the web UI at <http://127.0.0
   no-saving, or inconclusive from paired cells, pooled across runs. Define your
   own augments and saved combos in a directory you own; see
   [Your own augments and combos](docs/evals-custom.md).
-- A local HTTP API with an OpenAPI 3.1 contract.
+- A local HTTP API with an OpenAPI 3.1 contract, and a read-only
+  [MCP server](#mcp-server) that lets coding agents query the archive.
 
 ## Supported agents
 
@@ -239,6 +254,72 @@ prints every project unless `--limit` and `--offset` say otherwise.
 [docs/api/openapi.yaml](docs/api/openapi.yaml), and a running server exposes it
 at <http://127.0.0.1:3000/api/openapi.json>. See
 [API recipes](docs/api/recipes.md) for examples.
+
+### MCP server
+
+`agent-benchmarks mcp serve` runs a read-only [MCP](https://modelcontextprotocol.io)
+server over stdio. It lets a coding agent search past sessions, list and read
+transcripts, and pull usage and cost rollups from the archive. It offers four tools:
+`search_sessions`, `list_sessions`, `show_session`, and `usage_stats`.
+
+The server never syncs, because a sync can take longer than an agent waits for a
+tool call. Keep the archive current with `agent-benchmarks service`, the web UI, or
+`agent-benchmarks sync`.
+
+The examples below run from a source checkout. Replace `/path/to/agent-benchmarks`
+with the absolute path of the checkout. Desktop editors such as Cursor and VS Code
+may not inherit your shell `PATH`, so use the absolute path from `which bun` there.
+With a standalone binary, use the binary as the command and `mcp serve` as the
+arguments. To read an archive other than the default, add the environment variable
+`AGENT_BENCHMARKS_DB=/path/to/archive.db`.
+
+Claude Code:
+
+```sh
+claude mcp add --scope user agent-benchmarks -- bun /path/to/agent-benchmarks/src/cli.ts mcp serve
+```
+
+Codex:
+
+```sh
+codex mcp add agent-benchmarks -- bun /path/to/agent-benchmarks/src/cli.ts mcp serve
+```
+
+GitHub Copilot CLI:
+
+```sh
+copilot mcp add agent-benchmarks -- bun /path/to/agent-benchmarks/src/cli.ts mcp serve
+```
+
+OpenCode:
+
+```sh
+opencode mcp add --global agent-benchmarks -- bun /path/to/agent-benchmarks/src/cli.ts mcp serve
+```
+
+Cursor reads `~/.cursor/mcp.json`, and Gemini CLI reads `~/.gemini/settings.json`.
+Both take the same block:
+
+```json
+{
+  "mcpServers": {
+    "agent-benchmarks": {
+      "command": "bun",
+      "args": ["/path/to/agent-benchmarks/src/cli.ts", "mcp", "serve"]
+    }
+  }
+}
+```
+
+VS Code with Copilot Chat:
+
+```sh
+code --add-mcp '{"name":"agent-benchmarks","command":"bun","args":["/path/to/agent-benchmarks/src/cli.ts","mcp","serve"]}'
+```
+
+Then ask the agent something like "which sessions last week touched the auth
+middleware, and what did they cost?". See [docs/cli.md](docs/cli.md#mcp-server)
+for each tool's arguments.
 
 ## Documentation
 
