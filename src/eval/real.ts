@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
+import type { AugmentRegistry } from "./augments.ts";
 import { EvalRequestError } from "./errors.ts";
 import {
   artifactDir,
@@ -227,6 +228,7 @@ function validPrompt(value: unknown): string {
 
 export function validateRealInput(
   raw: unknown,
+  registry: AugmentRegistry,
   env: NodeJS.ProcessEnv = process.env,
 ): RealRunInput {
   if (raw == null || typeof raw !== "object" || Array.isArray(raw))
@@ -260,6 +262,7 @@ export function validateRealInput(
       setup.harness,
       setup.config,
       (setup as { augments?: unknown }).augments,
+      registry,
       env,
     );
     const normalized: EvalSetup = {

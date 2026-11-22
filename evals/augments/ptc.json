@@ -1,0 +1,14 @@
+{
+  "label": "Programmatic tool calling",
+  "kind": "harness-flag",
+  "description": "Turns on OMP's eval tool so the model can script tool calls.",
+  "sourceUrl": "https://github.com/can1357/oh-my-pi",
+  "binary": null,
+  "recipes": {
+    "omp": {
+      "addTools": [
+        "eval"
+      ]
+    }
+  }
+}

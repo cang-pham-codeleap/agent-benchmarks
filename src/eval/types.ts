@@ -3,15 +3,10 @@ export type EvalHarness = "claude" | "codex" | "copilot" | "opencode" | "omp" | 
 /** `clean` keeps the user's login but drops their hooks, plugins, MCP servers, and instructions. */
 export type EvalConfigMode = "current" | "default" | "clean";
 
-export const EVAL_AUGMENT_IDS = [
-  "rtk",
-  "codegraph",
-  "caveman",
-  "ponytail",
-  "ptc",
-  "bash-cap",
-] as const;
-export type AugmentId = (typeof EVAL_AUGMENT_IDS)[number];
+/** An augment file name without `.json`, validated at load: /^[a-z0-9][a-z0-9-]{0,63}$/. */
+export type AugmentId = string;
+
+export type AugmentSource = "bundled" | "user";
 
 export type AugmentKind = "shell-proxy" | "mcp" | "prompt-mode" | "harness-flag";
 
@@ -319,11 +314,14 @@ export interface EvalHarnessInfo {
 
 export interface EvalAugmentInfo {
   id: AugmentId;
+  source: AugmentSource;
+  /** The id when the file is invalid. */
   label: string;
-  kind: AugmentKind;
+  /** Null when the file is invalid. */
+  kind: AugmentKind | null;
   description: string;
   sourceUrl: string;
-  /** Harnesses with a recipe for this augment. */
+  /** Harnesses with a recipe for this augment; every harness when the file is invalid, so the problem shows. */
   harnesses: EvalHarness[];
   available: boolean;
   /** Why it cannot run on this machine; null when available. */
@@ -386,6 +384,8 @@ export interface EvalCatalog {
   };
   activeRunId: string | null;
   augments: EvalAugmentInfo[];
+  /** Directory holding the user's `augments/` and `combos/`. */
+  evalDir: string;
 }
 
 export interface EvalProgressEvent {

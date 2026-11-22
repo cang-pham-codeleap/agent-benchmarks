@@ -1980,14 +1980,24 @@ components:
       additionalProperties: false
     EvaluationAugmentId:
       type: string
-      enum: [rtk, codegraph, caveman, ponytail, ptc, bash-cap]
+      pattern: "^[a-z0-9][a-z0-9-]{0,63}$"
+      description: >-
+        An augment file name without `.json`, from the bundled `evals/augments`
+        directory or the user's `<evalDir>/augments`.
     EvaluationAugment:
       type: object
-      required: [id, label, kind, description, sourceUrl, harnesses, available, problem]
+      required: [id, source, label, kind, description, sourceUrl, harnesses, available, problem]
       properties:
-        id: { $ref: "#/components/schemas/EvaluationAugmentId" }
-        label: { type: string }
-        kind: { type: string, enum: [shell-proxy, mcp, prompt-mode, harness-flag] }
+        id: { type: string, description: The augment file name; invalid file names are listed with a problem. }
+        source:
+          type: string
+          enum: [bundled, user]
+          description: A user file with a bundled id replaces the bundled augment.
+        label: { type: string, description: The id when the file is invalid. }
+        kind:
+          type: [string, "null"]
+          enum: [shell-proxy, mcp, prompt-mode, harness-flag, null]
+          description: Null when the file is invalid.
         description: { type: string }
         sourceUrl: { type: string }
         harnesses:
@@ -2248,11 +2258,16 @@ components:
       additionalProperties: false
     EvaluationCatalog:
       type: object
-      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments]
+      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments, evalDir]
       properties:
         augments:
           type: array
           items: { $ref: "#/components/schemas/EvaluationAugment" }
+        evalDir:
+          type: string
+          description: >-
+            Directory holding the user's `augments/` and `combos/`:
+            `AGENT_BENCHMARKS_EVAL_DIR` when set, otherwise `evals` next to the archive.
       additionalProperties: true
     EvaluationResults:
       type: object

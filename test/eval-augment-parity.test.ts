@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { EVAL_AUGMENTS, type ResolvedRecipe, resolveRecipe } from "../src/eval/registry.ts";
+import { augmentDefinitions, loadAugments } from "../src/eval/augments.ts";
+import { type ResolvedRecipe, resolveRecipe } from "../src/eval/registry.ts";
 
 const DIR = "/run/augments";
 const BUNDLED = join(import.meta.dir, "..", "evals", "augments");
@@ -111,22 +112,26 @@ const EXPECTED: Record<string, ResolvedRecipe> = {
   "bash-cap/claude/default": recipe([], {}, { BASH_MAX_OUTPUT_LENGTH: "8000" }),
 };
 
+const bundled = loadAugments(null);
+const definitions = augmentDefinitions(bundled);
+
 function normalizeFrom(from: string): string {
   if (from.startsWith(`${BUNDLED}/`)) return `<bundled>/${from.slice(BUNDLED.length + 1)}`;
   if (from.startsWith(`${homedir()}/`)) return `~/${from.slice(homedir().length + 1)}`;
-  return from.startsWith("~/") ? from : `<bundled>/${from}`;
+  return from;
 }
 
-function resolved(id: string, harness: string, config: "clean" | "default") {
-  const out = resolveRecipe(harness, config, [id as never], "g", DIR);
+function resolved(id: string, harness: string, config: "clean" | "default"): ResolvedRecipe {
+  const out = resolveRecipe(harness, config, [id], definitions, "g", DIR);
   for (const [name, file] of Object.entries(out.files))
     if ("from" in file) out.files[name] = { from: normalizeFrom(file.from) };
   return out;
 }
 
 describe("bundled augment parity", () => {
-  test("every bundled augment covers the same harnesses as before", () => {
-    const actual = Object.entries(EVAL_AUGMENTS).flatMap(([id, definition]) =>
+  test("every bundled augment loads without a problem and covers the same harnesses as before", () => {
+    expect([...bundled.values()].filter((augment) => augment.problem != null)).toEqual([]);
+    const actual = Object.entries(definitions).flatMap(([id, definition]) =>
       Object.keys(definition.recipes).flatMap((harness) =>
         ["clean", "default"].map((config) => `${id}/${harness}/${config}`),
       ),

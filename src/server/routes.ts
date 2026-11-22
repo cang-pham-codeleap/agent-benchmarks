@@ -390,7 +390,7 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
   "/api/evals/catalog": {
     GET: ({ config, context }) =>
       withDb(config, context, async (db) =>
-        json(await readCatalog(db, activeRunId(config.dbPath))),
+        json(await readCatalog(db, config.dbPath, activeRunId(config.dbPath))),
       ),
   },
   "/api/evals": {

@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAchDir } from "../settings.ts";
+import { evalConfigDir, loadAugments } from "./augments.ts";
 import {
   augmentInfos,
   defaultConfigProblem,
@@ -17,9 +18,14 @@ import {
   type EvalTask,
 } from "./types.ts";
 
-export async function readCatalog(db: Database, activeRunId: string | null): Promise<EvalCatalog> {
+export async function readCatalog(
+  db: Database,
+  dbPath: string,
+  activeRunId: string | null,
+): Promise<EvalCatalog> {
   const achDir = getAchDir();
   const checkout = checkAchCheckout(achDir);
+  const evalDir = evalConfigDir(dbPath);
   return {
     ach: {
       dir: achDir,
@@ -48,7 +54,8 @@ export async function readCatalog(db: Database, activeRunId: string | null): Pro
     presets: Object.values(EVAL_PRESETS),
     limits: { ...EVAL_LIMITS },
     activeRunId,
-    augments: augmentInfos(),
+    augments: augmentInfos(loadAugments(evalDir)),
+    evalDir,
   };
 }
 

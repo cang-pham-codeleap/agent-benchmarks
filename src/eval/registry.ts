@@ -9,18 +9,18 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import type { AugmentRegistry, LoadedAugment } from "./augments.ts";
 import { EvalRequestError } from "./errors.ts";
 import { setupKey } from "./stats.ts";
-import {
-  type AugmentId,
-  type AugmentKind,
-  EVAL_AUGMENT_IDS,
-  type EvalAugmentInfo,
-  type EvalConfigMode,
-  type EvalHarness,
-  type EvalPreset,
-  type EvalPresetId,
-  type EvalSetup,
+import type {
+  AugmentId,
+  AugmentKind,
+  EvalAugmentInfo,
+  EvalConfigMode,
+  EvalHarness,
+  EvalPreset,
+  EvalPresetId,
+  EvalSetup,
 } from "./types.ts";
 
 export interface DefaultConfigSupport {
@@ -54,7 +54,7 @@ export interface EvalHarnessDefinition {
   clean: CleanRecipe | null;
 }
 
-/** A recipe file is generated JSON or a copy of `from`: a path under evals/augments, or `~/` for the home directory. */
+/** A recipe file is generated JSON or a copy of `from`, an absolute path once loaded. */
 export type AugmentFile = { from: string } | { json: object };
 
 /** How one augment attaches to one harness. `{dir}` in args expands to the run's augments directory. */
@@ -77,97 +77,6 @@ export interface AugmentDefinition {
   binary: string | null;
   recipes: Partial<Record<EvalHarness, AugmentRecipe>>;
 }
-
-export const AUGMENTS_SOURCE_DIR = join(import.meta.dir, "..", "..", "evals", "augments");
-
-const claudePrompt = (file: string): AugmentRecipe => ({
-  args: ["--append-system-prompt-file", `{dir}/${file}`],
-  files: { [file]: { from: file } },
-});
-const ompPrompt = (file: string): AugmentRecipe => ({
-  args: [`--append-system-prompt={dir}/${file}`],
-  files: { [file]: { from: file } },
-});
-
-export const EVAL_AUGMENTS: Record<AugmentId, AugmentDefinition> = {
-  rtk: {
-    label: "RTK",
-    kind: "shell-proxy",
-    description: "Rewrites shell commands so their output is compact before the model reads it.",
-    sourceUrl: "https://github.com/rtk-ai/rtk",
-    binary: "rtk",
-    recipes: {
-      claude: {
-        args: ["--settings", "{dir}/rtk-settings.json"],
-        files: {
-          "rtk-settings.json": {
-            json: {
-              hooks: {
-                PreToolUse: [
-                  {
-                    matcher: "Bash",
-                    hooks: [{ type: "command", command: "rtk hook claude" }],
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-      omp: {
-        args: ["-e", "{dir}/rtk.ts"],
-        files: { "rtk.ts": { from: "~/.omp/agent/extensions/rtk.ts" } },
-      },
-    },
-  },
-  codegraph: {
-    label: "CodeGraph",
-    kind: "mcp",
-    description: "Indexes the workspace and serves symbol and call-path lookups over MCP.",
-    sourceUrl: "https://github.com/colbymchenry/codegraph",
-    binary: "codegraph",
-    recipes: {
-      claude: {
-        mcpServers: {
-          codegraph: { type: "stdio", command: "codegraph", args: ["serve", "--mcp"] },
-        },
-        prepare: { command: "codegraph init", exclude: [".codegraph"] },
-      },
-    },
-  },
-  caveman: {
-    label: "Caveman",
-    kind: "prompt-mode",
-    description: "Appends a terse-reply instruction to the system prompt.",
-    sourceUrl: "https://github.com/JuliusBrussee/caveman",
-    binary: null,
-    recipes: { claude: claudePrompt("caveman.md"), omp: ompPrompt("caveman.md") },
-  },
-  ponytail: {
-    label: "Ponytail",
-    kind: "prompt-mode",
-    description: "Appends a least-code-that-works instruction to the system prompt.",
-    sourceUrl: "https://github.com/DietrichGebert/ponytail",
-    binary: null,
-    recipes: { claude: claudePrompt("ponytail.md"), omp: ompPrompt("ponytail.md") },
-  },
-  ptc: {
-    label: "Programmatic tool calling",
-    kind: "harness-flag",
-    description: "Turns on OMP's eval tool so the model can script tool calls.",
-    sourceUrl: "https://github.com/can1357/oh-my-pi",
-    binary: null,
-    recipes: { omp: { addTools: ["eval"] } },
-  },
-  "bash-cap": {
-    label: "Bash output cap",
-    kind: "harness-flag",
-    description: "Caps Bash tool output at 8000 characters.",
-    sourceUrl: "https://code.claude.com/docs/en/settings",
-    binary: null,
-    recipes: { claude: { env: { BASH_MAX_OUTPUT_LENGTH: "8000" } } },
-  },
-};
 
 /** OMP's default built-in tools minus `eval` (the `ptc` augment adds it back) and `ask`, which `omp -p` refuses. */
 const OMP_CLEAN_TOOLS = [
@@ -350,39 +259,41 @@ export function defaultConfigProblem(harness: string, env: NodeJS.ProcessEnv): s
   return missing == null ? null : `default config needs ~/${missing}`;
 }
 
-function sourceFor(from: string): string {
-  return from.startsWith("~/") ? join(homedir(), from.slice(2)) : join(AUGMENTS_SOURCE_DIR, from);
-}
-
 /** Why the augment cannot run for this harness on this machine, or null. */
 export function augmentProblem(
-  id: AugmentId,
+  augment: LoadedAugment,
   harness: string | null,
   env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-  const augment = EVAL_AUGMENTS[id];
-  if (augment.binary != null && Bun.which(augment.binary, { PATH: env.PATH ?? "" }) == null)
-    return `${augment.binary} is not on PATH`;
+  const definition = augment.definition;
+  if (definition == null) return augment.problem;
+  if (definition.binary != null && Bun.which(definition.binary, { PATH: env.PATH ?? "" }) == null)
+    return `${definition.binary} is not on PATH`;
   const recipes =
-    harness == null ? Object.values(augment.recipes) : [augment.recipes[harness as EvalHarness]];
+    harness == null
+      ? Object.values(definition.recipes)
+      : [definition.recipes[harness as EvalHarness]];
   for (const recipe of recipes)
     for (const file of Object.values(recipe?.files ?? {}))
-      if ("from" in file && !existsSync(sourceFor(file.from)))
-        return `${sourceFor(file.from)} is missing`;
+      if ("from" in file && !existsSync(file.from)) return `${file.from} is missing`;
   return null;
 }
 
-export function augmentInfos(env: NodeJS.ProcessEnv = process.env): EvalAugmentInfo[] {
-  return EVAL_AUGMENT_IDS.map((id) => {
-    const augment = EVAL_AUGMENTS[id];
-    const problem = augmentProblem(id, null, env);
+export function augmentInfos(
+  registry: AugmentRegistry,
+  env: NodeJS.ProcessEnv = process.env,
+): EvalAugmentInfo[] {
+  return [...registry.values()].map((augment) => {
+    const definition = augment.definition;
+    const problem = augmentProblem(augment, null, env);
     return {
-      id,
-      label: augment.label,
-      kind: augment.kind,
-      description: augment.description,
-      sourceUrl: augment.sourceUrl,
-      harnesses: Object.keys(augment.recipes) as EvalHarness[],
+      id: augment.id,
+      source: augment.source,
+      label: definition?.label ?? augment.id,
+      kind: definition?.kind ?? null,
+      description: definition?.description ?? "",
+      sourceUrl: definition?.sourceUrl ?? "",
+      harnesses: Object.keys(definition?.recipes ?? EVAL_HARNESSES) as EvalHarness[],
       available: problem == null,
       problem,
     };
@@ -394,6 +305,7 @@ export function validateSetupConfig(
   harness: string,
   config: EvalConfigMode,
   rawAugments: unknown,
+  registry: AugmentRegistry,
   env: NodeJS.ProcessEnv = process.env,
 ): AugmentId[] {
   const definition = EVAL_HARNESSES[harness]!;
@@ -406,10 +318,10 @@ export function validateSetupConfig(
   if (rawAugments == null) return [];
   if (
     !Array.isArray(rawAugments) ||
-    rawAugments.some((id) => !(EVAL_AUGMENT_IDS as readonly unknown[]).includes(id))
+    rawAugments.some((id) => typeof id !== "string" || !registry.has(id))
   )
     throw new EvalRequestError(
-      `augments must be a list of: ${EVAL_AUGMENT_IDS.join(", ")}`,
+      `augments must be a list of: ${[...registry.keys()].join(", ")}`,
       400,
       "augment_unknown",
     );
@@ -421,19 +333,22 @@ export function validateSetupConfig(
       400,
       "augments_unsupported",
     );
+  const kinds: AugmentKind[] = [];
   for (const id of augments) {
-    const augment = EVAL_AUGMENTS[id];
-    if (augment.recipes[harness as EvalHarness] == null)
+    const augment = registry.get(id)!;
+    const label = augment.definition?.label ?? id;
+    if (augment.definition != null && augment.definition.recipes[harness as EvalHarness] == null)
       throw new EvalRequestError(
-        `${augment.label} is not supported for ${definition.label}`,
+        `${label} is not supported for ${definition.label}`,
         400,
         "augments_unsupported",
       );
-    const problem = augmentProblem(id, harness, env);
+    const problem = augmentProblem(augment, harness, env);
     if (problem != null)
-      throw new EvalRequestError(`${augment.label}: ${problem}`, 503, "augment_unavailable");
+      throw new EvalRequestError(`${label}: ${problem}`, 503, "augment_unavailable");
+    kinds.push(augment.definition!.kind);
   }
-  if (augments.filter((id) => EVAL_AUGMENTS[id].kind === "prompt-mode").length > 1)
+  if (kinds.filter((kind) => kind === "prompt-mode").length > 1)
     throw new EvalRequestError(
       "at most one prompt-mode augment per setup",
       400,
@@ -462,11 +377,12 @@ export function resolveRecipe(
   harness: string,
   config: EvalConfigMode,
   augments: readonly AugmentId[],
+  definitions: Readonly<Record<AugmentId, AugmentDefinition>>,
   groupKey: string,
   dir: string,
 ): ResolvedRecipe {
   const clean = config === "clean" ? EVAL_HARNESSES[harness]?.clean : null;
-  const recipes = augments.flatMap((id) => EVAL_AUGMENTS[id].recipes[harness as EvalHarness] ?? []);
+  const recipes = augments.flatMap((id) => definitions[id]?.recipes[harness as EvalHarness] ?? []);
   const resolved: ResolvedRecipe = {
     args: [...(clean?.args ?? [])],
     env: {},
@@ -505,7 +421,7 @@ export function writeRecipeFiles(
   const hashes: Record<string, string> = {};
   for (const [name, file] of Object.entries(files)) {
     const target = join(dir, name);
-    if ("from" in file) copyFileSync(sourceFor(file.from), target);
+    if ("from" in file) copyFileSync(file.from, target);
     else writeFileSync(target, `${JSON.stringify(file.json, null, 2)}\n`);
     hashes[name] = createHash("sha256").update(readFileSync(target)).digest("hex");
   }

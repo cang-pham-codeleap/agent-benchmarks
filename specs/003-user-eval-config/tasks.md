@@ -8,13 +8,13 @@ Each phase ends with its named check passing before the next starts. Commit per 
 
 ## Phase 2: Loader replaces the TS registry (US1, FR-001..FR-007, FR-012)
 
-- [ ] T002 Add `evals/augments/{rtk,codegraph,caveman,ponytail,ptc,bash-cap}.json` with the exact current definitions.
-- [ ] T003 Add `src/eval/augments.ts`: `evalConfigDir`, `loadAugments(evalDir)`, validator (id pattern, kind, harness keys from `EVAL_HARNESSES`, field types, `from` resolution and escape rejection), canonical-JSON sha256 `hash`.
-- [ ] T004 `src/eval/types.ts`: `AugmentId = string`, `AugmentSource`, `EvalAugmentInfo.source`, delete `EVAL_AUGMENT_IDS`.
-- [ ] T005 `src/eval/registry.ts`: delete `EVAL_AUGMENTS`, prompt helpers, relative `sourceFor`; `augmentProblem`, `augmentInfos`, `validateSetupConfig`, `resolveRecipe`, `writeRecipeFiles` take registry/definitions per plan.
-- [ ] T006 Migrate callers: `catalog.ts` (`readCatalog` gets `dbPath`, returns `evalDir`), `runner.ts` `validateInput`, `real.ts`, `routes.ts`, UI type imports. Check: `bunx tsc --noEmit`.
-- [ ] T007 Rewrite `test/eval-augments.test.ts` mutations of `EVAL_AUGMENTS["bash-cap"]` to a user augment file in a temp `AGENT_BENCHMARKS_EVAL_DIR`. Update `test/ui-evaluating.test.ts` fixtures for `source`.
-- [ ] T008 Tests in `test/eval-user-config.test.ts`: user overrides bundled id wholesale; malformed JSON and bad field produce `problem` naming the field and other augments still load; `from` with `..` escape is a problem; missing dirs are empty; env override changes the dir. Check: parity test (T001) and these pass.
+- [x] T002 Add `evals/augments/{rtk,codegraph,caveman,ponytail,ptc,bash-cap}.json` with the exact current definitions.
+- [x] T003 Add `src/eval/augments.ts`: `evalConfigDir`, `loadAugments(evalDir)`, validator (id pattern, kind, harness keys from `EVAL_HARNESSES`, field types, `from` resolution and escape rejection), canonical-JSON sha256 `hash`.
+- [x] T004 `src/eval/types.ts`: `AugmentId = string`, `AugmentSource`, `EvalAugmentInfo.source`, delete `EVAL_AUGMENT_IDS`.
+- [x] T005 `src/eval/registry.ts`: delete `EVAL_AUGMENTS`, prompt helpers, relative `sourceFor`; `augmentProblem`, `augmentInfos`, `validateSetupConfig`, `resolveRecipe`, `writeRecipeFiles` take registry/definitions per plan.
+- [x] T006 Migrate callers: `catalog.ts` (`readCatalog` gets `dbPath`, returns `evalDir`), `runner.ts` `validateInput`, `real.ts`, `routes.ts`, UI type imports. Check: `bunx tsc --noEmit`.
+- [x] T007 Rewrite `test/eval-augments.test.ts` mutations of `EVAL_AUGMENTS["bash-cap"]` to a user augment file in a temp `AGENT_BENCHMARKS_EVAL_DIR`. Update `test/ui-evaluating.test.ts` fixtures for `source`.
+- [x] T008 Tests in `test/eval-user-config.test.ts`: user overrides bundled id wholesale; malformed JSON and bad field produce `problem` naming the field and other augments still load; `from` with `..` escape is a problem; missing dirs are empty; env override changes the dir. Check: parity test (T001) and these pass.
 
 ## Phase 3: Snapshot and drift (US1 scenario 5, US4, FR-009..FR-011)
 

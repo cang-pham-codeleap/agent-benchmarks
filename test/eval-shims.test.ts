@@ -25,7 +25,7 @@ function argsThroughShim(bin: string | null, name: string, args: string[]): stri
 
 describe("harness shims", () => {
   test("copilot loses the flags the installed CLI rejects or that pin an older CLI", () => {
-    const bin = writeHarnessShims(join(root, "run-a"), current, ["copilot"], false, installed);
+    const bin = writeHarnessShims(join(root, "run-a"), current, ["copilot"], false, installed, {});
     expect(
       argsThroughShim(bin, "copilot", [
         "--prompt=fix it; keep spaces",
@@ -40,7 +40,7 @@ describe("harness shims", () => {
   });
 
   test("copilot-fusion reaches the CLI as its auto model, in both flag forms", () => {
-    const bin = writeHarnessShims(join(root, "run-f"), current, ["copilot"], false, installed);
+    const bin = writeHarnessShims(join(root, "run-f"), current, ["copilot"], false, installed, {});
     expect(
       argsThroughShim(bin, "copilot", ["--model", "copilot-fusion", "--prompt=copilot-fusion"]),
     ).toEqual(["--model", "auto", "--prompt=copilot-fusion"]);
@@ -48,7 +48,7 @@ describe("harness shims", () => {
   });
 
   test("codex exec gets a writable sandbox in real tasks only", () => {
-    const bin = writeHarnessShims(join(root, "run-b"), current, ["codex"], true, installed);
+    const bin = writeHarnessShims(join(root, "run-b"), current, ["codex"], true, installed, {});
     expect(argsThroughShim(bin, "codex", ["exec", "--json", "do it"])).toEqual([
       "exec",
       "--sandbox",
@@ -56,6 +56,8 @@ describe("harness shims", () => {
       "--json",
       "do it",
     ]);
-    expect(writeHarnessShims(join(root, "run-c"), current, ["codex"], false, installed)).toBeNull();
+    expect(
+      writeHarnessShims(join(root, "run-c"), current, ["codex"], false, installed, {}),
+    ).toBeNull();
   });
 });

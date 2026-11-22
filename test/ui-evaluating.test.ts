@@ -25,6 +25,7 @@ import {
 
 const augment = (id: AugmentId, harnesses: EvalHarness[], available: boolean): EvalAugmentInfo => ({
   id,
+  source: "bundled",
   label: id,
   kind: "shell-proxy",
   description: id,
@@ -72,6 +73,7 @@ const catalog: EvalCatalog = {
     augment("caveman", ["claude"], true),
     augment("ptc", ["codex"], false),
   ],
+  evalDir: "/home/user/.agent-benchmarks/evals",
 };
 const input: EvalRunInput = {
   kind: "benchmark",

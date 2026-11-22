@@ -13,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { closeDb, openDb } from "../src/db.ts";
+import { loadAugments } from "../src/eval/augments.ts";
 import { EvalRequestError } from "../src/eval/errors.ts";
 import { apiCellId, artifactDir } from "../src/eval/paths.ts";
 import * as real from "../src/eval/real.ts";
@@ -54,7 +55,7 @@ function commit(message: string): string {
 }
 
 function validate(raw: unknown): RealRunInput {
-  return real.validateRealInput(raw, { PATH: join(root, "bin") });
+  return real.validateRealInput(raw, loadAugments(null), { PATH: join(root, "bin") });
 }
 
 function errorCode(fn: () => unknown): string | undefined {

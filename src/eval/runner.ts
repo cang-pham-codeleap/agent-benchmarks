@@ -22,6 +22,12 @@ import { publishServerEvent } from "../server/sse.ts";
 import { syncNow } from "../server/sync.ts";
 import { getAchDir } from "../settings.ts";
 import { augmentVerdicts } from "./augment-verdicts.ts";
+import {
+  type AugmentRegistry,
+  augmentDefinitions,
+  evalConfigDir,
+  loadAugments,
+} from "./augments.ts";
 import { readEvalTasks } from "./catalog.ts";
 import { EvalRequestError } from "./errors.ts";
 import {
@@ -56,6 +62,7 @@ import {
 import { prepareRealRun, readRealResults, rememberProfile, validateRealInput } from "./real.ts";
 import { shellQuote } from "./real-verify.ts";
 import {
+  type AugmentDefinition,
   configGroupEnv,
   EVAL_HARNESSES,
   EVAL_LIMITS,
@@ -66,6 +73,7 @@ import {
 } from "./registry.ts";
 import { pairedComparisons, summarizeSetups } from "./stats.ts";
 import type {
+  AugmentId,
   BenchmarkRunInput,
   CellStream,
   EvalResults,
@@ -169,7 +177,7 @@ async function startBenchmarkRun(
   raw: unknown,
   achDir: string,
 ): Promise<EvalRunManifest> {
-  const input = validateInput(raw, achDir);
+  const input = validateInput(raw, achDir, loadAugments(evalConfigDir(config.dbPath)));
   const id = crypto.randomUUID();
   const runDir = runDirFor(config.dbPath, id);
   prepareRunDir(runDir, input.setups);
@@ -217,7 +225,7 @@ async function startRealRun(
   raw: unknown,
   achDir: string,
 ): Promise<EvalRunManifest> {
-  const input = validateRealInput(raw);
+  const input = validateRealInput(raw, loadAugments(evalConfigDir(config.dbPath)));
   const id = crypto.randomUUID();
   const runDir = runDirFor(config.dbPath, id);
   const { taskId, baseSha, groups } = prepareRealRunDir(input, runDir);
@@ -659,12 +667,27 @@ function spawnGroup(
     AGENTIC_CODING_HARNESS_HERMETIC_ROOT: hermeticRoot ?? undefined,
     AGENT_BENCHMARKS_EVAL_RUN: manifest.id,
   };
+  const definitions = runDefinitions(manifest);
   for (const harness of harnesses)
     Object.assign(
       env,
-      resolveRecipe(harness, group.config, group.augments, group.key, augmentsDir(runDir)).env,
+      resolveRecipe(
+        harness,
+        group.config,
+        group.augments,
+        definitions,
+        group.key,
+        augmentsDir(runDir),
+      ).env,
     );
-  const bin = writeHarnessShims(runDir, group, harnesses, hermeticRoot == null, env.PATH ?? "");
+  const bin = writeHarnessShims(
+    runDir,
+    group,
+    harnesses,
+    hermeticRoot == null,
+    env.PATH ?? "",
+    definitions,
+  );
   if (bin != null) env.PATH = `${bin}:${env.PATH ?? ""}`;
   for (const [key, value] of Object.entries(env)) if (value === undefined) delete env[key];
   const child = Bun.spawn(args, {
@@ -767,6 +790,11 @@ function prepareBlock(
   ].join("\n");
 }
 
+/** The augment definitions a run executes from. */
+function runDefinitions(_manifest: EvalRunManifest): Record<AugmentId, AugmentDefinition> {
+  return augmentDefinitions(loadAugments(null));
+}
+
 /** Writes the group's recipe files and one PATH shim per harness in `runDir/bin/<group key>/`.
  * Returns that directory, or null when no harness in the group needs a shim. */
 export function writeHarnessShims(
@@ -775,6 +803,7 @@ export function writeHarnessShims(
   harnesses: readonly string[],
   realTask: boolean,
   path: string,
+  definitions: Readonly<Record<AugmentId, AugmentDefinition>>,
 ): string | null {
   const bin = join(runDir, "bin", group.key);
   const dir = augmentsDir(runDir);
@@ -784,7 +813,14 @@ export function writeHarnessShims(
     const shim = HARNESS_SHIMS.find(
       (candidate) => candidate.harness === harness && (!candidate.realTasksOnly || realTask),
     );
-    const recipe = resolveRecipe(harness, group.config, group.augments, group.key, dir);
+    const recipe = resolveRecipe(
+      harness,
+      group.config,
+      group.augments,
+      definitions,
+      group.key,
+      dir,
+    );
     const extra = recipe.args.map(shellQuote).join(" ");
     if (shim == null && extra === "" && recipe.prepare.length === 0) continue;
     const installed = Bun.which(harness, { PATH: path });
@@ -926,6 +962,7 @@ function updateRun(
 export function validateInput(
   raw: unknown,
   achDir: string,
+  registry: AugmentRegistry,
   env: NodeJS.ProcessEnv = process.env,
 ): BenchmarkRunInput {
   if (raw == null || typeof raw !== "object" || Array.isArray(raw))
@@ -969,6 +1006,7 @@ export function validateInput(
         setup.harness,
         config,
         (setup as { augments?: unknown }).augments,
+        registry,
         env,
       ),
     };

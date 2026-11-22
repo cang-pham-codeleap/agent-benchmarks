@@ -19,9 +19,11 @@ import { sync } from "../src/ingest.ts";
 
 const allowNull = process.env.AGENT_BENCHMARKS_EVAL_ALLOW_NULL;
 process.env.AGENT_BENCHMARKS_EVAL_ALLOW_NULL = "1";
-const { EVAL_AUGMENTS, EVAL_HARNESSES } = await import("../src/eval/registry.ts");
+const { EVAL_HARNESSES } = await import("../src/eval/registry.ts");
+const { augmentDefinitions, loadAugments } = await import("../src/eval/augments.ts");
 const { readEvalResults, readRunManifest, startEvalRun, validateInput, writeHarnessShims } =
   await import("../src/eval/runner.ts");
+const bundled = loadAugments(null);
 EVAL_HARNESSES.null ??= {
   label: "Null (smoke)",
   achAgent: "null",
@@ -46,6 +48,7 @@ const fakeBin = join(root, "fake-bin");
 const saved = {
   AGENT_BENCHMARKS_EVAL_ALLOW_NULL: allowNull,
   AGENT_BENCHMARKS_CONFIG_DIR: process.env.AGENT_BENCHMARKS_CONFIG_DIR,
+  AGENT_BENCHMARKS_EVAL_DIR: process.env.AGENT_BENCHMARKS_EVAL_DIR,
   PATH: process.env.PATH,
 };
 
@@ -68,7 +71,6 @@ afterAll(() => {
     if (value == null) delete process.env[key];
     else process.env[key] = value;
   }
-  Reflect.deleteProperty(EVAL_AUGMENTS["bash-cap"].recipes, "null");
   if (allowNull !== "1") delete EVAL_HARNESSES.null;
   rmSync(root, { recursive: true, force: true });
 });
@@ -88,7 +90,7 @@ function benchmark(setups: unknown[]) {
 
 function rejection(raw: unknown, pathEnv = env()): { status: number; message: string } | null {
   try {
-    validateInput(raw, noAch, pathEnv);
+    validateInput(raw, noAch, bundled, pathEnv);
     return null;
   } catch (error) {
     const { status, message } = error as { status: number; message: string };
@@ -110,6 +112,7 @@ describe("augment boundary", () => {
         { harness: "claude", model: "haiku" },
       ]),
       noAch,
+      bundled,
       env(),
     );
     expect(input.setups).toEqual([
@@ -179,7 +182,14 @@ describe("harness shim recipes", () => {
   ) {
     const runDir = join(root, groupName.replace(/[^\w-]/g, "_"), harness);
     const group = groupId(config, augments);
-    const bin = writeHarnessShims(runDir, group, [harness], false, fakeBin);
+    const bin = writeHarnessShims(
+      runDir,
+      group,
+      [harness],
+      false,
+      fakeBin,
+      augmentDefinitions(bundled),
+    );
     if (bin == null) throw new Error("no shim written");
     const result = Bun.spawnSync([join(bin, harness), ...args], {
       cwd,
@@ -392,7 +402,20 @@ describe("augmented benchmark run", () => {
       mkdirSync(configDir, { recursive: true });
       writeFileSync(join(configDir, "settings.json"), JSON.stringify({ achDir }));
       process.env.AGENT_BENCHMARKS_CONFIG_DIR = configDir;
-      Object.assign(EVAL_AUGMENTS["bash-cap"].recipes, { null: { env: { AB_AUGMENT_TEST: "1" } } });
+      const evalDir = join(root, "user-evals");
+      mkdirSync(join(evalDir, "augments"), { recursive: true });
+      writeFileSync(
+        join(evalDir, "augments", "bash-cap.json"),
+        JSON.stringify({
+          label: "Bash output cap",
+          kind: "harness-flag",
+          description: "Caps Bash tool output.",
+          sourceUrl: "https://example.invalid",
+          binary: null,
+          recipes: { null: { env: { AB_AUGMENT_TEST: "1" } } },
+        }),
+      );
+      process.env.AGENT_BENCHMARKS_EVAL_DIR = evalDir;
       const config = testConfig("e2e");
       const started = await startEvalRun(
         config,
