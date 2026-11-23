@@ -952,7 +952,7 @@ describe("db info discloses what the archive stores", () => {
         db
           .query(
             `INSERT INTO session (tool, source_session_id, source_path)
-             VALUES ('claude_code', 'bulky', '/home/u/.claude/projects/p/bulky.jsonl')`,
+             VALUES ('claude_code', 'bulky', '/home/dev/.claude/projects/p/bulky.jsonl')`,
           )
           .run().lastInsertRowid,
       );
@@ -1135,7 +1135,7 @@ describe("session rm", () => {
               `INSERT INTO session (tool, source_session_id, source_path, parent_session_id)
                VALUES ('claude_code', ?1, ?2, ?3)`,
             )
-            .run(sourceSessionId, `/home/u/.claude/projects/p/${sourceSessionId}.jsonl`, parentId)
+            .run(sourceSessionId, `/home/dev/.claude/projects/p/${sourceSessionId}.jsonl`, parentId)
             .lastInsertRowid,
         );
       const addBlock = (sessionId: number, canary: string): void => {

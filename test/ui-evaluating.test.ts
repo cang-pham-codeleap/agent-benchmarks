@@ -78,7 +78,7 @@ const catalog: EvalCatalog = {
     augment("caveman", ["claude"], true),
     augment("ptc", ["codex"], false),
   ],
-  evalDir: "/home/user/.agent-benchmarks/evals",
+  evalDir: "/home/dev/.agent-benchmarks/evals",
   combos: [],
   canPickFolder: false,
 };

@@ -102,7 +102,10 @@ just check
 `scripts/pr-policy.ts` compares your branch with `origin/main` and fails if a
 committed migration changed, if a model rate or the route manifest
 (`src/route-paths.ts`) changed without its docs, or if a fixture contains a
-real home-directory path, email address, or key-shaped string. Add the
+real home-directory path, email address, or key-shaped string, if test code
+uses a home directory other than `/Users/dev` or `/home/dev`, or if you add a
+file at the repository root that is not in `ROOT_FILE_ALLOWLIST`
+(`scripts/pr-policy.ts`). Add the
 `docs-not-needed` label to a pull request when such a change truly needs no
 doc update. Locally, set `PR_LABELS=docs-not-needed` before `just check` or
 `just policy` to do the same.
