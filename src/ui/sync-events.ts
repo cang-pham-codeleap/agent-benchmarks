@@ -235,7 +235,7 @@ export type SyncEvent =
       reconnect: boolean;
       status: SyncStatus;
     }
-  | { type: "status_failed"; reconnect: boolean };
+  | { type: "status_failed"; error: unknown };
 
 export type SyncEffect =
   | { type: "refresh" }
@@ -438,8 +438,9 @@ export function reduceSync(state: SyncState, event: SyncEvent): SyncStep {
       break;
     }
     case "status_failed":
-      if (event.reconnect && !s.manualPending) {
+      if (s.syncing && !s.manualPending) {
         stopSyncing();
+        s.error = event.error;
       }
       break;
   }

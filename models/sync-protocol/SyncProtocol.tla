@@ -136,8 +136,10 @@ ClientStatusAnswered(s, a) ==
                             RefreshMarksCaughtUp)
                ELSE Same(applied)
 
-ClientStatusFailed(s, reconnect) ==
-  IF reconnect /\ ~s.manualPending THEN Same([s EXCEPT !.syncing = FALSE]) ELSE Same(s)
+ClientStatusFailed(s) ==
+  IF s.syncing /\ ~s.manualPending
+  THEN Same([s EXCEPT !.syncing = FALSE, !.error = TRUE])
+  ELSE Same(s)
 
 VARIABLES
   page,        \* SyncState held by main.tsx
@@ -316,7 +318,7 @@ ClientReceivesStatus ==
 ClientStatusReadFails ==
   /\ stimuli < MaxStimuli
   /\ \E r \in reads:
-       Apply(ClientStatusFailed(page, r.reconnect), FALSE, reads \ {r}, post)
+       Apply(ClientStatusFailed(page), FALSE, reads \ {r}, post)
   /\ stimuli' = stimuli + 1
   /\ UNCHANGED <<ServerVars, streamUp, stream, answers>>
 

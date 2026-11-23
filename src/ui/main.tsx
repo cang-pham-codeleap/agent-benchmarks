@@ -218,7 +218,7 @@ function App() {
           const { read, endedBefore, reconnect } = effect;
           getSyncStatus().then(
             (status) => dispatch({ type: "status_answered", read, endedBefore, reconnect, status }),
-            () => dispatch({ type: "status_failed", reconnect }),
+            (error: unknown) => dispatch({ type: "status_failed", error }),
           );
           break;
         }

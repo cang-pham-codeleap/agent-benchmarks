@@ -63,8 +63,9 @@ line (`\* expect: pass` or `\* expect: <Invariant>`). The script fails when TLC
 reports anything else. Expected output:
 
 ```
-ok   SyncProtocol.cfg: pass (916889 distinct states)
-ok   SyncProtocol.connecting.cfg: NoStuckSync (...)
+ok   SyncProtocol.cfg: pass (...)
+ok   SyncProtocol.connecting-stale.cfg: NoSilentStaleness (...)
+ok   SyncProtocol.connecting.cfg: pass (...)
 ok   SyncProtocol.fix3.cfg: UpdateMeansNewActivity (...)
 ok   SyncProtocol.pre292.cfg: UpdateMeansNewActivity (...)
 ok   SyncProtocol.window.cfg: CompleteOnlyWhenIdle (...)
@@ -73,7 +74,9 @@ ok   SyncProtocol.window.cfg: CompleteOnlyWhenIdle (...)
 - `SyncProtocol.cfg` is the code today. It must pass.
 - `pre292`, `fix3` and `window` set `Variant` to page logic from before a
   past fix. They must keep failing; that proves each rule can fail.
-- `connecting` is an open finding (below). It fails until someone fixes it.
+- `connecting` drops the quiet-startup assumption and must pass. It replays
+  the fixed stuck-Sync finding (below).
+- `connecting-stale` is an open finding (below). It fails until someone fixes it.
 
 ## Read a result
 
@@ -100,7 +103,7 @@ Never weaken an invariant or shrink the model to make a run pass.
 - Added a `SyncEvent`: add a `Client*` operator and an action in `Next` that
   delivers it from where the code dispatches it.
 - Changed what the server publishes or when: change the `Server*` action.
-- Fixed the open finding: change `connecting`'s first line to `\* expect: pass`.
+- Fixed the open finding: change `connecting-stale`'s first line to `\* expect: pass`.
 - Then move the sync commit above to the commit you checked.
 
 ## Scope
@@ -114,8 +117,8 @@ on the current code at the sync commit (93,519,541 distinct states, about
 seven minutes on ten cores); it is too slow for `just check`.
 
 Assumed: no server activity before the page's EventSource first connects
-(`ActivityWhileConnecting = FALSE`). The `connecting` config drops that
-assumption and shows the finding.
+(`ActivityWhileConnecting = FALSE`). The `connecting` configs drop that
+assumption.
 
 Not modeled: the live Sessions auto-refresh (`live_refresh`,
 `live_sessions_due`), the reconnect path that refreshes failed slices,
@@ -124,14 +127,20 @@ refresh debounce, a Sync click while this page's own POST is still out,
 cancelled syncs, and more than one page (another tab appears only as a
 server sync with reason `manual`).
 
+## Fixed finding
+
+Path (`SyncProtocol.connecting.cfg`): the page mounts during a startup sync
+and the status answer shows it (`status_answered`, syncing). The sync ends
+before the EventSource connects, so its `sync` event is lost. The stream opens
+and the status read fails (`status_failed`). `reduceSync` used to ignore that
+failure unless it came from a reconnect, so Sync spun until a reload. Now any
+failed status read while a non-manual sync is shown stops it and shows the
+error. Replayed in `test/ui-sync-events.test.ts`.
+
 ## Open finding
 
-Path (`SyncProtocol.connecting.cfg`): the page mounts and reads its data and
-the sync status. A startup sync is running on a never-synced archive, so the
-status answer shows it (`status_answered`, syncing). The sync ends before the
-EventSource connects, so its `sync` event is lost. The stream opens and the
-page reads the status again (`stream_message` opened). That read fails
-(`status_failed` with `reconnect: false`), which `reduceSync` ignores. The
-Sync button spins until a reload. The same window also lets a session archive
-or a watcher sync go unannounced, which breaks `NoSilentStaleness`. Replayed
-on `reduceSync`: the page stays `syncing: true` after the four events.
+Path (`SyncProtocol.connecting-stale.cfg`): a startup sync ends between the
+page's first data load and its first status answer. The answer says idle, so
+the page never learns a sync ran and keeps the data it loaded mid-sync
+(`NoSilentStaleness`). Fixing it needs a data version in `/api/sync/status`
+that the page compares with the version it loaded.

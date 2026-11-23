@@ -218,11 +218,26 @@ describe("sync progress across reloads and reconnects (854ab2b, 920482f)", () =>
   test("a stream-only sync stops showing when the reconnect cannot read the status", () => {
     const down = run([shownSync("startup"), dropped, message()]);
     expect(down.state.syncing).toBe(true);
-    expect(run([{ type: "status_failed", reconnect: true }], down.state).state.syncing).toBe(false);
+    const failed = run([{ type: "status_failed", error: "offline" }], down.state).state;
+    expect(failed).toMatchObject({ syncing: false, error: "offline" });
     const manual = run([{ type: "sync_clicked" }, dropped, message()]);
-    expect(run([{ type: "status_failed", reconnect: true }], manual.state).state.syncing).toBe(
-      true,
+    expect(run([{ type: "status_failed", error: "offline" }], manual.state).state).toMatchObject({
+      syncing: true,
+      error: null,
+    });
+  });
+
+  test("a startup sync that ends before the stream connects does not leave Sync spinning", () => {
+    const loaded = run([{ type: "page_loaded" }]);
+    const running = syncStatus({ in_progress: true, reason: "startup", progress });
+    const shown = run([answer(loaded.effects, running)], loaded.state);
+    expect(shown.state.syncing).toBe(true);
+    const opened = run(
+      [{ type: "stream_message", opened: true, failedSlices: false }],
+      shown.state,
     );
+    const failed = run([{ type: "status_failed", error: "offline" }], opened.state).state;
+    expect(failed).toMatchObject({ syncing: false, error: "offline" });
   });
 
   test("a reconnect reloads failed slices at once and otherwise offers Update", () => {
