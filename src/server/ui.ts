@@ -1,6 +1,7 @@
 import { dirname } from "node:path";
 import type { BuildArtifact, HTMLBundle } from "bun";
 import tailwind from "bun-plugin-tailwind";
+import { type GuardedResponse, guarded } from "./http.ts";
 export const UI_DOCUMENT_HEADERS: Readonly<Record<string, string>> = {
   "content-security-policy": "frame-ancestors 'none'",
   "x-frame-options": "DENY",
@@ -21,8 +22,8 @@ interface UiBuild {
 export type UiBuilder = (entrypoint: string) => Promise<UiBuild>;
 
 export interface UiFiles {
-  document(): Promise<Response>;
-  asset(pathname: string): Response | null;
+  document(): Promise<GuardedResponse>;
+  asset(pathname: string): GuardedResponse | null;
 }
 
 /** Bun's own HTMLBundle route has
@@ -60,15 +61,14 @@ export function createUiFiles(bundle: HTMLBundle, build: UiBuilder = buildUi): U
         return null;
       }
       return fileResponse(file, {
-        "x-content-type-options": "nosniff",
         "cache-control": "public, max-age=31536000, immutable",
       });
     },
   };
 }
 
-function fileResponse(file: UiFile, headers: Record<string, string>): Response {
-  return new Response(file.body, { headers: { ...headers, "content-type": file.contentType } });
+function fileResponse(file: UiFile, headers: Record<string, string>): GuardedResponse {
+  return guarded(file.body, { headers: { ...headers, "content-type": file.contentType } });
 }
 
 function prebuiltUi(bundle: HTMLBundle): UiBuild {

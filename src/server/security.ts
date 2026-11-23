@@ -1,12 +1,12 @@
 import type { RequestContext } from "./context.ts";
-import { errorResponse } from "./http.ts";
+import { errorResponse, type GuardedResponse } from "./http.ts";
 import { isIpv4Loopback, isLoopbackPeer, isTrustedPeer, normalizeHost } from "./peers.ts";
 
 export function validateLocalRequest(
   request: Request,
   url: URL,
   context: RequestContext,
-): Response | null {
+): GuardedResponse | null {
   if (!isProtectedPath(url.pathname)) {
     return null;
   }

@@ -2,13 +2,20 @@ import type { Config } from "../config.ts";
 import { dateFilterFromSearch } from "../date-filter.ts";
 import { exceptionAttributes } from "../logging.ts";
 import type { RequestContext } from "./context.ts";
-import { errorResponse, notFoundResponse, readJsonBody, responseForError } from "./http.ts";
+import {
+  errorResponse,
+  type GuardedResponse,
+  guarded,
+  notFoundResponse,
+  readJsonBody,
+  responseForError,
+} from "./http.ts";
 import { isValidSessionId } from "./params.ts";
 import { ReadCancelledError } from "./read-pool.ts";
 import { COMPILED_ROUTES, type RouteContext, type RouteResult } from "./routes.ts";
 import { validateLocalRequest } from "./security.ts";
 
-async function dispatch(ctx: Omit<RouteContext, "params">): Promise<Response> {
+async function dispatch(ctx: Omit<RouteContext, "params">): Promise<GuardedResponse> {
   const { method } = ctx.request;
   if (method !== "GET" && method !== "POST") {
     return notFoundResponse();
@@ -49,7 +56,7 @@ export async function handleRequest(
   request: Request,
   config: Config,
   context: RequestContext = {},
-): Promise<Response> {
+): Promise<GuardedResponse> {
   const url = new URL(request.url);
   const securityFailure = validateLocalRequest(request, url, context);
   if (securityFailure != null) {
@@ -60,7 +67,7 @@ export async function handleRequest(
     return await dispatch({ request, url, config, context, dateFilter });
   } catch (error) {
     if (error instanceof ReadCancelledError) {
-      return new Response(null, { status: 499 });
+      return guarded(null, { status: 499 });
     }
     const response = responseForError(error);
     if (response.status >= 500) {
