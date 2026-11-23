@@ -121,7 +121,8 @@ export function sessionSourcePredicate(
     case "omp":
     case "droid":
       return { sql: `${alias}.tool = ?`, params: [source] };
-    default:
+    case null:
+    case undefined:
       return { sql: "", params: [] };
   }
 }

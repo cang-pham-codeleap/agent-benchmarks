@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { MESSAGE_METADATA_SQL } from "./message-storage.ts";
+import type { Tool } from "./model.ts";
 import { getSession, type SessionDetail } from "./query.ts";
 import { isoFromZoned } from "./sources/shared.ts";
 
@@ -45,7 +46,7 @@ export function toMarkdown(detail: SessionDetail): string {
 // index 0 exactly once, args always a serialized JSON object, globally unique
 // tool-call ids, results only for calls that exist, >=1 user and >=1 assistant.
 
-const TRAJECTORY_SOURCES: Record<string, string> = {
+const TRAJECTORY_SOURCES: Record<Tool, string> = {
   claude_code: "claude-code",
   codex: "codex",
   gemini: "gemini-cli",
@@ -56,6 +57,8 @@ const TRAJECTORY_SOURCES: Record<string, string> = {
   atif: "atif",
   hermes: "hermes",
   pi: "pi",
+  omp: "omp",
+  droid: "droid",
 };
 
 const TRAJECTORY_NOISE_PREFIXES = [
@@ -492,7 +495,7 @@ export function exportTrajectory(db: Database, sessionId: number): TrajectoryExp
 
   const meta: Record<string, string> = {
     role: "meta",
-    source: TRAJECTORY_SOURCES[detail.summary.tool] ?? detail.summary.tool,
+    source: TRAJECTORY_SOURCES[detail.summary.tool],
   };
   if (row?.cwd != null && row.cwd !== "") {
     meta.cwd = row.cwd;

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Tool } from "../model.ts";
 import { badgeVariants } from "./components/ui/badge.tsx";
 import { effortDisplayLabel, effortTooltip } from "./effort.ts";
 import { capitalize, formatInt } from "./format.ts";
@@ -54,7 +55,7 @@ export function Badge({
   );
 }
 
-const TOOL_LABELS: Record<string, string> = {
+const TOOL_LABELS: Record<Tool, string> = {
   claude_code: "Claude",
   codex: "Codex",
   gemini: "Gemini",
@@ -70,7 +71,7 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 export function toolLabel(tool: string): string {
-  return TOOL_LABELS[tool] ?? tool;
+  return TOOL_LABELS[tool as Tool] ?? tool;
 }
 
 export function ToolBadge({ tool }: { tool: string | null | undefined }) {
