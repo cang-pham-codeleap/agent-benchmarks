@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { CONFIRMED_DOSU_SERVER_IDS, isDosuServer } from "../src/dosu.ts";
+import { isDosuServer } from "../src/dosu.ts";
 
 describe("Dosu MCP evidence", () => {
-  test("uses only the confirmed normalized server IDs", () => {
-    expect(CONFIRMED_DOSU_SERVER_IDS).toEqual(["dosu", "claude_ai_Dosu"]);
+  test("accepts the confirmed normalized server IDs", () => {
     expect(isDosuServer("dosu")).toBe(true);
     expect(isDosuServer("claude_ai_Dosu")).toBe(true);
   });

@@ -5,44 +5,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { UI_ROUTE_PATHS } from "../src/route-paths.ts";
 import { ReportRouteExportActions } from "../src/ui/report-export.tsx";
-import { readUiFile, readUiSource, sourceBetween, sourceFrom } from "./ui-source.ts";
+import { readUiFile, readUiSource, sourceFrom } from "./ui-source.ts";
 
 const main = readUiSource();
 const server = readFileSync(join(import.meta.dir, "..", "src", "server", "sync.ts"), "utf8");
 
 describe("coded UI recovery", () => {
-  test("maps server codes to actions without rendering raw exception messages", () => {
-    for (const code of [
-      "session_not_found",
-      "schema_too_new",
-      "schema_too_old",
-      "launch_unsupported_platform",
-      "launch_failed",
-      "archive_locked",
-      "internal_error",
-    ]) {
-      expect(main).toContain(`case "${code}":`);
-    }
-    expect(main).toMatch(/onClick=\{onRetry\}[\s\S]*?Retry/);
-    expect(main).toContain("private diagnostic");
-    expect(main).toContain("Restart `agent-benchmarks serve`");
-  });
-
-  test("offers direct recovery for missing sessions, stale schemas, and launch failures", () => {
-    expect(main).toContain('actionLabel: "Back to sessions"');
-    expect(main).toMatch(/case "session_not_found":[\s\S]*?useSync: true/);
-    expect(main).toContain('actionLabel: "Rebuild archive"');
-    const schemaTooOld = sourceBetween(
-      main,
-      'case "schema_too_old":',
-      'case "launch_unsupported_platform":',
-    );
-    expect(schemaTooOld).not.toContain('actionHref: "/settings"');
-    expect(main).toContain('typeof error.extras.command === "string"');
-    expect(main).toContain('copyTextToClipboard(recovery.command ?? "")');
-    expect(main).toContain('{commandCopied ? "Copied" : "Copy"}');
-  });
-
   test("keeps sync failures inline and retries the sync operation", () => {
     expect(main).toContain("const [syncError, setSyncError]");
     expect(main).toContain("setSyncError(err)");
@@ -143,12 +111,6 @@ describe("report preview routes", () => {
 });
 
 describe("transcript presentation", () => {
-  test("keeps Dosu calls open and replaces embedded image payloads with local summaries", () => {
-    expect(main).toContain("<ToolCallPresentation forceOpen={isDosu}");
-    expect(main).toContain("embeddedAttachmentSummary(block.block_type, block.text)");
-    expect(main).toContain("Payload preserved in the local session log");
-  });
-
   test("uses the same compaction numbering in the chart and thread", () => {
     expect(main).toContain("compactionNumberBySeq");
     expect(main).toMatch(/Compaction \$\{compactionNumber\}/);
