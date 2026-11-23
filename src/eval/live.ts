@@ -71,11 +71,17 @@ function timestamp(value: unknown): number {
 /**
  * Projects an ach raw transcript. `seq` is the 0-based line index, so it is a stable cursor;
  * a trailing line without a newline may still be mid-write and is left for the next read.
+ * `agentStartedAt` is the first event past startup, null while the CLI is still starting.
  */
-export function projectTranscript(raw: string): { steps: LiveStep[]; nextSeq: number } {
+export function projectTranscript(raw: string): {
+  steps: LiveStep[];
+  nextSeq: number;
+  agentStartedAt: number | null;
+} {
   const complete = raw.slice(0, raw.lastIndexOf("\n") + 1);
   const lines = complete === "" ? [] : complete.slice(0, -1).split("\n");
   const steps: LiveStep[] = [];
+  let agentStartedAt: number | null = null;
   lines.forEach((line, seq) => {
     let event: RawEvent;
     try {
@@ -84,10 +90,13 @@ export function projectTranscript(raw: string): { steps: LiveStep[]; nextSeq: nu
       return;
     }
     if (event == null || typeof event !== "object" || typeof event.type !== "string") return;
+    const startup = event.type === "session" || event.type === "progress";
+    if (agentStartedAt == null && !startup && !event.type.startsWith("ach."))
+      agentStartedAt = timestamp(event.timestamp) || null;
     const body = Object.hasOwn(projectors, event.type) ? projectors[event.type]!(event) : null;
     if (body != null) steps.push({ seq, ts: timestamp(event.timestamp), ...body } as LiveStep);
   });
-  return { steps, nextSeq: lines.length };
+  return { steps, nextSeq: lines.length, agentStartedAt };
 }
 
 export function plannedCells(input: EvalRunInput): string[] {
@@ -162,7 +171,7 @@ export function readCellStream(ctx: LiveContext, cellId: string, after: number):
   const live = resolveLive(ctx);
   const record = recordFor(ctx, live, cellId);
   const path = record?.rawTranscript;
-  const { steps, nextSeq } = projectTranscript(
+  const { steps, nextSeq, agentStartedAt } = projectTranscript(
     path != null && existsSync(path) ? readFileSync(path, "utf8") : "",
   );
   const costs = steps.flatMap((step) =>
@@ -171,7 +180,7 @@ export function readCellStream(ctx: LiveContext, cellId: string, after: number):
   return {
     cellId,
     state: cellStateOf(ctx, live, cellId),
-    startedAt: record?.startedAt ?? null,
+    startedAt: agentStartedAt ?? record?.startedAt ?? null,
     steps: steps.filter((step) => step.seq >= after),
     nextSeq,
     totals: {

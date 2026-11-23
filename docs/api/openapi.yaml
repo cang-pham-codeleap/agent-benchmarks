@@ -2478,7 +2478,9 @@ components:
       properties:
         cellId: { type: string }
         state: { type: string, enum: [live, done, queued, unknown] }
-        startedAt: { type: [number, "null"] }
+        startedAt:
+          type: [number, "null"]
+          description: First transcript event past CLI startup, else the agent process start (epoch ms).
         steps:
           type: array
           items: { $ref: "#/components/schemas/EvaluationLiveStep" }

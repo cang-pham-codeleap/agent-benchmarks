@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync, truncateSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { type EvalRegistryRun, joinSessionCost } from "./cost.ts";
+import { type EvalRegistryRun, joinSessionCost, sessionActiveMs } from "./cost.ts";
 import { achModel } from "./efforts.ts";
 import {
   apiCellId,
@@ -221,9 +221,10 @@ export function readEvalCells(
           trial: row.trial,
           outcome,
           agentMs:
-            record == null
+            (session == null ? null : sessionActiveMs(db, session.id)) ??
+            (record == null
               ? null
-              : Math.max(0, (record.updatedAt ?? record.startedAt) - record.startedAt),
+              : Math.max(0, (record.updatedAt ?? record.startedAt) - record.startedAt)),
           verifyMs: record?.verify?.durationMs ?? null,
           prepMs: prep?.ms ?? null,
           endToEndMs: Math.max(0, row.endedAt - row.startedAt),

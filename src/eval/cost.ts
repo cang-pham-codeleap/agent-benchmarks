@@ -92,6 +92,18 @@ export function joinSessionCost(
   };
 }
 
+/** Prompt accepted to last message, so CLI startup and shutdown time is not charged to the agent. */
+export function sessionActiveMs(db: Database, sessionId: number): number | null {
+  const row = db
+    .query<{ first: string | null; last: string | null }, [number]>(
+      `SELECT MIN(CASE WHEN role = 'user' THEN timestamp END) AS first, MAX(timestamp) AS last
+       FROM message WHERE session_id = ?`,
+    )
+    .get(sessionId);
+  const span = Date.parse(row?.last ?? "") - Date.parse(row?.first ?? "");
+  return Number.isFinite(span) ? Math.max(0, span) : null;
+}
+
 type CostRow = {
   id: number;
   model: string | null;
