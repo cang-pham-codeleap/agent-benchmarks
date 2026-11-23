@@ -97,8 +97,10 @@ tool-calling MCP server you run yourself (`ptc-mcp` stands in for its command):
 ## Runs remember their augments
 
 When a run starts, the definition of each augment it uses, with `from` files
-resolved and a sha256 of the canonical definition, is written to
-`manifest.json` under `provenance.augments`. Resuming the run uses that copy,
+resolved, is written to `manifest.json` under `provenance.augments` with a
+sha256 of the canonical definition. The hash counts a `from` file by its
+content, not its path, so the same augment hashes the same on every machine
+and checkout, and editing the file changes the hash. Resuming the run uses that copy,
 so editing or deleting an augment file later does not change a run in flight.
 Runs recorded before this existed use the bundled definitions.
 

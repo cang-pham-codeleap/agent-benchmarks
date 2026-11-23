@@ -686,8 +686,10 @@ transcripts, and analytics, background activity only lights the **Update**
 button, so it never reshuffles a page while you are reading it.
 
 Set `AGENT_BENCHMARKS_NO_SYNC` or pass `--no-sync` to suppress syncs Agent Benchmarks starts on its
-own. With `serve`, this also disables the source watcher. It does not disable an
-operator-requested `POST /api/sync` or the UI's **Sync now** action.
+own. With `serve`, this also disables the source watcher, and an evaluation run
+that finishes syncs only the sessions it recorded under its own run directory,
+not the real source directories. It does not disable an operator-requested
+`POST /api/sync` or the UI's **Sync now** action.
 
 Always use `--no-sync` with a scratch database unless you want it populated
 from the real default source directories:
@@ -865,22 +867,31 @@ the rows from the stored messages without the source database.
 
 Evaluation runs live next to the archive, in `evals/<run id>/` under the
 directory that holds `agent-benchmarks.db`. They are plain files, not archive
-rows. Delete a run's directory to remove it.
+rows, and the directory is mode `0700`. Delete a run's directory to remove it.
+
+When a run ends `completed` or `failed` it cannot resume, so Agent Benchmarks
+deletes its working copies after the post-run sync: `tasks/`, `repo/`, `cwd/`,
+`ach-state/worktrees/`, each `ledger*.work/`, and the hermetic temp directory
+`/private/tmp/agent-benchmarks-hermetic/<run id>/`. Whenever a run stops,
+including a cancel, the copied credential `home/codex/auth.json` is deleted;
+resuming copies it again. Results, the live log, and the comparison read only
+the files that stay. Runs from before this behavior are cleaned the next time
+the server lists runs.
 
 | Path | Content |
 | --- | --- |
 | `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit, and in `provenance.augments` the definition and sha256 of each augment the run uses) |
 | `plan.json`, `plan.<group>.json` | The `ach` matrix plan of each run group (see below) |
 | `ledger.jsonl`, `ledger.<group>.jsonl` | One `ach` record per cell and trial of each run group |
-| `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/` |
+| `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/`, while the run can still resume |
 | `bin/<group>/` | PATH shims that adapt a harness CLI's flags to the installed version and append the group's clean and augment args |
 | `augments/` | Files the augment recipes use (prompt files, settings and MCP JSON), `sha256.json` with each file's hash, and `prep.jsonl` |
-| `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit |
+| `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit, while the run can still resume |
 | `reference/` | Replays: the human change from the replayed commit |
 | `real-spec.json` | Real tasks: what the grader needs (base commit, hidden paths, profile) |
 | `cells/<group>/<cell>/` | Real tasks: each cell's `diff.patch`, `result.json`, and `checks/` and `hidden/` logs |
 | `ach-state/` | `ach` state; real-task cell worktrees are created under it |
-| `home/codex/` | The clean Codex home of a `default` group, holding only a copy of `~/.codex/auth.json` at mode `0600` |
+| `home/codex/` | The clean Codex home of a `default` group: a copy of `~/.codex/auth.json` at mode `0600` while the run is active, and the sessions it records |
 
 The task picker groups tasks by their `meta.json` `category`, or by `language`
 when a task has none, and orders each group by `difficulty`. `evals/tasks/`

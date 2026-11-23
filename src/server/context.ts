@@ -16,6 +16,8 @@ export interface RequestContext {
   economics?: EconomicsCache;
   readPool?: ReadPool;
   runSync?: SyncWorkerRunner;
+  /** False under `--no-sync`: nothing reads the user's real source directories. */
+  syncSources?: boolean;
   syncCoordinator?: SyncCoordinator;
   launchPlatform?: NodeJS.Platform;
   boundHostname?: string;

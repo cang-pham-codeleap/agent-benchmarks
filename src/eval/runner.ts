@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import {
   appendFileSync,
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -13,9 +14,10 @@ import {
   watch,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { FileSink } from "bun";
 import type { Config } from "../config.ts";
+import { ARCHIVE_DIR_MODE } from "../db.ts";
 import type { IngestConfig } from "../ingest.ts";
 import type { RequestContext } from "../server/context.ts";
 import { publishServerEvent } from "../server/sse.ts";
@@ -68,6 +70,7 @@ import {
   EVAL_HARNESSES,
   EVAL_LIMITS,
   rejectDuplicateSetup,
+  removeConfigCredentials,
   resolveRecipe,
   validateSetupConfig,
   writeRecipeFiles,
@@ -105,7 +108,8 @@ const children = new Map<string, Bun.Subprocess>();
 const currentCells = new Map<string, string | null>();
 const cancelling = new Set<string>();
 let starting = false;
-let initialized = false;
+const initialized = new Set<string>();
+const HERMETIC_PARENT = "/private/tmp/agent-benchmarks-hermetic";
 
 export function evalDataDir(dbPath: string): string {
   return join(dirname(dbPath), "evals");
@@ -216,7 +220,7 @@ async function startBenchmarkRun(
   const manifest = await newManifest(id, input, achDir, registry, {
     taskHashes,
     executionOrder,
-    hermeticRoot: `/private/tmp/agent-benchmarks-hermetic/${id}`,
+    hermeticRoot: join(HERMETIC_PARENT, id),
   });
   return launch(config, context, runDir, manifest);
 }
@@ -540,15 +544,20 @@ export function defaultGroupSyncConfig(
 }
 
 function initializeRunner(dbPath: string): void {
-  if (initialized) return;
-  initialized = true;
-  mkdirSync(evalDataDir(dbPath), { recursive: true });
+  if (initialized.has(dbPath)) return;
+  initialized.add(dbPath);
+  mkdirSync(evalDataDir(dbPath), { recursive: true, mode: ARCHIVE_DIR_MODE });
+  chmodSync(evalDataDir(dbPath), ARCHIVE_DIR_MODE);
   for (const entry of readdirSync(evalDataDir(dbPath), { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const manifest = readManifest(join(evalDataDir(dbPath), entry.name));
+    const runDir = join(evalDataDir(dbPath), entry.name);
+    const manifest = readManifest(runDir);
+    if (manifest?.status === "completed" || manifest?.status === "failed")
+      removeRunWorkData(runDir, manifest);
+    else if (manifest != null && manifest.status !== "running") removeConfigCredentials(runDir);
     if (manifest?.status === "running" && (manifest.pid == null || !processExists(manifest.pid))) {
       updateRun(
-        join(evalDataDir(dbPath), entry.name),
+        runDir,
         manifest,
         "interrupted",
         manifest.pid == null ? 1 : null,
@@ -583,6 +592,7 @@ function spawnRun(
   const stop = async (): Promise<void> => {
     watchers.get(id)?.close();
     watchers.delete(id);
+    removeConfigCredentials(runDir);
     await log.end();
   };
   const finish = async (
@@ -600,6 +610,7 @@ function spawnRun(
       id,
       ran.some((group) => group.config === "default"),
     );
+    removeRunWorkData(runDir, latest);
     await stop();
   };
   const runFrom = (index: number, current: EvalRunManifest, failure: string | null): void => {
@@ -865,7 +876,7 @@ async function syncAfterRun(
   ranDefault: boolean,
 ): Promise<void> {
   const targets: [string, Config | null][] = [
-    ["post-run", config],
+    ["post-run", context.syncSources === false ? null : config],
     ["default-config", ranDefault ? defaultGroupSyncConfig(config, runDir) : null],
   ];
   for (const [label, target] of targets) {
@@ -881,6 +892,19 @@ async function syncAfterRun(
       console.error(`[eval/sync] ${label} sync failed for ${id}`, error);
     }
   }
+}
+
+/** A completed or failed run cannot resume, so its working copies go; results read the manifest,
+ * ledgers, `cells/`, `reference/`, and the `ach-state` run records and raw streams. */
+function removeRunWorkData(runDir: string, manifest: EvalRunManifest): void {
+  const work = existsSync(runDir)
+    ? readdirSync(runDir).filter((name) => /^ledger(\..+)?\.work$/.test(name))
+    : [];
+  for (const name of ["tasks", "repo", "cwd", join("ach-state", "worktrees"), ...work])
+    rmSync(join(runDir, name), { recursive: true, force: true });
+  if (manifest.provenance.hermeticRoot != null)
+    rmSync(join(HERMETIC_PARENT, basename(runDir)), { recursive: true, force: true });
+  removeConfigCredentials(runDir);
 }
 
 function installLedgerWatch(dbPath: string, runDir: string, id: string): void {

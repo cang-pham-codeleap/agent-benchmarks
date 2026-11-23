@@ -477,4 +477,40 @@ describe("augmented benchmark run", () => {
     },
     180_000,
   );
+
+  test.skipIf(achMissing != null)(
+    "under --no-sync a finished run reads no real sources and keeps no working copies",
+    async () => {
+      const configDir = join(root, "settings-nosync");
+      mkdirSync(configDir, { recursive: true });
+      writeFileSync(join(configDir, "settings.json"), JSON.stringify({ achDir }));
+      process.env.AGENT_BENCHMARKS_CONFIG_DIR = configDir;
+      const config = testConfig("nosync");
+      const synced: Config[] = [];
+      const started = await startEvalRun(
+        config,
+        {
+          syncSources: false,
+          runSync: async (target: Config) => {
+            synced.push(target);
+            return sync(openDb(target.dbPath), target);
+          },
+        },
+        benchmark([{ harness: "null", model: "smoke", config: "clean" }]),
+      );
+      const deadline = Date.now() + 150_000;
+      while (readRunManifest(config.dbPath, started.id)?.status === "running") {
+        if (Date.now() > deadline) throw new Error("timed out waiting for the evaluation run");
+        await Bun.sleep(100);
+      }
+      expect(readRunManifest(config.dbPath, started.id)?.status).toBe("completed");
+      expect(synced).toEqual([]);
+      const runDir = join(root, "nosync", "archive", "evals", started.id);
+      expect(existsSync(join(runDir, "tasks"))).toBe(false);
+      expect(existsSync(join(runDir, "ledger.clean.jsonl"))).toBe(true);
+      if (started.provenance.hermeticRoot != null)
+        expect(existsSync(started.provenance.hermeticRoot)).toBe(false);
+    },
+    180_000,
+  );
 });

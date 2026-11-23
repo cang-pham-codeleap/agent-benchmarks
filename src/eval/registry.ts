@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
@@ -450,4 +451,11 @@ export function configGroupEnv(
     }
   }
   return env;
+}
+
+/** Deletes the credential copies `configGroupEnv` made; the next spawn copies them again. */
+export function removeConfigCredentials(runDir: string): void {
+  for (const [harness, definition] of Object.entries(EVAL_HARNESSES))
+    for (const file of definition.defaultConfig?.copyFromHome ?? [])
+      rmSync(join(runDir, "home", harness, basename(file)), { force: true });
 }

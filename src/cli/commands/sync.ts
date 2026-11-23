@@ -334,6 +334,7 @@ export function registerSyncCommands(ctx: CliContext): void {
                   ? commandOptions.trustedPeer.flatMap((value) => parsePeerList(value))
                   : undefined,
               logger: ctx.globals().quiet ? undefined : serverLogger,
+              syncSources: syncEnabled,
               watch: syncEnabled
                 ? {
                     intervalMs: commandOptions.intervalMs,
