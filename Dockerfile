@@ -8,9 +8,9 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY tsconfig.json ./
-COPY npm ./npm
 COPY scripts ./scripts
 COPY src ./src
+COPY evals ./evals
 COPY docs/api/openapi.yaml ./docs/api/openapi.yaml
 
 ARG TARGETPLATFORM
