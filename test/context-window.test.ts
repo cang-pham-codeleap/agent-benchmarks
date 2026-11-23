@@ -7,6 +7,7 @@ import {
   contextWindowForSession,
   inferClaudeContextWindowTokens,
   inferGeminiContextWindowTokens,
+  JS_TRIM_WHITESPACE_CODES,
   materializeMissingContextWindows,
 } from "../src/context-window.ts";
 import { openDb } from "../src/db.ts";
@@ -20,6 +21,13 @@ import { buildOpenCodeDb, opencodeFixtureSql } from "./opencode-fixture.ts";
 
 const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-context-window-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
+
+test("the SQL turn rule trims exactly the code units String.prototype.trim does", () => {
+  const trimmed = Array.from({ length: 0x10000 }, (_, code) => code).filter(
+    (code) => String.fromCharCode(code).trim() === "",
+  );
+  expect(JS_TRIM_WHITESPACE_CODES).toEqual(trimmed);
+});
 
 let dbCounter = 0;
 function freshDb(): Database {
@@ -445,6 +453,8 @@ describe("contextWindowForSession", () => {
       ...turn(3, "[Request interrupted by user]"),
       ...turn(4, "<command-name>/clear</command-name>"),
       ...turn(5, "second real prompt"),
+      ...turn(6, "\u00a0"),
+      ...turn(7, "\u3000\ufeff\u2028"),
     ].join("\n");
     upsertSession(db, parseClaudeSession("sess-ctx", content), "/turns.jsonl", 1, 2, "h");
     const sessionId = listSessions(db)[0]?.id ?? 0;
@@ -452,7 +462,7 @@ describe("contextWindowForSession", () => {
     const timeline = contextWindowForSession(db, sessionId);
     const stored = db.query("SELECT turn_count FROM session WHERE id = ?1").get(sessionId);
     expect(stored).toEqual({ turn_count: 2 });
-    expect(timeline?.points.map((point) => point.turn)).toEqual([1, 1, 1, 1, 2]);
+    expect(timeline?.points.map((point) => point.turn)).toEqual([1, 1, 1, 1, 2, 2, 2]);
     expect(timeline?.turn_count).toBe(2);
     db.close();
   });
