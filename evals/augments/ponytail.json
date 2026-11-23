@@ -1,0 +1,30 @@
+{
+  "label": "Ponytail",
+  "kind": "prompt-mode",
+  "description": "Appends a least-code-that-works instruction to the system prompt.",
+  "sourceUrl": "https://github.com/DietrichGebert/ponytail",
+  "binary": null,
+  "recipes": {
+    "claude": {
+      "args": [
+        "--append-system-prompt-file",
+        "{dir}/ponytail.md"
+      ],
+      "files": {
+        "ponytail.md": {
+          "from": "ponytail.md"
+        }
+      }
+    },
+    "omp": {
+      "args": [
+        "--append-system-prompt={dir}/ponytail.md"
+      ],
+      "files": {
+        "ponytail.md": {
+          "from": "ponytail.md"
+        }
+      }
+    }
+  }
+}

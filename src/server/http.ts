@@ -8,6 +8,7 @@ export type ApiErrorCode =
   | "background_failed"
   | "background_unsupported"
   | "commit_invalid"
+  | "combo_exists"
   | "config_unsupported"
   | "cross_origin_read"
   | "cross_origin_write"

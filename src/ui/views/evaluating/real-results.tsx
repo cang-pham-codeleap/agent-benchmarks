@@ -24,12 +24,11 @@ import {
 import { getJson } from "../../api.ts";
 import { durationPrecise, errorMessage, money } from "../../format.ts";
 import { Link } from "../../link.tsx";
+import { setupText } from "../evaluating-form.ts";
 
 export const REFERENCE = "reference";
 const MAX_COMPARE = 3;
 
-export const setupText = (setup: EvalSetup) =>
-  `${setup.harness} · ${setup.model} · ${setup.config}`;
 const pct = (value: number | null) => (value == null ? "n/a" : `${Math.round(value * 100)}%`);
 const mean = (values: number[]) =>
   values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { achCellId, evalTaskIds, type RunRecord } from "./ledger.ts";
-import { apiCellId, parseApiCellId, safeCellDir } from "./paths.ts";
+import { apiCellId, groupId, parseApiCellId, safeCellDir } from "./paths.ts";
 import type { CellLiveState, CellStream, EvalRunInput, LiveStep } from "./types.ts";
 
 const SUMMARY_CHARS = 160;
@@ -94,7 +94,7 @@ export function plannedCells(input: EvalRunInput): string[] {
   return input.setups.flatMap((setup) =>
     evalTaskIds(input).flatMap((taskId) =>
       Array.from({ length: input.trials }, (_, index) =>
-        apiCellId(setup.config, achCellId(setup, taskId, index + 1)),
+        apiCellId(groupId(setup.config, setup.augments).key, achCellId(setup, taskId, index + 1)),
       ),
     ),
   );

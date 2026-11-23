@@ -13,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { closeDb, openDb } from "../src/db.ts";
+import { loadAugments } from "../src/eval/augments.ts";
 import { EvalRequestError } from "../src/eval/errors.ts";
 import { apiCellId, artifactDir } from "../src/eval/paths.ts";
 import * as real from "../src/eval/real.ts";
@@ -54,7 +55,7 @@ function commit(message: string): string {
 }
 
 function validate(raw: unknown): RealRunInput {
-  return real.validateRealInput(raw, { PATH: join(root, "bin") });
+  return real.validateRealInput(raw, loadAugments(null), { PATH: join(root, "bin") });
 }
 
 function errorCode(fn: () => unknown): string | undefined {
@@ -81,10 +82,11 @@ beforeAll(() => {
   write(repo, "src/x.js", buggy);
   commit("base");
   write(repo, "src/x.js", fixed);
+  write(repo, "test/helper.js", "export const expected = 5;\n");
   write(
     repo,
     "test/x.test.js",
-    'import { add } from "../src/x.js";\nif (add(2, 3) !== 5) process.exit(1);\n',
+    'import { add } from "../src/x.js";\nimport { expected } from "./helper.js";\nif (add(2, 3) !== expected) process.exit(1);\n',
   );
   fixSha = commit("fix + test\n\nadd returned the difference");
   write(repo, "README.md", "later\n");
@@ -105,7 +107,7 @@ function replayInput(overrides: Record<string, unknown> = {}, task: Record<strin
       type: "replay",
       sha: fixSha.slice(0, 8),
       prompt: "fix add",
-      hiddenPaths: ["test/x.test.js"],
+      hiddenPaths: ["test/helper.js", "test/x.test.js"],
       ...task,
     },
     profile: { setupCommand: null, checks: ["echo ok", "exit 3"], hiddenTestCommand: "bun {file}" },
@@ -121,7 +123,7 @@ describe("validateRealInput", () => {
       type: "replay",
       sha: fixSha,
       prompt: "fix add",
-      hiddenPaths: ["test/x.test.js"],
+      hiddenPaths: ["test/helper.js", "test/x.test.js"],
     });
   });
 
@@ -173,8 +175,8 @@ describe("inspectRepo", () => {
       sha: fixSha,
       subject: "fix + test",
       body: "add returned the difference",
-      files: ["src/x.js", "test/x.test.js"],
-      suggestedHidden: ["test/x.test.js"],
+      files: ["src/x.js", "test/helper.js", "test/x.test.js"],
+      suggestedHidden: ["test/helper.js", "test/x.test.js"],
       isMerge: false,
     });
     expect(inspection.profileSource).toBe("detected");
@@ -202,8 +204,8 @@ describe("prepareRealRun and real-verify", () => {
     input = {
       ...validate(replayInput()),
       setups: [
-        { harness: "claude", model: "sonnet", config: "current" },
-        { harness: "claude", model: "sonnet", config: "default" },
+        { harness: "claude", model: "sonnet", config: "current", augments: [] },
+        { harness: "claude", model: "sonnet", config: "default", augments: [] },
       ],
     };
     const prepared = real.prepareRealRun(input, runDir(), {});
@@ -222,7 +224,7 @@ describe("prepareRealRun and real-verify", () => {
     expect(reference).toEqual({
       baseSha: prepared.baseSha,
       sha: fixSha,
-      diffStat: { files: ["src/x.js", "test/x.test.js"], added: 3, removed: 1 },
+      diffStat: { files: ["src/x.js", "test/helper.js", "test/x.test.js"], added: 5, removed: 1 },
       nonHidden: { files: ["src/x.js"], added: 1, removed: 1 },
     });
     expect(readFileSync(join(runDir(), "reference", "diff.patch"), "utf8")).toContain(
@@ -231,7 +233,9 @@ describe("prepareRealRun and real-verify", () => {
 
     const [current, fallback] = prepared.groups;
     expect(current?.config).toBe("current");
-    expect(current?.setups).toEqual([{ harness: "claude", model: "sonnet", config: "current" }]);
+    expect(current?.setups).toEqual([
+      { harness: "claude", model: "sonnet", config: "current", augments: [] },
+    ]);
     expect(current?.ledgerPath).toBe(join(runDir(), "ledger.jsonl"));
     expect(fallback?.config).toBe("default");
     expect(fallback?.planPath).toBeNull();

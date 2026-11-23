@@ -63,6 +63,8 @@ export interface ServeOptions {
   hostname?: string;
   trustedPeers?: string[];
   watch?: ServeWatchOptions;
+  /** False under `--no-sync`; eval runs then skip the post-run sync of real sources. */
+  syncSources?: boolean;
   logger?: StructuredLogger;
   onShutdownRequested?: () => void;
   service?: ServiceOptions;
@@ -148,6 +150,7 @@ export function serve(options: ServeOptions): ReturnType<typeof Bun.serve> {
           db: activeDb,
           economics: activeEconomics,
           runSync: syncCoordinator.run,
+          syncSources: options.syncSources,
           syncCoordinator,
           readPool: activeReadPool ?? undefined,
           boundHostname: hostname,

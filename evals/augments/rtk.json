@@ -1,0 +1,45 @@
+{
+  "label": "RTK",
+  "kind": "shell-proxy",
+  "description": "Rewrites shell commands so their output is compact before the model reads it.",
+  "sourceUrl": "https://github.com/rtk-ai/rtk",
+  "binary": "rtk",
+  "recipes": {
+    "claude": {
+      "args": [
+        "--settings",
+        "{dir}/rtk-settings.json"
+      ],
+      "files": {
+        "rtk-settings.json": {
+          "json": {
+            "hooks": {
+              "PreToolUse": [
+                {
+                  "matcher": "Bash",
+                  "hooks": [
+                    {
+                      "type": "command",
+                      "command": "rtk hook claude"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "omp": {
+      "args": [
+        "-e",
+        "{dir}/rtk.ts"
+      ],
+      "files": {
+        "rtk.ts": {
+          "from": "~/.omp/agent/extensions/rtk.ts"
+        }
+      }
+    }
+  }
+}

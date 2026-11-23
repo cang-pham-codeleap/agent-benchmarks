@@ -1,0 +1,27 @@
+{
+  "label": "CodeGraph",
+  "kind": "mcp",
+  "description": "Indexes the workspace and serves symbol and call-path lookups over MCP.",
+  "sourceUrl": "https://github.com/colbymchenry/codegraph",
+  "binary": "codegraph",
+  "recipes": {
+    "claude": {
+      "mcpServers": {
+        "codegraph": {
+          "type": "stdio",
+          "command": "codegraph",
+          "args": [
+            "serve",
+            "--mcp"
+          ]
+        }
+      },
+      "prepare": {
+        "command": "codegraph init",
+        "exclude": [
+          ".codegraph"
+        ]
+      }
+    }
+  }
+}

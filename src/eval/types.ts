@@ -1,11 +1,23 @@
+import type { AugmentSnapshot } from "./augments.ts";
+
 export type EvalHarness = "claude" | "codex" | "copilot" | "opencode" | "omp" | "droid";
 
-export type EvalConfigMode = "current" | "default";
+/** `clean` keeps the user's login but drops their hooks, plugins, MCP servers, and instructions. */
+export type EvalConfigMode = "current" | "default" | "clean";
+
+/** An augment file name without `.json`, validated at load: /^[a-z0-9][a-z0-9-]{0,63}$/. */
+export type AugmentId = string;
+
+export type AugmentSource = "bundled" | "user";
+
+export type AugmentKind = "shell-proxy" | "mcp" | "prompt-mode" | "harness-flag";
 
 export interface EvalSetup {
   harness: EvalHarness;
   model: string;
   config: EvalConfigMode;
+  /** Sorted and unique; empty for a setup without augments. */
+  augments: AugmentId[];
 }
 
 export type EvalPresetId = "smoke" | "quick" | "reliability" | "custom";
@@ -132,6 +144,8 @@ export interface EvalProvenance {
   harnessVersions: Partial<Record<EvalHarness, string>>;
   taskHashes: Record<string, string>;
   executionOrder: string[];
+  /** Definitions of every augment the run uses, captured at start; absent in older manifests (bundled). */
+  augments?: Record<AugmentId, AugmentSnapshot>;
   /** Null for real-task runs, which isolate with git worktrees instead. */
   hermeticRoot: string | null;
   globalConfigNote: string;
@@ -200,6 +214,8 @@ export interface EvalCell {
   outcome: CellOutcome;
   agentMs: number | null;
   verifyMs: number | null;
+  /** Augment preparation (e.g. building a code index) before the agent started; null without augments. */
+  prepMs: number | null;
   endToEndMs: number | null;
   tokens: CellTokens | null;
   cost: CellCost;
@@ -273,6 +289,8 @@ export interface EvalResults {
   progress: { done: number; total: number; currentCell: string | null; liveCellId: string | null };
   /** Null for benchmark runs. */
   real: RealResults | null;
+  /** One row per augmented setup that has a same harness, model, and config baseline without augments. */
+  augmentVerdicts: AugmentVerdict[];
 }
 
 export const EVAL_DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -298,6 +316,73 @@ export interface EvalHarnessInfo {
   defaultConfigProblem: string | null;
 }
 
+export interface EvalAugmentInfo {
+  id: AugmentId;
+  source: AugmentSource;
+  /** The id when the file is invalid. */
+  label: string;
+  /** Null when the file is invalid. */
+  kind: AugmentKind | null;
+  description: string;
+  sourceUrl: string;
+  /** Harnesses with a recipe for this augment; every harness when the file is invalid, so the problem shows. */
+  harnesses: EvalHarness[];
+  available: boolean;
+  /** Why it cannot run on this machine; null when available. */
+  problem: string | null;
+}
+
+export type AugmentVerdictKind = "adopt" | "quality-risk" | "no-saving" | "inconclusive";
+
+export interface AugmentVerdict {
+  baseline: string;
+  augmented: string;
+  harness: EvalHarness;
+  model: string;
+  config: EvalConfigMode;
+  augments: AugmentId[];
+  /** (task, trial) pairs on tasks that reach the trial floor; thinner tasks are left out. */
+  pairs: number;
+  /** Fewest paired trials of any counted task; of any task when none reach the floor. */
+  minTrials: number;
+  /** Augmented pass share minus baseline pass share over the pairs. */
+  passDelta: number | null;
+  /** Pairs the augmented arm passed and the baseline failed. */
+  better: number;
+  worse: number;
+  /** Relative change in mean total tokens over the pairs; -0.2 is 20% fewer. */
+  tokenDelta: number | null;
+  /** Relative change in mean cost over the pairs; null unless every paired cell is priced. */
+  costDelta: number | null;
+  savingBasis: "cost" | "tokens" | null;
+  /** Mean augment preparation time per augmented cell, outside agent time. */
+  prepMs: number | null;
+  verdict: AugmentVerdictKind;
+  reason: string;
+}
+
+export interface AugmentPoolEntry extends Omit<AugmentVerdict, "baseline" | "augmented"> {
+  harnessVersion: string | null;
+  runIds: string[];
+  /** The pooled runs captured more than one version of the augment definitions. */
+  recipeDrift: boolean;
+}
+
+/** A saved benchmark input; the id is the file name in `<evalDir>/combos`. */
+export interface EvalCombo {
+  id: string;
+  label: string;
+  setups: EvalSetup[];
+  taskIds: string[];
+  trials: number;
+  wallMs: number;
+}
+
+export interface EvalComboInfo extends EvalCombo {
+  /** Why the combo cannot start as saved on this machine; null when it can. */
+  problem: string | null;
+}
+
 export interface EvalPreset {
   id: Exclude<EvalPresetId, "custom">;
   label: string;
@@ -319,6 +404,10 @@ export interface EvalCatalog {
     realDefaultWallMs: number;
   };
   activeRunId: string | null;
+  augments: EvalAugmentInfo[];
+  /** Directory holding the user's `augments/` and `combos/`. */
+  evalDir: string;
+  combos: EvalComboInfo[];
 }
 
 export interface EvalProgressEvent {

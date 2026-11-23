@@ -20,6 +20,7 @@ import type {
 } from "../../../eval/types.ts";
 import { getJson } from "../../api.ts";
 import { durationPrecise, money } from "../../format.ts";
+import { setupText } from "../evaluating-form.ts";
 import {
   compareChoices,
   compareKeyOf,
@@ -27,7 +28,6 @@ import {
   mergeStream,
   watchTarget,
 } from "./live-model.ts";
-import { setupText } from "./real-results.tsx";
 
 const stateStyle: Record<CellLiveState, string> = {
   live: "border-emerald-500/60 text-emerald-600 dark:text-emerald-400",

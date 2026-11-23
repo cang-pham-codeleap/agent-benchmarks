@@ -1335,6 +1335,59 @@ paths:
         "500": { $ref: "#/components/responses/InternalError" }
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
+  /api/evals/combos:
+    post:
+      tags: [Evaluations]
+      operationId: saveEvaluationCombo
+      summary: Save a benchmark form as a combo in the user eval directory
+      description: >-
+        Writes `<evalDir>/combos/<id>.json` atomically after the same checks as
+        starting a benchmark run (400 `augment_unknown`, `augments_unsupported`,
+        `config_unsupported`, or `invalid_request`; 503 `harness_missing` or
+        `augment_unavailable`). An invalid id or label is 400 `invalid_request`.
+        An existing id is 409 `combo_exists` unless `overwrite` is true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvaluationComboInput" }
+      responses:
+        "200":
+          description: The saved combo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvaluationCombo" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: A combo with this id exists and `overwrite` is not true (`combo_exists`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /api/evals/augments:
+    get:
+      tags: [Evaluations]
+      operationId: listEvaluationAugmentVerdicts
+      summary: Pool augment verdicts across completed evaluation runs
+      description: >-
+        Pools paired (task, trial) cells of every completed run that has an
+        augmented setup with a same-harness, model, and config baseline. Pools
+        are keyed by harness, harness version, model, config, and augments, and
+        the verdict is recomputed over the pooled pairs.
+      responses:
+        "200":
+          description: One entry per pool
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/AugmentPoolEntry" } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
   /api/evals/{id}:
     parameters:
       - { $ref: "#/components/parameters/EvaluationRunId" }
@@ -1854,6 +1907,7 @@ components:
         - background_failed
         - background_unsupported
         - commit_invalid
+        - combo_exists
         - config_unsupported
         - cross_origin_read
         - cross_origin_write
@@ -1942,16 +1996,142 @@ components:
         model: { type: string, maxLength: 128, pattern: '^[\w.:/@-]+$' }
         config:
           type: string
-          enum: [current, default]
+          enum: [current, default, clean]
           description: >-
             `current` runs with the user's own harness configuration; `default`
             runs without the user's global instructions, skills, tool servers,
-            and settings. Missing means `current`. Manifests always carry it.
+            and settings; `clean` keeps the user's login but drops their hooks,
+            plugins, MCP servers, settings, and instruction files. Missing
+            means `current`. Manifests always carry it.
+        augments:
+          type: array
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+          description: >-
+            Augments enabled for this setup. Only allowed with `default` or
+            `clean` config, and only for harnesses with a recipe. Missing means
+            none; manifests always carry it, sorted.
+      additionalProperties: false
+    EvaluationAugmentId:
+      type: string
+      pattern: "^[a-z0-9][a-z0-9-]{0,63}$"
+      description: >-
+        An augment file name without `.json`, from the bundled `evals/augments`
+        directory or the user's `<evalDir>/augments`.
+    EvaluationAugment:
+      type: object
+      required: [id, source, label, kind, description, sourceUrl, harnesses, available, problem]
+      properties:
+        id: { type: string, description: The augment file name; invalid file names are listed with a problem. }
+        source:
+          type: string
+          enum: [bundled, user]
+          description: A user file with a bundled id replaces the bundled augment.
+        label: { type: string, description: The id when the file is invalid. }
+        kind:
+          type: [string, "null"]
+          enum: [shell-proxy, mcp, prompt-mode, harness-flag, null]
+          description: Null when the file is invalid.
+        description: { type: string }
+        sourceUrl: { type: string }
+        harnesses:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationHarness" }
+        available: { type: boolean }
+        problem: { type: [string, "null"], description: Why it cannot run on this machine. }
+      additionalProperties: false
+    AugmentVerdict:
+      type: object
+      required:
+        [baseline, augmented, harness, model, config, augments, pairs, minTrials, passDelta, better, worse, tokenDelta, costDelta, savingBasis, prepMs, verdict, reason]
+      properties:
+        baseline: { type: string, description: Setup key of the arm without augments. }
+        augmented: { type: string, description: Setup key of the augmented arm. }
+        harness: { $ref: "#/components/schemas/EvaluationHarness" }
+        model: { type: string }
+        config: { type: string, enum: [current, default, clean] }
+        augments:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+        pairs: { type: integer, minimum: 0, description: (task, trial) pairs on tasks with at least three paired trials. }
+        minTrials: { type: integer, minimum: 0, description: Fewest paired trials of any counted task. }
+        passDelta: { type: [number, "null"], description: Augmented pass share minus baseline pass share. }
+        better: { type: integer, minimum: 0 }
+        worse: { type: integer, minimum: 0 }
+        tokenDelta: { type: [number, "null"], description: Relative change in mean total tokens; -0.2 is 20% fewer. }
+        costDelta: { type: [number, "null"], description: Relative change in mean cost; null unless every paired cell is priced. }
+        savingBasis: { type: [string, "null"], enum: [cost, tokens, null] }
+        prepMs: { type: [number, "null"], description: Mean augment preparation time per augmented cell. }
+        verdict: { type: string, enum: [adopt, quality-risk, no-saving, inconclusive] }
+        reason: { type: string }
+      additionalProperties: false
+    AugmentPoolEntry:
+      type: object
+      required:
+        [harness, model, config, augments, harnessVersion, runIds, recipeDrift, pairs, minTrials, passDelta, better, worse, tokenDelta, costDelta, savingBasis, prepMs, verdict, reason]
+      properties:
+        harness: { $ref: "#/components/schemas/EvaluationHarness" }
+        model: { type: string }
+        config: { type: string, enum: [current, default, clean] }
+        augments:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+        harnessVersion: { type: [string, "null"] }
+        runIds: { type: array, items: { type: string } }
+        recipeDrift:
+          type: boolean
+          description: >-
+            The pooled runs executed different versions of an augment definition
+            (manifest snapshot hashes differ; runs without a snapshot count as the
+            bundled definition). The verdict numbers are computed the same way.
+        pairs: { type: integer, minimum: 0 }
+        minTrials: { type: integer, minimum: 0 }
+        passDelta: { type: [number, "null"] }
+        better: { type: integer, minimum: 0 }
+        worse: { type: integer, minimum: 0 }
+        tokenDelta: { type: [number, "null"] }
+        costDelta: { type: [number, "null"] }
+        savingBasis: { type: [string, "null"], enum: [cost, tokens, null] }
+        prepMs: { type: [number, "null"] }
+        verdict: { type: string, enum: [adopt, quality-risk, no-saving, inconclusive] }
+        reason: { type: string }
       additionalProperties: false
     EvaluationRunInput:
       oneOf:
         - $ref: "#/components/schemas/BenchmarkRunInput"
         - $ref: "#/components/schemas/RealRunInput"
+    EvaluationComboId:
+      type: string
+      pattern: "^[a-z0-9][a-z0-9-]{0,63}$"
+      description: The combo file name without `.json`.
+    EvaluationComboInput:
+      type: object
+      required: [id, label, setups, taskIds, trials, wallMs]
+      properties:
+        id: { $ref: "#/components/schemas/EvaluationComboId" }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        setups: { type: array, minItems: 1, maxItems: 8, items: { $ref: "#/components/schemas/EvaluationSetup" } }
+        taskIds: { type: array, minItems: 1, uniqueItems: true, items: { type: string } }
+        trials: { type: integer, minimum: 1, maximum: 10 }
+        wallMs: { type: integer, minimum: 1, maximum: 3600000 }
+        overwrite: { type: boolean, description: Replace an existing combo with the same id. }
+      additionalProperties: false
+    EvaluationCombo:
+      type: object
+      required: [id, label, setups, taskIds, trials, wallMs, problem]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        setups: { type: array, items: { $ref: "#/components/schemas/EvaluationSetup" } }
+        taskIds: { type: array, items: { type: string } }
+        trials: { type: number }
+        wallMs: { type: number }
+        problem:
+          type: [string, "null"]
+          description: >-
+            Why the combo cannot start as saved on this machine (a shape error
+            leaves the lists empty); the form can still load what exists.
+      additionalProperties: false
     BenchmarkRunInput:
       type: object
       required: [name, setups, taskIds, trials, wallMs, preset]
@@ -2150,12 +2330,38 @@ components:
       additionalProperties: false
     EvaluationCatalog:
       type: object
-      required: [ach, harnesses, tasks, presets, limits, activeRunId]
+      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments, evalDir, combos]
+      properties:
+        augments:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationAugment" }
+        evalDir:
+          type: string
+          description: >-
+            Directory holding the user's `augments/` and `combos/`:
+            `AGENT_BENCHMARKS_EVAL_DIR` when set, otherwise `evals` next to the archive.
+        combos:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationCombo" }
+          description: Saved combos from `<evalDir>/combos`, read on every request.
       additionalProperties: true
     EvaluationResults:
       type: object
-      required: [manifest, cells, interrupted, setups, paired, warnings, progress, real]
+      required: [manifest, cells, interrupted, setups, paired, warnings, progress, real, augmentVerdicts]
       properties:
+        cells:
+          type: array
+          items:
+            type: object
+            properties:
+              prepMs:
+                type: [number, "null"]
+                description: Augment preparation (e.g. building a code index) before the agent started; null without augments.
+            additionalProperties: true
+        augmentVerdicts:
+          type: array
+          items: { $ref: "#/components/schemas/AugmentVerdict" }
+          description: One row per augmented setup that has a baseline in the same run.
         real:
           oneOf:
             - type: "null"

@@ -1,10 +1,20 @@
-import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -19,11 +29,201 @@ import {
   type BenchmarkRunInput,
   EVAL_DIFFICULTIES,
   type EvalCatalog,
+  type EvalComboInfo,
   type EvalDifficulty,
   type EvalHarnessInfo,
   type EvalSetup,
 } from "../../../eval/types.ts";
-import { evaluationRunCount, evaluationStartReason, presetAfterEdit } from "../evaluating-form.ts";
+import { ApiError, getJson } from "../../api.ts";
+import {
+  applyCombo,
+  augmentChoices,
+  augmentSweep,
+  evaluationRunCount,
+  evaluationStartReason,
+  presetAfterEdit,
+  setupText,
+  toggleAugment,
+} from "../evaluating-form.ts";
+
+const COMBO_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
+
+function ComboRow({
+  combos,
+  onLoad,
+}: {
+  combos: EvalComboInfo[];
+  onLoad: (combo: EvalComboInfo) => void;
+}) {
+  if (combos.length === 0) return null;
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="font-semibold">Combos</h3>
+        <p className="text-sm text-muted-foreground">
+          Saved comparisons. Loading one replaces the setups, tasks, trials, and timeout.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {combos.map((combo) => (
+          <button
+            key={combo.id}
+            type="button"
+            onClick={() => onLoad(combo)}
+            aria-describedby={combo.problem ? `combo-${combo.id}-problem` : undefined}
+            className="flex flex-col gap-1 rounded-md border p-3 text-left text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <span className="font-medium">{combo.label}</span>
+            <span className="text-muted-foreground">
+              {combo.setups.length} setups · {combo.taskIds.length} tasks × {combo.trials}{" "}
+              {combo.trials === 1 ? "trial" : "trials"}
+            </span>
+            {combo.setups.map((setup) => (
+              <span key={setupText(setup)} className="text-xs text-muted-foreground">
+                {setupText(setup)}
+              </span>
+            ))}
+            {combo.problem && (
+              <span
+                id={`combo-${combo.id}-problem`}
+                className="flex items-start gap-1 text-destructive"
+              >
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                {combo.problem}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SaveComboDialog({
+  input,
+  evalDir,
+  disabled,
+  onSaved,
+}: {
+  input: BenchmarkRunInput;
+  evalDir: string;
+  disabled: boolean;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [id, setId] = useState("");
+  const [label, setLabel] = useState("");
+  const [exists, setExists] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const idValid = COMBO_ID.test(id);
+  async function save(overwrite: boolean) {
+    setSaving(true);
+    setError(null);
+    try {
+      const { setups, taskIds, trials, wallMs } = input;
+      await getJson<EvalComboInfo>("/api/evals/combos", {
+        method: "POST",
+        body: JSON.stringify({ id, label, setups, taskIds, trials, wallMs, overwrite }),
+      });
+      setOpen(false);
+      onSaved();
+    } catch (failure) {
+      if (failure instanceof ApiError && failure.code === "combo_exists") setExists(true);
+      else setError(failure instanceof Error ? failure.message : String(failure));
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) return;
+        setLabel(input.name);
+        setExists(false);
+        setError(null);
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" disabled={disabled}>
+          Save as combo…
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Save as combo</DialogTitle>
+          <DialogDescription>
+            Saves the setups, tasks, trials, and timeout to {evalDir}/combos/{id || "<id>"}.json.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void save(false);
+          }}
+        >
+          <label className="grid gap-2 text-sm font-medium">
+            Id
+            <Input
+              value={id}
+              aria-invalid={id !== "" && !idValid}
+              aria-describedby="combo-id-help"
+              onChange={(event) => {
+                setId(event.target.value);
+                setExists(false);
+              }}
+            />
+            <span
+              id="combo-id-help"
+              className={`text-xs font-normal ${id !== "" && !idValid ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              1–64 lowercase letters, digits, or hyphens, starting with a letter or digit.
+            </span>
+          </label>
+          <label className="grid gap-2 text-sm font-medium">
+            Label
+            <Input
+              value={label}
+              maxLength={120}
+              onChange={(event) => setLabel(event.target.value)}
+            />
+          </label>
+          {exists && (
+            <Alert>
+              <TriangleAlert />
+              <AlertTitle>A combo named {id} already exists.</AlertTitle>
+              <AlertDescription>Overwrite it with the current form?</AlertDescription>
+            </Alert>
+          )}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <DialogFooter>
+            {exists ? (
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={saving}
+                onClick={() => void save(true)}
+              >
+                Overwrite
+              </Button>
+            ) : (
+              <Button type="submit" disabled={saving || !idValid || label.trim() === ""}>
+                Save
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function ModelPicker({
   info,
@@ -111,14 +311,19 @@ export function EvalForm({
   input,
   onChange,
   onStart,
+  onCombosChange,
   busy,
 }: {
   catalog: EvalCatalog;
   input: BenchmarkRunInput;
   onChange: (input: BenchmarkRunInput) => void;
   onStart: () => void;
+  onCombosChange: () => void;
   busy: boolean;
 }) {
+  const [dropped, setDropped] = useState<string[]>([]);
+  // The timeout input is uncontrolled; remounting it shows a loaded combo's value.
+  const [loads, setLoads] = useState(0);
   const installed = catalog.harnesses.filter((harness) => harness.installed);
   const reason = evaluationStartReason(input, catalog, busy);
   const categories = [...new Set(catalog.tasks.map((task) => task.category))].sort();
@@ -130,6 +335,12 @@ export function EvalForm({
   }
   function updateTasks(taskIds: string[]) {
     onChange({ ...input, taskIds, preset: presetAfterEdit(input.preset, "tasks") });
+  }
+  function loadCombo(combo: EvalComboInfo) {
+    const loaded = applyCombo(combo, catalog);
+    onChange(loaded.input);
+    setDropped(loaded.dropped);
+    setLoads((value) => value + 1);
   }
   return (
     <Card>
@@ -147,6 +358,20 @@ export function EvalForm({
             onChange={(event) => onChange({ ...input, name: event.target.value })}
           />
         </label>
+        <ComboRow combos={catalog.combos} onLoad={loadCombo} />
+        {dropped.length > 0 && (
+          <Alert>
+            <TriangleAlert />
+            <AlertTitle>Left out of the loaded combo</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc pl-4">
+                {dropped.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
         <section className="space-y-3">
           <div>
             <h3 className="font-semibold">Setups</h3>
@@ -156,6 +381,7 @@ export function EvalForm({
           </div>
           {input.setups.map((setup, index) => {
             const info = catalog.harnesses.find((harness) => harness.harness === setup.harness);
+            const choices = augmentChoices(catalog, setup.harness, setup.config);
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: setups have no id and are edited by position
               <div key={index} className="flex flex-wrap items-end gap-3 rounded-md border p-3">
@@ -164,7 +390,11 @@ export function EvalForm({
                   <Select
                     value={setup.harness}
                     onValueChange={(harness) =>
-                      updateSetup(index, { harness: harness as EvalSetup["harness"], model: "" })
+                      updateSetup(index, {
+                        harness: harness as EvalSetup["harness"],
+                        model: "",
+                        augments: [],
+                      })
                     }
                   >
                     <SelectTrigger aria-label={`Harness for setup ${index + 1}`}>
@@ -189,6 +419,29 @@ export function EvalForm({
                     onChange={(model) => updateSetup(index, { model })}
                   />
                 </div>
+                <label className="grid min-w-48 flex-1 gap-2 text-sm">
+                  Configuration
+                  <Select
+                    value={setup.config}
+                    onValueChange={(config) =>
+                      updateSetup(index, {
+                        config: config as EvalSetup["config"],
+                        augments: config === "current" ? [] : setup.augments,
+                      })
+                    }
+                  >
+                    <SelectTrigger aria-label={`Configuration for setup ${index + 1}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current">Current (your own configuration)</SelectItem>
+                      <SelectItem value="default" disabled={info?.defaultConfigProblem != null}>
+                        Default (no user configuration)
+                      </SelectItem>
+                      <SelectItem value="clean">Clean (your login, no plugins or hooks)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </label>
                 <div className="flex items-center gap-2 pb-1">
                   {info?.version && (
                     <span className="text-xs text-muted-foreground">{info.version}</span>
@@ -206,6 +459,54 @@ export function EvalForm({
                     <Trash2 />
                   </Button>
                 </div>
+                {choices.length > 0 && (
+                  <fieldset className="flex basis-full flex-wrap items-center gap-x-4 gap-y-2">
+                    <legend className="sr-only">Augments for setup {index + 1}</legend>
+                    {choices.map((augment) => {
+                      const id = `augment-${index}-${augment.id}`;
+                      return (
+                        <label
+                          key={augment.id}
+                          htmlFor={id}
+                          className={`flex items-center gap-2 text-sm ${augment.available ? "" : "opacity-50"}`}
+                        >
+                          <Checkbox
+                            id={id}
+                            checked={setup.augments.includes(augment.id)}
+                            disabled={!augment.available}
+                            aria-describedby={augment.problem ? `${id}-problem` : undefined}
+                            onCheckedChange={(checked) =>
+                              updateSetup(index, {
+                                augments: toggleAugment(
+                                  setup.augments,
+                                  augment.id,
+                                  checked === true,
+                                ),
+                              })
+                            }
+                          />
+                          {augment.label}
+                          {augment.source === "user" && <Badge variant="outline">user</Badge>}
+                          {augment.problem && (
+                            <span id={`${id}-problem`} className="sr-only">
+                              {augment.problem}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        onChange({ ...input, setups: augmentSweep(input.setups, index, catalog) })
+                      }
+                    >
+                      Sweep augments
+                    </Button>
+                  </fieldset>
+                )}
               </div>
             );
           })}
@@ -218,7 +519,7 @@ export function EvalForm({
                 ...input,
                 setups: [
                   ...input.setups,
-                  { harness: installed[0]!.harness, model: "", config: "current" },
+                  { harness: installed[0]!.harness, model: "", config: "current", augments: [] },
                 ],
               })
             }
@@ -372,6 +673,7 @@ export function EvalForm({
           <label className="grid gap-2 text-sm font-medium">
             Timeout per cell (minutes)
             <Input
+              key={loads}
               className="w-44"
               type="number"
               min="0"
@@ -392,18 +694,26 @@ export function EvalForm({
             </p>
             <p className="text-sm text-muted-foreground">Estimated cost: unknown</p>
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={reason ? 0 : undefined}>
-                  <Button type="button" disabled={reason != null} onClick={onStart}>
-                    Start evaluation
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {reason && <TooltipContent>{reason}</TooltipContent>}
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex flex-wrap items-center gap-2">
+            <SaveComboDialog
+              input={input}
+              evalDir={catalog.evalDir}
+              disabled={busy || input.setups.length === 0}
+              onSaved={onCombosChange}
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={reason ? 0 : undefined}>
+                    <Button type="button" disabled={reason != null} onClick={onStart}>
+                      Start evaluation
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {reason && <TooltipContent>{reason}</TooltipContent>}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
         {reason && (
           <p className="text-sm text-muted-foreground" role="status">

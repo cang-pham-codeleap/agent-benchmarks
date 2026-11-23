@@ -686,8 +686,10 @@ transcripts, and analytics, background activity only lights the **Update**
 button, so it never reshuffles a page while you are reading it.
 
 Set `AGENT_BENCHMARKS_NO_SYNC` or pass `--no-sync` to suppress syncs Agent Benchmarks starts on its
-own. With `serve`, this also disables the source watcher. It does not disable an
-operator-requested `POST /api/sync` or the UI's **Sync now** action.
+own. With `serve`, this also disables the source watcher, and an evaluation run
+that finishes syncs only the sessions it recorded under its own run directory,
+not the real source directories. It does not disable an operator-requested
+`POST /api/sync` or the UI's **Sync now** action.
 
 Always use `--no-sync` with a scratch database unless you want it populated
 from the real default source directories:
@@ -865,21 +867,31 @@ the rows from the stored messages without the source database.
 
 Evaluation runs live next to the archive, in `evals/<run id>/` under the
 directory that holds `agent-benchmarks.db`. They are plain files, not archive
-rows. Delete a run's directory to remove it.
+rows, and the directory is mode `0700`. Delete a run's directory to remove it.
+
+When a run ends `completed` or `failed` it cannot resume, so Agent Benchmarks
+deletes its working copies after the post-run sync: `tasks/`, `repo/`, `cwd/`,
+`ach-state/worktrees/`, each `ledger*.work/`, and the hermetic temp directory
+`/private/tmp/agent-benchmarks-hermetic/<run id>/`. Whenever a run stops,
+including a cancel, the copied credential `home/codex/auth.json` is deleted;
+resuming copies it again. Results, the live log, and the comparison read only
+the files that stay. Runs from before this behavior are cleaned the next time
+the server lists runs.
 
 | Path | Content |
 | --- | --- |
-| `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit) |
-| `plan.json`, `plan.default.json` | The `ach` matrix plan for the `current` and `default` configuration groups |
-| `ledger.jsonl`, `ledger.default.jsonl` | One `ach` record per cell and trial |
-| `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/` |
-| `bin/` | PATH shims that adapt a harness CLI's flags to the installed version |
-| `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit |
+| `manifest.json` | The run input, status, and provenance (harness versions, `ach` commit, and in `provenance.augments` the definition and sha256 of each augment the run uses) |
+| `plan.json`, `plan.<group>.json` | The `ach` matrix plan of each run group (see below) |
+| `ledger.jsonl`, `ledger.<group>.jsonl` | One `ach` record per cell and trial of each run group |
+| `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/`, while the run can still resume |
+| `bin/<group>/` | PATH shims that adapt a harness CLI's flags to the installed version and append the group's clean and augment args |
+| `augments/` | Files the augment recipes use (prompt files, settings and MCP JSON), `sha256.json` with each file's hash, and `prep.jsonl` |
+| `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit, while the run can still resume |
 | `reference/` | Replays: the human change from the replayed commit |
 | `real-spec.json` | Real tasks: what the grader needs (base commit, hidden paths, profile) |
-| `cells/<config>/<cell>/` | Real tasks: each cell's `diff.patch`, `result.json`, and `checks/` and `hidden/` logs |
+| `cells/<group>/<cell>/` | Real tasks: each cell's `diff.patch`, `result.json`, and `checks/` and `hidden/` logs |
 | `ach-state/` | `ach` state; real-task cell worktrees are created under it |
-| `home/codex/` | The clean Codex home of a `default` group, holding only a copy of `~/.codex/auth.json` at mode `0600` |
+| `home/codex/` | The clean Codex home of a `default` group: a copy of `~/.codex/auth.json` at mode `0600` while the run is active, and the sessions it records |
 
 The task picker groups tasks by their `meta.json` `category`, or by `language`
 when a task has none, and orders each group by `difficulty`. `evals/tasks/`
@@ -888,6 +900,44 @@ easy, two medium, and one hard per category, graded with only `sh` and
 Node.js. `bun test test/eval-bundled-tasks.test.ts` proves that mix and that
 each starter fails, reference passes, and planted bug fails.
 
+A run group is one `ach trial` process for the setups that share a config and
+an augment set. Its key is the config (`current`, `default`, or `clean`), plus
+`+` and the sorted augment ids when it has any, such as `clean+rtk`. Groups run
+one after another, in the order their first setup appears in the request; the
+plan and ledger of `current` keep the names `plan.json` and `ledger.jsonl`. An
+API cell id is `<group>/<ach cell id>`.
+
+The `clean` config uses your login like `current` but drops user settings,
+hooks, plugins, MCP servers, and instruction files: Claude Code runs with
+`--setting-sources project,local`, `--permission-mode auto` (user settings
+held the permission mode, and without one every edit is denied), and an empty
+strict MCP config, OMP with
+`--no-extensions --no-skills --no-rules --no-context-files` and its default
+tool list pinned without `eval`, and Codex with `--ignore-user-config`. Other
+harnesses do not support it. Augments (RTK, CodeGraph, Caveman, Ponytail,
+programmatic tool calling, a Bash output cap) apply only to `clean` and
+`default` setups, because a `current` setup may already contain them. A harness
+without a recipe for an augment rejects it.
+
+An augment recipe is data in a JSON file: extra args, env, files, MCP servers,
+and an optional prepare step. The bundled ones are in this repository's
+`evals/augments/`; your own go in `augments/` under the eval directory, which
+is `AGENT_BENCHMARKS_EVAL_DIR` or else `evals/` next to the archive, and a file
+with a bundled id replaces the bundled augment. Saved combos go in `combos/`
+there. Both are plain files you edit or delete; see
+[Your own augments and combos](evals-custom.md). A run copies the definitions
+it uses into `manifest.json` when it starts and resumes from that copy, so later
+edits do not change it; manifests without the copy use the bundled definitions.
+The group's shim for the harness
+appends the args and then runs the installed CLI. A prepare step (CodeGraph
+runs `codegraph init`) runs in the cell workspace before the agent starts, once
+per workspace, guarded by a marker file; when the workspace is a git
+repository, its output paths and the marker go in `.git/info/exclude`. Each
+step appends `{groupKey, harness, cwd, ms, ok, error}` to `augments/prep.jsonl`,
+which becomes the cell's `prepMs`. A failed step exits with code 97 and the
+cell's outcome is `setup-error`. Manifests written before augments existed read
+back with `augments: []`.
+
 A real-task run never writes to your repository. Each cell works in its own
 git worktree of the private clone, and `ach trial --cleanup` removes the
 worktree once the cell's diff and logs are saved; its branch stays in the
@@ -895,6 +945,18 @@ clone. The clone stays until you delete the run.
 
 `evals/repo-profiles.json` remembers the setup command, checks, and
 hidden-test command last used for each repository, keyed by its real path.
+
+`evals/suites/agent-lens-long.json` is a suite of long replay tasks from this
+repository's own history: each one starts at a real commit's parent, gives the
+agent an issue-style prompt, and grades it with that commit's tests. Run it
+from a clone with full history. `bun scripts/replay-suite.ts check <suite>`
+proves each task's hidden tests fail at the parent and pass at the commit.
+`bun scripts/replay-suite.ts run <suite> --setups '<json>'` starts one real
+run per task through the local API, one after another, and rotates the setup
+order per task. Augment verdicts pool those runs by task.
+On macOS each running group holds an idle-sleep assertion (`caffeinate -i`).
+Closing the lid on battery still sleeps the machine; the agents lose their
+connections and the affected cells end as timeouts.
 
 Agent sessions from a run are ordinary harness sessions and are synced into
 the archive like any other. Sessions of a `default` group are read from the

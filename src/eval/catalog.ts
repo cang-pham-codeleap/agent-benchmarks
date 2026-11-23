@@ -2,7 +2,16 @@ import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAchDir } from "../settings.ts";
-import { defaultConfigProblem, EVAL_HARNESSES, EVAL_LIMITS, EVAL_PRESETS } from "./registry.ts";
+import { evalConfigDir, loadAugments } from "./augments.ts";
+import { readCombos } from "./combos.ts";
+import {
+  augmentInfos,
+  defaultConfigProblem,
+  EVAL_HARNESSES,
+  EVAL_LIMITS,
+  EVAL_PRESETS,
+} from "./registry.ts";
+import { validateInput } from "./runner.ts";
 import {
   EVAL_DIFFICULTIES,
   type EvalCatalog,
@@ -11,9 +20,15 @@ import {
   type EvalTask,
 } from "./types.ts";
 
-export async function readCatalog(db: Database, activeRunId: string | null): Promise<EvalCatalog> {
+export async function readCatalog(
+  db: Database,
+  dbPath: string,
+  activeRunId: string | null,
+): Promise<EvalCatalog> {
   const achDir = getAchDir();
   const checkout = checkAchCheckout(achDir);
+  const evalDir = evalConfigDir(dbPath);
+  const registry = loadAugments(evalDir);
   return {
     ach: {
       dir: achDir,
@@ -42,6 +57,9 @@ export async function readCatalog(db: Database, activeRunId: string | null): Pro
     presets: Object.values(EVAL_PRESETS),
     limits: { ...EVAL_LIMITS },
     activeRunId,
+    augments: augmentInfos(registry),
+    evalDir,
+    combos: readCombos(evalDir, (raw) => validateInput(raw, achDir, registry)),
   };
 }
 

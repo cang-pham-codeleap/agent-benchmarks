@@ -8,7 +8,10 @@ import {
 import type { Config } from "../config.ts";
 import type { dateFilterFromSearch } from "../date-filter.ts";
 import { parseFileOperation } from "../distill.ts";
+import { poolAugmentVerdicts } from "../eval/augment-verdicts.ts";
+import { evalConfigDir, loadAugments, runAugments } from "../eval/augments.ts";
 import { readCatalog } from "../eval/catalog.ts";
+import { saveCombo } from "../eval/combos.ts";
 import { EvalRequestError } from "../eval/errors.ts";
 import { repoProfilesPath } from "../eval/paths.ts";
 import { inspectRepo, readCellArtifacts } from "../eval/real.ts";
@@ -23,6 +26,7 @@ import {
   resumeEvalRun,
   runDirFor,
   startEvalRun,
+  validateInput,
 } from "../eval/runner.ts";
 import {
   canLaunch,
@@ -60,6 +64,7 @@ import {
 import { type SessionUserStateUpdate, setSessionUserState } from "../session-user-state.ts";
 import {
   agentOptions,
+  getAchDir,
   getSettings,
   ideOptions,
   saveSettings,
@@ -389,15 +394,21 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
   "/api/evals/catalog": {
     GET: ({ config, context }) =>
       withDb(config, context, async (db) =>
-        json(await readCatalog(db, activeRunId(config.dbPath))),
+        json(await readCatalog(db, config.dbPath, activeRunId(config.dbPath))),
       ),
   },
   "/api/evals": {
     GET: ({ config }) => json(listRunManifests(config.dbPath)),
     POST: { body: "json", handle: evalStartRoute },
   },
+  "/api/evals/combos": {
+    POST: { body: "json", handle: evalComboSaveRoute },
+  },
   "/api/evals/repo": {
     GET: evalRepoRoute,
+  },
+  "/api/evals/augments": {
+    GET: evalAugmentsRoute,
   },
   "/api/evals/{id}": {
     GET: evalResultsRoute,
@@ -726,6 +737,16 @@ async function evalStartRoute(ctx: RouteContext, body: unknown): Promise<Respons
   }
 }
 
+function evalComboSaveRoute({ config }: RouteContext, body: unknown): Response {
+  try {
+    const evalDir = evalConfigDir(config.dbPath);
+    const registry = loadAugments(evalDir);
+    return json(saveCombo(evalDir, body, (raw) => validateInput(raw, getAchDir(), registry)));
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
 async function evalCancelRoute(
   ctx: RouteContext,
   body: Record<string, unknown>,
@@ -764,6 +785,40 @@ function evalResultsRoute(ctx: RouteContext): Response {
     if (manifest == null) return errorResponse("not_found", "evaluation run not found", {}, 404);
     return withDb(ctx.config, ctx.context, (db) =>
       json(readEvalResults(db, ctx.config.dbPath, manifest)),
+    );
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+function evalAugmentsRoute({ config, context }: RouteContext): Response {
+  try {
+    const manifests = listRunManifests(config.dbPath).filter(
+      (manifest) =>
+        manifest.status === "completed" &&
+        manifest.input.setups.some((setup) => setup.augments.length > 0),
+    );
+    return withDb(config, context, (db) =>
+      json(
+        poolAugmentVerdicts(
+          manifests.map((manifest) => {
+            const results = readEvalResults(db, config.dbPath, manifest);
+            return {
+              runId: manifest.id,
+              harnessVersions: manifest.provenance.harnessVersions,
+              taskHashes: manifest.provenance.taskHashes,
+              augmentHashes: Object.fromEntries(
+                Object.entries(runAugments(manifest.provenance)).map(([id, augment]) => [
+                  id,
+                  augment.hash,
+                ]),
+              ),
+              cells: results.cells,
+              setups: manifest.input.setups,
+            };
+          }),
+        ),
+      ),
     );
   } catch (error) {
     return evalError(error);

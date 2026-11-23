@@ -1,12 +1,113 @@
 import type {
+  AugmentId,
   BenchmarkRunInput,
+  EvalAugmentInfo,
   EvalCatalog,
+  EvalComboInfo,
   EvalPresetId,
+  EvalSetup,
   RealRunInput,
 } from "../../eval/types.ts";
 
+export function setupText(setup: EvalSetup): string {
+  const { augments } = setup;
+  return [
+    setup.harness,
+    setup.model,
+    setup.config,
+    ...(augments.length ? [`+${augments.join(" +")}`] : []),
+  ].join(" · ");
+}
+
 export function evaluationRunCount(input: BenchmarkRunInput): number {
   return input.setups.length * input.taskIds.length * input.trials;
+}
+
+const setupIdentity = (setup: EvalSetup) =>
+  JSON.stringify([setup.harness, setup.model, setup.config, setup.augments]);
+
+/** Augments the harness has a recipe for; empty unless the config is clean or default. */
+export function augmentChoices(
+  catalog: EvalCatalog,
+  harness: EvalSetup["harness"],
+  config: EvalSetup["config"],
+): EvalAugmentInfo[] {
+  return config === "current" ? [] : catalog.augments.filter((a) => a.harnesses.includes(harness));
+}
+
+export function toggleAugment(augments: AugmentId[], id: AugmentId, on: boolean): AugmentId[] {
+  const rest = augments.filter((existing) => existing !== id);
+  return on ? [...rest, id].sort() : rest;
+}
+
+/** A clean baseline plus one setup per available augment, replacing `setups[index]`, within the setup limit. */
+export function augmentSweep(
+  setups: EvalSetup[],
+  index: number,
+  catalog: EvalCatalog,
+): EvalSetup[] {
+  const source = setups[index];
+  if (!source) return setups;
+  const config = source.config === "default" ? "default" : "clean";
+  const base = { harness: source.harness, model: source.model, config } as const;
+  const sweep: EvalSetup[] = [
+    { ...base, augments: [] },
+    ...augmentChoices(catalog, source.harness, config)
+      .filter((augment) => augment.available)
+      .map((augment) => ({ ...base, augments: [augment.id] })),
+  ];
+  const others = setups.filter((_, i) => i !== index);
+  const seen = new Set(others.map(setupIdentity));
+  const fresh = sweep.filter((setup) => !seen.has(setupIdentity(setup)));
+  return [
+    ...setups.slice(0, index),
+    ...fresh.slice(0, Math.max(0, catalog.limits.maxSetups - others.length)),
+    ...setups.slice(index + 1),
+  ];
+}
+
+/** The combo as a custom benchmark input, without what this machine lacks; `dropped` says what was left out. */
+export function applyCombo(
+  combo: EvalComboInfo,
+  catalog: EvalCatalog,
+): { input: BenchmarkRunInput; dropped: string[] } {
+  const dropped = new Set<string>();
+  const seen = new Set<string>();
+  const setups = combo.setups.flatMap((setup) => {
+    if (!catalog.harnesses.some((h) => h.harness === setup.harness && h.installed)) {
+      dropped.add(`Setup ${setupText(setup)}: ${setup.harness} is not installed`);
+      return [];
+    }
+    const augments = setup.augments.filter((id) => {
+      const known = catalog.augments.some((augment) => augment.id === id);
+      if (!known) dropped.add(`Augment ${id}: not in the catalog`);
+      return known;
+    });
+    const next = { ...setup, augments };
+    if (seen.has(setupIdentity(next))) {
+      dropped.add(`Setup ${setupText(next)}: duplicate after dropping augments`);
+      return [];
+    }
+    seen.add(setupIdentity(next));
+    return [next];
+  });
+  const taskIds = combo.taskIds.filter((id) => {
+    const known = catalog.tasks.some((task) => task.id === id);
+    if (!known) dropped.add(`Task ${id}: not in the catalog`);
+    return known;
+  });
+  return {
+    input: {
+      kind: "benchmark",
+      name: combo.label,
+      setups,
+      taskIds,
+      trials: combo.trials,
+      wallMs: combo.wallMs,
+      preset: "custom",
+    },
+    dropped: [...dropped],
+  };
 }
 
 export function presetAfterEdit(
@@ -35,10 +136,7 @@ function setupsReason(
     return "Choose an installed harness for every setup.";
   if (input.setups.some((setup) => !/^[\w.:/@-]{1,128}$/.test(setup.model)))
     return "Enter a valid model for every setup.";
-  if (
-    new Set(input.setups.map((setup) => JSON.stringify([setup.harness, setup.model, setup.config])))
-      .size !== input.setups.length
-  )
+  if (new Set(input.setups.map(setupIdentity)).size !== input.setups.length)
     return "Each setup must be unique.";
   return null;
 }

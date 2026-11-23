@@ -1,13 +1,7 @@
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { artifactDir } from "./paths.ts";
-import type {
-  CheckResult,
-  DiffStat,
-  EvalConfigMode,
-  RealCellSummary,
-  RepoProfile,
-} from "./types.ts";
+import { artifactDir, isGroupKey } from "./paths.ts";
+import type { CheckResult, DiffStat, RealCellSummary, RepoProfile } from "./types.ts";
 
 export interface RealSpec {
   runDir: string;
@@ -32,6 +26,14 @@ export function verifyBudgetMs(commands: number): number {
 
 export function verifyTimeoutMs(commands: number): number {
   return verifyBudgetMs(commands) + GIT_SLACK_MS;
+}
+
+/** Hidden files to run: the test-named ones when any exist, so helpers and goldens are only checked out; otherwise every hidden file. */
+export function hiddenTestsToRun(paths: readonly string[]): string[] {
+  const named = paths.filter((path) =>
+    /(\.(test|spec)\.[^/]+|_test\.[^/]+|(^|\/)test_[^/]+\.py)$/.test(path),
+  );
+  return named.length ? named : [...paths];
 }
 
 export function shellQuote(value: string): string {
@@ -97,7 +99,7 @@ async function runCommand(
 
 export async function verifyCell(
   spec: RealSpec,
-  group: EvalConfigMode,
+  group: string,
   cellId: string,
   workspace: string,
 ): Promise<RealCellResult> {
@@ -116,7 +118,8 @@ export async function verifyCell(
     git(workspace, "diff", "--cached", "--numstat", "-z", "--no-renames", spec.baseSha),
     hiddenPaths,
   );
-  const total = spec.profile.checks.length + hiddenPaths.length;
+  const toRun = hiddenTestsToRun(hiddenPaths);
+  const total = spec.profile.checks.length + toRun.length;
   const deadline = Date.now() + verifyBudgetMs(total);
   let left = total;
   const timeout = () =>
@@ -132,7 +135,7 @@ export async function verifyCell(
   if (spec.sha == null) return { diffStat, checks, hidden: null };
   if (hiddenPaths.length) git(workspace, "checkout", spec.sha, "--", ...hiddenPaths);
   const files: { path: string; passed: boolean }[] = [];
-  for (const [index, path] of hiddenPaths.entries()) {
+  for (const [index, path] of toRun.entries()) {
     const command = (spec.profile.hiddenTestCommand ?? "").replaceAll("{file}", shellQuote(path));
     const run = await runCommand(
       command,
@@ -152,11 +155,11 @@ export async function verifyCell(
 if (import.meta.main) {
   try {
     const specPath = process.argv[2] ?? process.env.AGENT_BENCHMARKS_REAL_SPEC;
-    const group = (process.argv[3] ?? process.env.AGENT_BENCHMARKS_REAL_GROUP) as EvalConfigMode;
+    const group = process.argv[3] ?? process.env.AGENT_BENCHMARKS_REAL_GROUP;
     const cellId = process.env.ACH_CELL_ID;
-    if (specPath == null || (group !== "current" && group !== "default") || cellId == null)
+    if (specPath == null || group == null || !isGroupKey(group) || cellId == null)
       throw new Error(
-        "usage: real-verify.ts <real-spec.json> <current|default> with ACH_CELL_ID set",
+        "usage: real-verify.ts <real-spec.json> <run group key> with ACH_CELL_ID set",
       );
     const spec = JSON.parse(readFileSync(specPath, "utf8")) as RealSpec;
     const result = await verifyCell(

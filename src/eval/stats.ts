@@ -8,7 +8,8 @@ import {
 } from "./types.ts";
 
 export function setupKey(setup: EvalSetup): string {
-  return `${setup.harness}:${setup.model}:${setup.config}`;
+  const key = `${setup.harness}:${setup.model}:${setup.config}`;
+  return setup.augments.length === 0 ? key : `${key}+${setup.augments.join("+")}`;
 }
 
 export function summarizeSetups(

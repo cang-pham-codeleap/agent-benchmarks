@@ -1,0 +1,30 @@
+{
+  "label": "Caveman",
+  "kind": "prompt-mode",
+  "description": "Appends a terse-reply instruction to the system prompt.",
+  "sourceUrl": "https://github.com/JuliusBrussee/caveman",
+  "binary": null,
+  "recipes": {
+    "claude": {
+      "args": [
+        "--append-system-prompt-file",
+        "{dir}/caveman.md"
+      ],
+      "files": {
+        "caveman.md": {
+          "from": "caveman.md"
+        }
+      }
+    },
+    "omp": {
+      "args": [
+        "--append-system-prompt={dir}/caveman.md"
+      ],
+      "files": {
+        "caveman.md": {
+          "from": "caveman.md"
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useId, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +16,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type {
+  AugmentId,
   EvalCatalog,
   EvalHarness,
   EvalSetup,
@@ -22,7 +24,12 @@ import type {
   RepoInspection,
 } from "../../../eval/types.ts";
 import { getJson } from "../../api.ts";
-import { realStartReason } from "../evaluating-form.ts";
+import {
+  augmentChoices,
+  augmentSweep,
+  realStartReason,
+  toggleAugment,
+} from "../evaluating-form.ts";
 import { ModelPicker } from "./form.tsx";
 
 interface Combo {
@@ -31,9 +38,21 @@ interface Combo {
   model: string;
   current: boolean;
   default: boolean;
+  clean: boolean;
+  augments: AugmentId[];
 }
 
 let nextComboId = 0;
+
+/** Augments ride on the default and clean setups only; `current` already carries the user's own configuration. */
+function comboSetups(combo: Combo): EvalSetup[] {
+  const { harness, model, augments } = combo;
+  return [
+    ...(combo.current ? [{ harness, model, config: "current" as const, augments: [] }] : []),
+    ...(combo.default ? [{ harness, model, config: "default" as const, augments }] : []),
+    ...(combo.clean ? [{ harness, model, config: "clean" as const, augments }] : []),
+  ];
+}
 
 const textareaClass =
   "w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
@@ -70,6 +89,8 @@ export function RealTaskForm({
             model: "",
             current: true,
             default: false,
+            clean: false,
+            augments: [],
           },
         ]
       : [],
@@ -102,14 +123,7 @@ export function RealTaskForm({
     }
   }
 
-  const setups: EvalSetup[] = combos.flatMap((combo) => [
-    ...(combo.current
-      ? [{ harness: combo.harness, model: combo.model, config: "current" as const }]
-      : []),
-    ...(combo.default
-      ? [{ harness: combo.harness, model: combo.model, config: "default" as const }]
-      : []),
-  ]);
+  const setups = combos.flatMap(comboSetups);
   const input: RealRunInput = {
     kind: "real",
     name,
@@ -134,6 +148,31 @@ export function RealTaskForm({
   const commit = type === "replay" && repo?.commit?.sha === sha ? repo.commit : null;
   const updateCombo = (index: number, patch: Partial<Combo>) =>
     setCombos(combos.map((combo, i) => (i === index ? { ...combo, ...patch } : combo)));
+  function sweep(index: number) {
+    const combo = combos[index];
+    if (!combo) return;
+    const others = combos.flatMap((other, i) => (i === index ? [] : comboSetups(other)));
+    const source: EvalSetup = {
+      harness: combo.harness,
+      model: combo.model,
+      config: combo.default ? "default" : "clean",
+      augments: [],
+    };
+    const fresh = augmentSweep([...others, source], others.length, catalog).slice(others.length);
+    setCombos([
+      ...combos.slice(0, index),
+      ...fresh.map((setup) => ({
+        id: nextComboId++,
+        harness: setup.harness,
+        model: setup.model,
+        current: false,
+        default: setup.config === "default",
+        clean: setup.config === "clean",
+        augments: setup.augments,
+      })),
+      ...combos.slice(index + 1),
+    ]);
+  }
 
   async function start() {
     setError(null);
@@ -324,6 +363,11 @@ export function RealTaskForm({
             {combos.map((combo, index) => {
               const info = catalog.harnesses.find((harness) => harness.harness === combo.harness);
               const problem = info?.defaultConfigProblem ?? null;
+              const choices = augmentChoices(
+                catalog,
+                combo.harness,
+                combo.default ? "default" : combo.clean ? "clean" : "current",
+              );
               return (
                 <div
                   key={combo.id}
@@ -336,6 +380,7 @@ export function RealTaskForm({
                         harness: harness as EvalHarness,
                         model: "",
                         default: false,
+                        augments: [],
                       })
                     }
                   >
@@ -392,6 +437,17 @@ export function RealTaskForm({
                     </TooltipTrigger>
                     {problem && <TooltipContent>{problem}</TooltipContent>}
                   </Tooltip>
+                  <label
+                    htmlFor={fieldId(`clean-${combo.id}`)}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <Checkbox
+                      id={fieldId(`clean-${combo.id}`)}
+                      checked={combo.clean}
+                      onCheckedChange={(checked) => updateCombo(index, { clean: checked === true })}
+                    />
+                    Clean (your login, no plugins or hooks)
+                  </label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -401,6 +457,52 @@ export function RealTaskForm({
                   >
                     <Trash2 />
                   </Button>
+                  {choices.length > 0 && (
+                    <fieldset className="flex basis-full flex-wrap items-center gap-x-4 gap-y-2">
+                      <legend className="sr-only">Augments for row {index + 1}</legend>
+                      {choices.map((augment) => {
+                        const id = fieldId(`augment-${combo.id}-${augment.id}`);
+                        return (
+                          <label
+                            key={augment.id}
+                            htmlFor={id}
+                            className={`flex items-center gap-2 text-sm ${augment.available ? "" : "opacity-50"}`}
+                          >
+                            <Checkbox
+                              id={id}
+                              checked={combo.augments.includes(augment.id)}
+                              disabled={!augment.available}
+                              aria-describedby={augment.problem ? `${id}-problem` : undefined}
+                              onCheckedChange={(checked) =>
+                                updateCombo(index, {
+                                  augments: toggleAugment(
+                                    combo.augments,
+                                    augment.id,
+                                    checked === true,
+                                  ),
+                                })
+                              }
+                            />
+                            {augment.label}
+                            {augment.source === "user" && <Badge variant="outline">user</Badge>}
+                            {augment.problem && (
+                              <span id={`${id}-problem`} className="sr-only">
+                                {augment.problem}
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => sweep(index)}
+                      >
+                        Sweep augments
+                      </Button>
+                    </fieldset>
+                  )}
                 </div>
               );
             })}
@@ -418,6 +520,8 @@ export function RealTaskForm({
                   model: "",
                   current: true,
                   default: false,
+                  clean: false,
+                  augments: [],
                 },
               ])
             }
