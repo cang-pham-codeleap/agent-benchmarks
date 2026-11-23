@@ -257,14 +257,18 @@ at <http://127.0.0.1:3000/api/openapi.json>. See
 
 ### MCP server
 
-`agent-benchmarks mcp serve` runs a read-only [MCP](https://modelcontextprotocol.io)
+`agent-benchmarks mcp serve` runs an [MCP](https://modelcontextprotocol.io)
 server over stdio. It lets a coding agent search past sessions, list and read
-transcripts, and pull usage and cost rollups from the archive. It offers four tools:
-`search_sessions`, `list_sessions`, `show_session`, and `usage_stats`.
-
-The server never syncs, because a sync can take longer than an agent waits for a
-tool call. Keep the archive current with `agent-benchmarks service`, the web UI, or
+transcripts, and pull usage and cost rollups from the archive with four tools:
+`search_sessions`, `list_sessions`, `show_session`, and `usage_stats`. These never
+sync, because a sync can take longer than an agent waits for a tool call. Keep the
+archive current with `agent-benchmarks service`, the web UI, or
 `agent-benchmarks sync`.
+
+Every operation of the local API is a tool too, so an agent can do what the web UI
+does: inspect a repository, start and follow a real-task evaluation, read its
+results, cancel or resume it. These tools call the running `agent-benchmarks serve`
+(add `--server <url>` after `mcp serve` when it is not on `http://127.0.0.1:3000`).
 
 The examples below run from a source checkout. Replace `/path/to/agent-benchmarks`
 with the absolute path of the checkout. Desktop editors such as Cursor and VS Code

@@ -60,6 +60,7 @@ export async function readCatalog(
     augments: augmentInfos(registry),
     evalDir,
     combos: readCombos(evalDir, (raw) => validateInput(raw, achDir, registry)),
+    canPickFolder: process.platform === "darwin",
   };
 }
 

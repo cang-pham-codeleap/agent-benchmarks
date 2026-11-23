@@ -42,10 +42,15 @@ export type RealTask =
   | { type: "prompt"; prompt: string; baseRef: string }
   | { type: "replay"; sha: string; prompt: string; hiddenPaths: string[] };
 
+/** `branchPrefix` names where each cell's result lands in the repository; see `cellBranch`. */
+export interface RealSetup extends EvalSetup {
+  branchPrefix?: string;
+}
+
 export interface RealRunInput {
   kind: "real";
   name: string;
-  setups: EvalSetup[];
+  setups: RealSetup[];
   trials: number;
   wallMs: number;
   repoPath: string;
@@ -109,6 +114,8 @@ export interface RepoInspection {
   path: string;
   head: string;
   branch: string | null;
+  /** Local and remote-tracking branches, most recently committed first. */
+  branches: string[];
   dirty: boolean;
   profile: RepoProfile;
   profileSource: "remembered" | "detected";
@@ -408,6 +415,8 @@ export interface EvalCatalog {
   /** Directory holding the user's `augments/` and `combos/`. */
   evalDir: string;
   combos: EvalComboInfo[];
+  /** The server can open a native folder picker for the repository path. */
+  canPickFolder: boolean;
 }
 
 export interface EvalProgressEvent {

@@ -390,6 +390,15 @@ describe("local API OpenAPI contract", () => {
           url: `/api/evals/repo?path=${encodeURIComponent(repo)}&sha=${replaySha}`,
         },
         {
+          path: "/api/evals/repo/pick",
+          method: "post",
+          url: "/api/evals/repo/pick",
+          body: { startPath: "relative/repo" },
+          requestValid: false,
+          status: 400,
+          expectedCode: "invalid_request",
+        },
+        {
           path: "/api/evals/{id}/cells/{cellId}",
           method: "get",
           url: "/api/evals/00000000-0000-4000-8000-000000000000/cells/current%2Fclaude%3Aprompt%3Asonnet%3Atrial1",

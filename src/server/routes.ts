@@ -14,7 +14,7 @@ import { readCatalog } from "../eval/catalog.ts";
 import { saveCombo } from "../eval/combos.ts";
 import { EvalRequestError } from "../eval/errors.ts";
 import { repoProfilesPath } from "../eval/paths.ts";
-import { inspectRepo, readCellArtifacts } from "../eval/real.ts";
+import { inspectRepo, pickFolder, readCellArtifacts } from "../eval/real.ts";
 import { renderReport } from "../eval/report.ts";
 import {
   activeRunId,
@@ -406,6 +406,9 @@ export const ROUTES: Record<ApiRoutePath, RouteSpec> = {
   },
   "/api/evals/repo": {
     GET: evalRepoRoute,
+  },
+  "/api/evals/repo/pick": {
+    POST: { body: "object", handle: evalRepoPickRoute },
   },
   "/api/evals/augments": {
     GET: evalAugmentsRoute,
@@ -834,6 +837,28 @@ function evalRepoRoute({ config, url }: RouteContext): Response {
         repoProfilesPath(config.dbPath),
       ),
     );
+  } catch (error) {
+    return evalError(error);
+  }
+}
+
+async function evalRepoPickRoute(
+  _ctx: RouteContext,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  const { startPath = null } = body;
+  if (
+    Object.keys(body).some((key) => key !== "startPath") ||
+    (startPath != null && (typeof startPath !== "string" || !isAbsolute(startPath)))
+  )
+    return errorResponse(
+      "invalid_request",
+      "pick body accepts only { startPath?: absolute path }",
+      {},
+      400,
+    );
+  try {
+    return json({ path: await pickFolder(startPath ?? null) });
   } catch (error) {
     return evalError(error);
   }

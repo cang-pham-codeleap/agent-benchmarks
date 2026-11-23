@@ -55,22 +55,28 @@ interface Reply {
   error?: { code: number; message: string };
 }
 
-async function serve(lines: string[]): Promise<{ replies: Reply[]; code: number }> {
+async function serve(
+  lines: string[],
+  server = "http://127.0.0.1:1",
+): Promise<{ replies: Reply[]; code: number }> {
   const home = join(workDir, "home");
   mkdirSync(home, { recursive: true });
-  const proc = Bun.spawn(["bun", "run", "src/cli.ts", "--db", dbPath, "mcp", "serve"], {
-    cwd: join(import.meta.dir, ".."),
-    stdin: new Blob([`${lines.join("\n")}\n`]),
-    stdout: "pipe",
-    stderr: "pipe",
-    env: {
-      ...process.env,
-      HOME: home,
-      AGENT_BENCHMARKS_NO_SYNC: "1",
-      CLAUDE_CONFIG_DIR: join(home, "claude"),
-      CODEX_HOME: join(home, "codex"),
+  const proc = Bun.spawn(
+    ["bun", "run", "src/cli.ts", "--db", dbPath, "mcp", "serve", "--server", server],
+    {
+      cwd: join(import.meta.dir, ".."),
+      stdin: new Blob([`${lines.join("\n")}\n`]),
+      stdout: "pipe",
+      stderr: "pipe",
+      env: {
+        ...process.env,
+        HOME: home,
+        AGENT_BENCHMARKS_NO_SYNC: "1",
+        CLAUDE_CONFIG_DIR: join(home, "claude"),
+        CODEX_HOME: join(home, "codex"),
+      },
     },
-  });
+  );
   const [out, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
   const replies = out
     .split("\n")
@@ -103,12 +109,17 @@ describe("mcp serve", () => {
       capabilities: { tools: {} },
       serverInfo: { name: "agent-benchmarks" },
     });
-    expect(replies[1]?.result?.tools.map((tool) => tool.name)).toEqual([
+    const names = replies[1]?.result?.tools.map((tool) => tool.name) ?? [];
+    expect(names.slice(0, 4)).toEqual([
       "search_sessions",
       "list_sessions",
       "show_session",
       "usage_stats",
     ]);
+    expect(names).toContain("start_evaluation_run");
+    expect(names).toContain("inspect_evaluation_repository");
+    expect(names).not.toContain("stream_events");
+    expect(new Set(names).size).toBe(names.length);
     expect(replies[2]?.result?.protocolVersion).toBe("2025-11-25");
     expect(replies[3]?.error?.code).toBe(-32601);
   });
@@ -167,5 +178,47 @@ describe("mcp serve", () => {
       callTool(2, "usage_stats", [1]),
     ]);
     expect(replies.map((reply) => reply.error?.code)).toEqual([-32602, -32602]);
+  });
+
+  test("API tools call the running server and pass its answer through", async () => {
+    const seen: { method: string; url: string; body: string }[] = [];
+    const fake = Bun.serve({
+      port: 0,
+      async fetch(request) {
+        seen.push({ method: request.method, url: request.url, body: await request.text() });
+        return request.method === "POST"
+          ? Response.json(
+              { error: "branch main already exists", code: "invalid_request" },
+              { status: 400 },
+            )
+          : Response.json({ ok: true });
+      },
+    });
+    try {
+      const base = `http://127.0.0.1:${fake.port}`;
+      const { replies } = await serve(
+        [
+          callTool(1, "get_evaluation_cell_artifacts", { id: "run-1", cellId: "current/a:b" }),
+          callTool(2, "inspect_evaluation_repository", { path: "/repo", sha: "abc" }),
+          callTool(3, "start_evaluation_run", { body: { kind: "real" } }),
+        ],
+        base,
+      );
+      expect(seen).toEqual([
+        { method: "GET", url: `${base}/api/evals/run-1/cells/current%2Fa%3Ab`, body: "" },
+        { method: "GET", url: `${base}/api/evals/repo?path=%2Frepo&sha=abc`, body: "" },
+        { method: "POST", url: `${base}/api/evals`, body: '{"kind":"real"}' },
+      ]);
+      expect(replies.map((reply) => reply.result?.isError)).toEqual([false, false, true]);
+      expect(JSON.parse(textOf(replies[2]?.result)).code).toBe("invalid_request");
+    } finally {
+      fake.stop(true);
+    }
+  });
+
+  test("API tools explain how to start the server when it is not running", async () => {
+    const { replies } = await serve([callTool(1, "get_evaluation_catalog", {})]);
+    expect(replies[0]?.result?.isError).toBe(true);
+    expect(JSON.parse(textOf(replies[0]?.result)).code).toBe("server_unreachable");
   });
 });

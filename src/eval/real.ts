@@ -9,8 +9,11 @@ import {
 } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import type { AugmentRegistry } from "./augments.ts";
+import { cellBranch } from "./cell-branch.ts";
 import { EvalRequestError } from "./errors.ts";
+import { achCellId } from "./ledger.ts";
 import {
+  apiCellId,
   artifactDir,
   ledgerFile,
   parseApiCellId,
@@ -41,6 +44,7 @@ import type {
   RealReference,
   RealResults,
   RealRunInput,
+  RealSetup,
   RealTask,
   RepoInspection,
   RepoProfile,
@@ -193,6 +197,17 @@ export function inspectRepo(
     path: root,
     head: git(root, "rev-parse", "HEAD").trim(),
     branch: tryGit(root, "symbolic-ref", "--short", "-q", "HEAD")?.trim() || null,
+    branches: git(
+      root,
+      "for-each-ref",
+      "--sort=-committerdate",
+      "--format=%(refname)",
+      "refs/heads",
+      "refs/remotes",
+    )
+      .split("\n")
+      .filter((ref) => ref !== "" && !ref.endsWith("/HEAD"))
+      .map((ref) => ref.replace(/^refs\/(heads|remotes)\//, "")),
     dirty: (tryGit(root, "status", "--porcelain") ?? "").trim() !== "",
     profile: remembered ?? detectProfile(root),
     profileSource: remembered == null ? "detected" : "remembered",
@@ -205,6 +220,37 @@ export function inspectRepo(
       }),
     commit: sha == null ? null : commitDetails(root, sha),
   };
+}
+
+/** Opens the macOS folder chooser on the server's screen; null when the user cancels. */
+export async function pickFolder(startPath: string | null): Promise<string | null> {
+  if (process.platform !== "darwin")
+    throw new EvalRequestError("the folder picker is only available on macOS", 501);
+  const start = startPath != null && existsSync(startPath) ? startPath : null;
+  const child = Bun.spawn(
+    [
+      "osascript",
+      "-e",
+      "on run argv",
+      "-e",
+      start == null
+        ? 'return POSIX path of (choose folder with prompt "Choose a git repository")'
+        : 'return POSIX path of (choose folder with prompt "Choose a git repository" default location (POSIX file (item 1 of argv)))',
+      "-e",
+      "end run",
+      ...(start == null ? [] : [start]),
+    ],
+    { stdout: "pipe", stderr: "pipe" },
+  );
+  const [out, err, code] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  // osascript reports "User canceled" as AppleScript error -128.
+  if (code !== 0 && err.includes("-128")) return null;
+  if (code !== 0) throw new Error(`osascript failed: ${err.trim()}`);
+  return out.trim().replace(/(.)\/$/, "$1");
 }
 
 function optionalCommand(value: unknown, field: string): string | null {
@@ -243,7 +289,7 @@ export function validateRealInput(
   )
     throw new EvalRequestError(`setups must contain 1..${EVAL_LIMITS.maxSetups} entries`, 400);
   const keys = new Set<string>();
-  const setups: EvalSetup[] = input.setups.map((setup: Partial<EvalSetup> | null) => {
+  const setups: RealSetup[] = input.setups.map((setup: Partial<RealSetup> | null) => {
     if (setup == null || typeof setup.harness !== "string" || typeof setup.model !== "string")
       throw new EvalRequestError("each setup requires harness and model", 400);
     const definition = EVAL_HARNESSES[setup.harness];
@@ -258,6 +304,8 @@ export function validateRealInput(
         400,
         "config_unsupported",
       );
+    if (setup.branchPrefix != null && typeof setup.branchPrefix !== "string")
+      throw new EvalRequestError("branchPrefix must be a string", 400);
     const augments = validateSetupConfig(
       setup.harness,
       setup.config,
@@ -277,7 +325,8 @@ export function validateRealInput(
       Bun.which(definition.achAgent, { PATH: env.PATH ?? "" }) == null
     )
       throw new EvalRequestError(`${setup.harness} is not installed`, 503, "harness_missing");
-    return normalized;
+    const branchPrefix = setup.branchPrefix?.trim();
+    return branchPrefix ? { ...normalized, branchPrefix } : normalized;
   });
   const trials = input.trials as number;
   if (!Number.isInteger(trials) || trials < 1 || trials > EVAL_LIMITS.maxTrials)
@@ -286,6 +335,25 @@ export function validateRealInput(
   if (!Number.isSafeInteger(wallMs) || wallMs < 1 || wallMs > EVAL_LIMITS.maxWallMs)
     throw new EvalRequestError(`wallMs must be 1..${EVAL_LIMITS.maxWallMs}`, 400);
   const repoPath = repoRoot(input.repoPath);
+  const branches = new Set<string>();
+  for (const setup of setups)
+    for (let trial = 1; setup.branchPrefix != null && trial <= trials; trial++) {
+      const branch = cellBranch(setup.branchPrefix, setup, trial);
+      if (branches.has(branch))
+        throw new EvalRequestError(`two setups would write branch ${branch}`, 400);
+      if (tryGit(repoPath, "check-ref-format", `refs/heads/${branch}`) == null)
+        throw new EvalRequestError(`not a valid branch name: ${branch}`, 400);
+      const segments = branch.split("/");
+      for (let end = 1; end <= segments.length; end++) {
+        const taken = segments.slice(0, end).join("/");
+        if (tryGit(repoPath, "show-ref", "--verify", "-q", `refs/heads/${taken}`) != null)
+          throw new EvalRequestError(
+            `branch ${taken} already exists; choose another worktree name`,
+            400,
+          );
+      }
+      branches.add(branch);
+    }
   const rawProfile = (input.profile ?? {}) as Record<string, unknown>;
   const checks = rawProfile.checks ?? [];
   if (!Array.isArray(checks) || checks.length > MAX_CHECKS)
@@ -378,15 +446,26 @@ export function prepareRealRun(
     );
   }
   const specPath = join(runDir, "real-spec.json");
+  const taskId = realTaskId(task);
+  const branches: Record<string, string> = {};
+  for (const group of setupGroups(input.setups))
+    for (const { branchPrefix, ...setup } of group.setups)
+      for (let trial = 1; branchPrefix != null && trial <= input.trials; trial++)
+        branches[apiCellId(group.key, achCellId(setup, taskId, trial))] = cellBranch(
+          branchPrefix,
+          setup,
+          trial,
+        );
   const spec: RealSpec = {
     runDir,
+    repoPath: input.repoPath,
     baseSha,
     sha: task.type === "replay" ? task.sha : null,
     hiddenPaths,
     profile,
+    branches,
   };
   writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`);
-  const taskId = realTaskId(task);
   const verifyScript = join(import.meta.dir, "real-verify.ts");
   const groups = setupGroups(input.setups).map((group): RealPlanGroup => {
     const { key, config, setups: chosen } = group;

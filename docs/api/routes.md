@@ -322,7 +322,17 @@ never changes it. It returns the remembered profile (setup command, checks,
 hidden-test command) or one detected from the repository, the last 30
 non-merge commits, whether the work tree is dirty (uncommitted work never
 enters a run), and, with `sha`, the commit's message, changed files, and
-suggested hidden test files.
+suggested hidden test files. It also lists the local and remote-tracking
+branches, newest first, for choosing a base ref.
+
+`POST /api/evals/repo/pick` (`{ startPath? }`) opens the macOS folder chooser
+on the server's screen and returns `{ path }`, null when cancelled. Other
+platforms get `501`; `GET /api/evals/catalog` reports `canPickFolder`.
+
+A real-task setup may carry `branchPrefix`. When the agent finishes, each cell's
+changes are committed on the base and pushed to the repository as
+`<branchPrefix>/<config>[+<augment>…]-t<trial>`. The run is rejected when one
+of those branches, or a branch at one of their parent paths, already exists.
 
 At verify, every hidden path is restored from the commit, and the hidden-test
 command runs once per test-named file (`*.test.*`, `*.spec.*`, `*_test.*`,

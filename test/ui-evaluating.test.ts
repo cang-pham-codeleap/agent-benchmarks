@@ -79,6 +79,7 @@ const catalog: EvalCatalog = {
   ],
   evalDir: "/home/user/.agent-benchmarks/evals",
   combos: [],
+  canPickFolder: false,
 };
 const input: EvalRunInput = {
   kind: "benchmark",

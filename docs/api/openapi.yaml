@@ -1436,6 +1436,44 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/evals/repo/pick:
+    post:
+      tags: [Evaluations]
+      operationId: pickEvaluationRepository
+      summary: Open the native folder chooser for a real-task repository
+      description: >-
+        macOS only (`EvaluationCatalog.canPickFolder`). Shows the system folder
+        chooser on the server's screen and waits for the user. Returns the
+        chosen absolute path, or null when the user cancels.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startPath: { type: string, pattern: "^/", description: Absolute folder the chooser opens in }
+              additionalProperties: false
+      responses:
+        "200":
+          description: Chosen folder
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [path]
+                properties:
+                  path: { type: [string, "null"] }
+                additionalProperties: false
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "501":
+          description: The server's platform has no folder chooser
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
   /api/evals/{id}/cells/{cellId}:
     parameters:
       - { $ref: "#/components/parameters/EvaluationRunId" }
@@ -2011,6 +2049,14 @@ components:
             Augments enabled for this setup. Only allowed with `default` or
             `clean` config, and only for harnesses with a recipe. Missing means
             none; manifests always carry it, sorted.
+        branchPrefix:
+          type: string
+          description: >-
+            Real-task runs only. When the agent finishes, each cell's changes are
+            committed on the base and pushed to the repository as branch
+            `<branchPrefix>/<config>[+<augment>…]-t<trial>`. Rejected when any
+            such branch, or a branch at one of its parent paths, already
+            exists. Missing means no branch.
       additionalProperties: false
     EvaluationAugmentId:
       type: string
@@ -2184,11 +2230,15 @@ components:
       additionalProperties: false
     RepoInspection:
       type: object
-      required: [path, head, branch, dirty, profile, profileSource, recentCommits, commit]
+      required: [path, head, branch, branches, dirty, profile, profileSource, recentCommits, commit]
       properties:
         path: { type: string }
         head: { type: string }
         branch: { type: [string, "null"] }
+        branches:
+          type: array
+          items: { type: string }
+          description: Local and remote-tracking branches, most recently committed first
         dirty: { type: boolean, description: Uncommitted work is never included in a run }
         profile: { $ref: "#/components/schemas/RepoProfile" }
         profileSource: { type: string, enum: [remembered, detected] }
@@ -2330,7 +2380,7 @@ components:
       additionalProperties: false
     EvaluationCatalog:
       type: object
-      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments, evalDir, combos]
+      required: [ach, harnesses, tasks, presets, limits, activeRunId, augments, evalDir, combos, canPickFolder]
       properties:
         augments:
           type: array
@@ -2344,6 +2394,9 @@ components:
           type: array
           items: { $ref: "#/components/schemas/EvaluationCombo" }
           description: Saved combos from `<evalDir>/combos`, read on every request.
+        canPickFolder:
+          type: boolean
+          description: "`POST /api/evals/repo/pick` can open a folder chooser on this server"
       additionalProperties: true
     EvaluationResults:
       type: object
