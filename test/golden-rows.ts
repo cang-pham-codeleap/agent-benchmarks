@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { INGEST_PIPELINE_REVISION } from "../src/ingest.ts";
 import { decodeMessageRaw } from "../src/message-storage.ts";
 import { MODEL_USAGE_FORMAT_VERSION } from "../src/model-usage.ts";
+import { compareCodePoints } from "../src/order.ts";
 import { SESSION_ECONOMICS_FORMAT_VERSION } from "../src/token-economics.ts";
 
 export const GOLDEN_NOW = new Date("2026-11-04T22:00:00.000Z");
@@ -97,24 +98,44 @@ const DERIVED_ROW_VERSIONS = {
 } as const satisfies Record<string, { value: number; file: string; dumps: RowDump[] }>;
 
 type DerivedRowVersion = keyof typeof DERIVED_ROW_VERSIONS;
-export type RevisionLock = Record<DerivedRowVersion, { value: number; sha256: string }>;
+// sha256 is keyed by "<tool>/<source_session_id>" so a new fixture adds keys without touching existing ones.
+export type RevisionLock = Record<
+  DerivedRowVersion,
+  { value: number; sha256: Record<string, string> }
+>;
+
+type GoldenRow = Record<string, unknown> & { tool: string; source_session_id: string };
 
 // Every sync reprices stored sessions, so a rate change needs no re-derive.
-function withoutRepricedCost(row: unknown): unknown {
-  if (row == null || typeof row !== "object") return row;
-  const { estimated_cost_usd: _, ...rest } = row as Record<string, unknown>;
+function withoutRepricedCost(row: GoldenRow): unknown {
+  const { estimated_cost_usd: _, ...rest } = row;
   return rest;
 }
 
 export function goldenRevisionLock(goldenDir: string): RevisionLock {
   return Object.fromEntries(
     Object.entries(DERIVED_ROW_VERSIONS).map(([name, { value, dumps }]) => {
-      const hash = createHash("sha256");
+      const bySession = new Map<string, unknown[]>();
       for (const dump of dumps) {
-        const rows = JSON.parse(readFileSync(join(goldenDir, "rows", `${dump}.json`), "utf8"));
-        hash.update(JSON.stringify((rows as unknown[]).map(withoutRepricedCost)));
+        const rows: GoldenRow[] = JSON.parse(
+          readFileSync(join(goldenDir, "rows", `${dump}.json`), "utf8"),
+        );
+        for (const row of rows) {
+          const key = `${row.tool}/${row.source_session_id}`;
+          const sessionRows = bySession.get(key) ?? [];
+          sessionRows.push([dump, withoutRepricedCost(row)]);
+          bySession.set(key, sessionRows);
+        }
       }
-      return [name, { value, sha256: hash.digest("hex") }];
+      const sha256 = Object.fromEntries(
+        [...bySession.keys()].sort(compareCodePoints).map((key) => [
+          key,
+          createHash("sha256")
+            .update(JSON.stringify(bySession.get(key)))
+            .digest("hex"),
+        ]),
+      );
+      return [name, { value, sha256 }];
     }),
   ) as RevisionLock;
 }
@@ -125,12 +146,14 @@ export function unbumpedRevisionErrors(locked: RevisionLock, current: RevisionLo
   return (Object.keys(DERIVED_ROW_VERSIONS) as DerivedRowVersion[]).flatMap((name) => {
     const was = locked[name];
     const now = current[name];
-    if (was === undefined || was.sha256 === now.sha256 || was.value !== now.value || reingested) {
-      return [];
-    }
+    if (was === undefined || was.value !== now.value || reingested) return [];
+    const changed = Object.keys(was.sha256).filter(
+      (key) => key in now.sha256 && was.sha256[key] !== now.sha256[key],
+    );
+    if (changed.length === 0) return [];
     const { file, dumps } = DERIVED_ROW_VERSIONS[name];
     return [
-      `Derived ${dumps.join(", ")} rows changed but ${name} is still ${now.value}, so existing archives keep the old rows. Bump ${name} in ${file}, then run: bun scripts/regen-goldens.ts --i-reviewed-the-diff`,
+      `Derived ${dumps.join(", ")} rows changed for existing fixture sessions ${changed.join(", ")} but ${name} is still ${now.value}, so existing archives keep the old rows. Bump ${name} in ${file}, then run: bun scripts/regen-goldens.ts --i-reviewed-the-diff`,
     ];
   });
 }

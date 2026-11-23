@@ -871,10 +871,13 @@ and `SESSION_ECONOMICS_FORMAT_VERSION` in `src/token-economics.ts` (economics
 vectors). Both format backfills rebuild from stored rows. A change that alters
 what any of them produces for unchanged input must bump the matching constant,
 or existing archives keep the old rows. `test/golden/revision-lock.json` holds
-each constant's value and a SHA-256 of the golden rows it governs, leaving out
-the session and vector costs that every sync reprices. `bun run scripts/regen-goldens.ts
---i-reviewed-the-diff` refuses to refresh the lock when those rows changed but
-the constant did not, and `test/golden.test.ts` fails on the same condition. An
+each constant's value and, per fixture session (`<tool>/<source_session_id>`),
+a SHA-256 of the golden rows it governs, leaving out the session and vector
+costs that every sync reprices. `bun run scripts/regen-goldens.ts
+--i-reviewed-the-diff` refuses to refresh the lock when an existing session's
+rows changed but the constant did not, naming the constant and the sessions,
+and `test/golden.test.ts` fails on the same condition. New and removed fixture
+sessions need no bump: they say nothing about rows already in an archive. An
 `INGEST_PIPELINE_REVISION` bump covers all three, because a re-read session
 rebuilds its usage and economics rows.
 

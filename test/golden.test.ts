@@ -136,20 +136,33 @@ describe("derived row revision lock", () => {
   });
 
   test("an ingest revision bump re-derives every dump, a format bump only its own", () => {
-    const lock = (ingest: number, usage: number, sha256: string): RevisionLock => ({
+    const lock = (ingest: number, usage: number, sha256: Record<string, string>): RevisionLock => ({
       INGEST_PIPELINE_REVISION: { value: ingest, sha256 },
       MODEL_USAGE_FORMAT_VERSION: { value: usage, sha256 },
       SESSION_ECONOMICS_FORMAT_VERSION: { value: 1, sha256 },
     });
-    expect(unbumpedRevisionErrors(lock(1, 1, "old"), lock(1, 1, "new"))).toEqual([
-      expect.stringContaining("Bump INGEST_PIPELINE_REVISION in src/ingest.ts"),
+    const old = { "codex/a": "old" };
+    const changed = { "codex/a": "new" };
+    expect(unbumpedRevisionErrors(lock(1, 1, old), lock(1, 1, changed))).toEqual([
+      expect.stringContaining("sessions codex/a but INGEST_PIPELINE_REVISION is still 1"),
       expect.stringContaining("Bump MODEL_USAGE_FORMAT_VERSION in src/model-usage.ts"),
       expect.stringContaining("Bump SESSION_ECONOMICS_FORMAT_VERSION in src/token-economics.ts"),
     ]);
-    expect(unbumpedRevisionErrors(lock(1, 1, "old"), lock(1, 2, "new"))).toEqual([
-      expect.stringContaining("Bump INGEST_PIPELINE_REVISION"),
+    expect(unbumpedRevisionErrors(lock(1, 1, old), lock(1, 2, changed))).toEqual([
+      expect.stringContaining("Bump INGEST_PIPELINE_REVISION in src/ingest.ts"),
       expect.stringContaining("Bump SESSION_ECONOMICS_FORMAT_VERSION"),
     ]);
-    expect(unbumpedRevisionErrors(lock(1, 1, "old"), lock(2, 1, "new"))).toEqual([]);
+    expect(unbumpedRevisionErrors(lock(1, 1, old), lock(2, 1, changed))).toEqual([]);
+  });
+
+  test("adding or removing a fixture session needs no bump", () => {
+    const lock = (sha256: Record<string, string>): RevisionLock => ({
+      INGEST_PIPELINE_REVISION: { value: 1, sha256 },
+      MODEL_USAGE_FORMAT_VERSION: { value: 1, sha256 },
+      SESSION_ECONOMICS_FORMAT_VERSION: { value: 1, sha256 },
+    });
+    const old = { "codex/a": "a", "codex/b": "b" };
+    expect(unbumpedRevisionErrors(lock(old), lock({ ...old, "pi/c": "c" }))).toEqual([]);
+    expect(unbumpedRevisionErrors(lock(old), lock({ "codex/a": "a" }))).toEqual([]);
   });
 });
