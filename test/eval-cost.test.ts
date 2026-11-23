@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { closeDb, openDb } from "../src/db.ts";
-import { joinSessionCost } from "../src/eval/cost.ts";
+import { joinSessionCost, sessionActiveMs } from "../src/eval/cost.ts";
 
 test("a hermetic cell joins the session the agent recorded in its temp copy", () => {
   const dir = mkdtempSync(join(tmpdir(), "ab-cost-"));
@@ -27,6 +27,33 @@ test("a hermetic cell joins the session the agent recorded in its temp copy", ()
       updatedAt: startedAt + 13_000,
     });
     expect(joined.session?.id).toBe(id);
+  } finally {
+    closeDb(db);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("agent time starts at the accepted prompt, not at CLI startup", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ab-cost-"));
+  const db = openDb(join(dir, "archive.db"));
+  try {
+    const id = Number(
+      db
+        .query(
+          "INSERT INTO session (tool, source_session_id, started_at) VALUES ('copilot', 's1', '2026-11-23T05:45:52.000Z')",
+        )
+        .run().lastInsertRowid,
+    );
+    const insert = db.query(
+      "INSERT INTO message (session_id, seq, role, timestamp, raw) VALUES (?1, ?2, ?3, ?4, '{}')",
+    );
+    insert.run(id, 0, "system", "2026-11-23T05:45:59.000Z");
+    insert.run(id, 1, "user", "2026-11-23T05:46:00.000Z");
+    insert.run(id, 2, "assistant", "2026-11-23T05:46:30.000Z");
+    insert.run(id, 3, "user", "2026-11-23T05:46:31.000Z");
+    insert.run(id, 4, "assistant", "2026-11-23T05:47:00.000Z");
+    expect(sessionActiveMs(db, id)).toBe(60_000);
+    expect(sessionActiveMs(db, id + 1)).toBeNull();
   } finally {
     closeDb(db);
     rmSync(dir, { recursive: true, force: true });

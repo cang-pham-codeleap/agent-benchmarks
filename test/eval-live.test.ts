@@ -94,8 +94,18 @@ describe("projectTranscript", () => {
   });
 
   test("empty and newline-free input consume nothing", () => {
-    expect(projectTranscript("")).toEqual({ steps: [], nextSeq: 0 });
-    expect(projectTranscript('{"type":"message"')).toEqual({ steps: [], nextSeq: 0 });
+    const empty = { steps: [], nextSeq: 0, agentStartedAt: null };
+    expect(projectTranscript("")).toEqual(empty);
+    expect(projectTranscript('{"type":"message"')).toEqual(empty);
+  });
+
+  test("the agent starts at the first event past CLI startup", () => {
+    const startup =
+      line({ type: "session", timestamp: 3_000, sessionId: "s" }) +
+      line({ type: "progress", timestamp: 4_000, text: "loading MCP servers" });
+    expect(projectTranscript(startup).agentStartedAt).toBeNull();
+    const working = `${startup}${line({ type: "model_call_start", timestamp: 12_000 })}`;
+    expect(projectTranscript(working).agentStartedAt).toBe(12_000);
   });
 });
 
@@ -166,10 +176,11 @@ describe("readCellStream", () => {
     const path = join(mkdtempSync(join(tmpdir(), "ab-live-")), "raw.jsonl");
     writeFileSync(
       path,
-      line({ type: "message", timestamp: 1, content: "a" }) +
-        line({ type: "tool_call", timestamp: 2, functionName: "Read", arguments: "f.ts" }) +
-        line({ type: "usage", timestamp: 3, usage: { costUsd: 0.1 } }) +
-        line({ type: "usage", timestamp: 4, usage: { costUsd: 0.3 } }),
+      line({ type: "session", timestamp: 1100, sessionId: "s" }) +
+        line({ type: "message", timestamp: 1500, content: "a" }) +
+        line({ type: "tool_call", timestamp: 1600, functionName: "Read", arguments: "f.ts" }) +
+        line({ type: "usage", timestamp: 1700, usage: { costUsd: 0.1 } }) +
+        line({ type: "usage", timestamp: 1800, usage: { costUsd: 0.3 } }),
     );
     const ctx = context({
       records: [
@@ -184,12 +195,12 @@ describe("readCellStream", () => {
     const all = readCellStream(ctx, claudeCell, 0)!;
     expect(all).toMatchObject({
       state: "live",
-      startedAt: 1000,
-      nextSeq: 4,
+      startedAt: 1500,
+      nextSeq: 5,
       totals: { toolCalls: 1, costUsd: 0.3 },
     });
     const delta = readCellStream(ctx, claudeCell, all.nextSeq - 1)!;
-    expect(delta.steps.map((step) => step.seq)).toEqual([3]);
+    expect(delta.steps.map((step) => step.seq)).toEqual([4]);
     expect(delta.totals).toEqual(all.totals);
     expect(readCellStream(ctx, claudeCell, 99)!.steps).toEqual([]);
   });

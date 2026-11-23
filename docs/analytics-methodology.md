@@ -794,6 +794,16 @@ For the machine-readable field definitions, see the
 [OpenAPI contract](api/openapi.yaml). For practical queries, see
 [Local API recipes](api/recipes.md).
 
+## Eval agent time
+
+A cell's agent time (`agentMs`, and the agent p50/p95 built from it) runs from
+the first user message to the last message of the agent's archived session.
+CLI startup before the prompt is accepted, such as Copilot CLI loading for
+about 10 seconds, and shutdown after the last message are not counted, so
+harnesses compare on the work itself. When the session is not in the archive
+yet, agent time falls back to the process span that ach recorded. The full
+wall time, startup and verification included, stays in `endToEndMs`.
+
 ## Augment verdict
 
 An augment (for example rtk, codegraph, caveman, ponytail) is a tool or mode

@@ -402,6 +402,9 @@ change of a replay.
 recorded steps for one cell (messages, tool calls, tool results, spend, errors)
 projected from the harness's raw transcript, plus `state` (`live`, `done`,
 `queued`, or `unknown`), `startedAt`, `nextSeq`, and whole-transcript `totals`.
+`startedAt` is the first transcript event past CLI startup (session and stderr
+progress lines), so the live timer leaves out startup time; it is the process
+start until the agent emits such an event.
 `seq` is the transcript line index, so `after=<nextSeq>` fetches only newer
 steps; malformed lines and a half-written last line are skipped. A cell is
 `live` only while its agent process is alive; `GET /api/evals/{id}` reports it
