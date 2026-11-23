@@ -112,7 +112,8 @@ Drop a row once its mistake cannot be written at all.
 | Core modules do not print | `lint/no-console-in-core.grit` | `bunx biome ci .` |
 | Sources convert timestamps through one helper | `lint/iso-timestamp-helpers.grit`, `isoFromMillis` and `isoFromZoned` in `src/sources/shared.ts` | `bunx biome ci .` |
 | Derived rows change only with the version that re-derives them | `test/golden/revision-lock.json`, checked by `test/golden.test.ts` | `bun test test/golden.test.ts` |
-| Every API response carries the security headers and leaks no internals | `GuardedResponse` in `src/server/http.ts`, `test/route-responses.test.ts` | `bunx tsc --noEmit`, `bun test test/route-responses.test.ts` |
+| Every API response carries the security headers | `GuardedResponse` in `src/server/http.ts`, `test/route-responses.test.ts` | `bunx tsc --noEmit`, `bun test test/route-responses.test.ts` |
+| A compiled binary serves the same styled UI as a source run and starts outside its build tree | binary smoke steps in `.github/workflows/ci.yml`, `test/server-ui.test.ts` | the CI TypeScript and Docker jobs |
 | Sync, Update, and completion state change in one place | `reduceSync` in `src/ui/sync-events.ts`, `models/sync-protocol/SyncProtocol.tla` | `bun test test/ui-sync-events.test.ts`, `bun run scripts/check-sync-model.ts` |
 | Tests use synthetic home paths, and no scratch or root files are committed | `private-data` and `stray-file` rules in `scripts/pr-policy.ts` | `bun run scripts/pr-policy.ts` |
 | A Claude request is billed once | `billAssistant` in `src/sources/claude.ts`, `billed_request` in `src/billed-requests.ts` | `bun test test/billed-requests.test.ts test/claude.test.ts` |
