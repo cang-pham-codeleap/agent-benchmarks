@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { augmentDefinitions, loadAugments } from "../src/eval/augments.ts";
+import { BUNDLED_AUGMENT_FILES, BUNDLED_AUGMENTS } from "../src/eval/bundled-augments.ts";
 import { type ResolvedRecipe, resolveRecipe } from "../src/eval/registry.ts";
 
 const DIR = "/run/augments";
@@ -59,10 +61,10 @@ const EXPECTED: Record<string, ResolvedRecipe> = {
   }),
   "rtk/claude/default": recipe(["--settings", `${DIR}/rtk-settings.json`], RTK_SETTINGS),
   "rtk/omp/clean": recipe([...OMP_CLEAN, "-e", `${DIR}/rtk.ts`], {
-    "rtk.ts": { from: "~/.omp/agent/extensions/rtk.ts" },
+    "rtk.ts": { from: "<bundled>/rtk-omp-extension.txt" },
   }),
   "rtk/omp/default": recipe(["-e", `${DIR}/rtk.ts`], {
-    "rtk.ts": { from: "~/.omp/agent/extensions/rtk.ts" },
+    "rtk.ts": { from: "<bundled>/rtk-omp-extension.txt" },
   }),
   "codegraph/claude/clean": recipe(CLAUDE_CLEAN, CODEGRAPH_SERVERS, {}, CODEGRAPH_PREPARE),
   "codegraph/claude/default": recipe(
@@ -137,6 +139,14 @@ describe("bundled augment parity", () => {
       ),
     );
     expect(actual.sort()).toEqual(Object.keys(EXPECTED).sort());
+  });
+
+  test("every file in evals/augments ships inside the compiled binary", () => {
+    const shipped = [
+      ...Object.keys(BUNDLED_AUGMENTS).map((id) => `${id}.json`),
+      ...Object.keys(BUNDLED_AUGMENT_FILES),
+    ];
+    expect(shipped.sort()).toEqual(readdirSync(BUNDLED).sort());
   });
 
   for (const [key, expected] of Object.entries(EXPECTED)) {

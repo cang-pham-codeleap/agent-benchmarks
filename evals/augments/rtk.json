@@ -37,7 +37,7 @@
       ],
       "files": {
         "rtk.ts": {
-          "from": "~/.omp/agent/extensions/rtk.ts"
+          "from": "rtk-omp-extension.txt"
         }
       }
     }

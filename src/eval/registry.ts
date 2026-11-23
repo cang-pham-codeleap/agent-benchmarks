@@ -418,7 +418,8 @@ export function writeRecipeFiles(
   const hashes: Record<string, string> = {};
   for (const [name, file] of Object.entries(files)) {
     const target = join(dir, name);
-    if ("from" in file) copyFileSync(file.from, target);
+    // copyFileSync cannot read a compiled binary's embedded files.
+    if ("from" in file) writeFileSync(target, readFileSync(file.from));
     else writeFileSync(target, `${JSON.stringify(file.json, null, 2)}\n`);
     hashes[name] = createHash("sha256").update(readFileSync(target)).digest("hex");
   }

@@ -47,7 +47,7 @@ restart.
 | --- | --- |
 | `label`, `description`, `sourceUrl` | What the form and results show |
 | `kind` | `shell-proxy`, `mcp`, `prompt-mode`, or `harness-flag` |
-| `binary` | A command that must be on `PATH`, or `null`. When it is missing the augment shows as unavailable |
+| `binary` | A command that must be on `PATH`, or `null`. When it is missing the augment shows as unavailable, with an Install link to `sourceUrl` |
 | `recipes` | One recipe per harness: `claude`, `codex`, `copilot`, `opencode`, `omp`, `droid`. The augment is offered only for these harnesses |
 
 A recipe can hold:
@@ -73,7 +73,10 @@ Augments apply only to `clean` and `default` setups.
 ### Replacing a bundled augment
 
 The bundled augments are in this repository's `evals/augments/` (`rtk`,
-`codegraph`, `caveman`, `ponytail`, `ptc`, `bash-cap`). A user file with the
+`codegraph`, `caveman`, `ponytail`, `ptc`, `bash-cap`). They ship inside the
+standalone binary too, so a bundled `from` names a file in that directory, not
+a path. `rtk` and `codegraph` still need their own `rtk` and `codegraph`
+commands on `PATH`. A user file with the
 same id replaces the bundled one, and the form marks it with a `user` badge.
 This `ptc.json` keeps OMP's recipe and adds one for Claude Code that serves a
 tool-calling MCP server you run yourself (`ptc-mcp` stands in for its command):
