@@ -863,6 +863,24 @@ re-derive: rows derived while a model had a rate store no recorded figure, so
 removing a rate requires bumping `MODEL_USAGE_FORMAT_VERSION`, which rebuilds
 the rows from the stored messages without the source database.
 
+Three constants decide when stored rows are derived again:
+`INGEST_PIPELINE_REVISION` in `src/ingest.ts` (sessions, messages, blocks,
+tool calls, and file references, re-read from source),
+`MODEL_USAGE_FORMAT_VERSION` in `src/model-usage.ts` (`session_model_usage`),
+and `SESSION_ECONOMICS_FORMAT_VERSION` in `src/token-economics.ts` (economics
+vectors). Both format backfills rebuild from stored rows. A change that alters
+what any of them produces for unchanged input must bump the matching constant,
+or existing archives keep the old rows. `test/golden/revision-lock.json` holds
+each constant's value and, per fixture session (`<tool>/<source_session_id>`),
+a SHA-256 of the golden rows it governs, leaving out the session and vector
+costs that every sync reprices. `bun run scripts/regen-goldens.ts
+--i-reviewed-the-diff` refuses to refresh the lock when an existing session's
+rows changed but the constant did not, naming the constant and the sessions,
+and `test/golden.test.ts` fails on the same condition. New and removed fixture
+sessions need no bump: they say nothing about rows already in an archive. An
+`INGEST_PIPELINE_REVISION` bump covers all three, because a re-read session
+rebuilds its usage and economics rows.
+
 ## Evaluation runs
 
 Evaluation runs live next to the archive, in `evals/<run id>/` under the

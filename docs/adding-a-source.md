@@ -125,7 +125,10 @@ bun run scripts/regen-goldens.ts --i-reviewed-the-diff
 ```
 
 Review the generated diff before committing it. An unreviewed golden update can
-hide a parser regression.
+hide a parser regression. New fixture sessions only add keys to
+`test/golden/revision-lock.json` and need no `INGEST_PIPELINE_REVISION` bump; a
+changed row for an existing fixture session does (see
+[Rebuilds and migrations](data-lifecycle.md#rebuilds-and-migrations)).
 
 ## Definition of done
 
