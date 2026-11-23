@@ -54,6 +54,10 @@
     {
       "includes": ["src/**", "!src/cli.ts", "!src/cli/**", "!src/ui/**", "!src/logging.ts"],
       "plugins": ["./lint/no-console-in-core.grit"]
+    },
+    {
+      "includes": ["src/sources/**", "src/export*.ts", "!src/sources/shared.ts"],
+      "plugins": ["./lint/iso-timestamp-helpers.grit"]
     }
   ]
 }

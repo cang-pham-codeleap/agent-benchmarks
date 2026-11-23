@@ -30,6 +30,7 @@ import {
   contentText,
   countUnknown,
   diagnosticRawLine,
+  isoFromMillis,
   jsonProblem,
   parseSourceJson,
   type UnknownTypes,
@@ -608,12 +609,4 @@ function modelRef(value: Json | undefined): OpenCodeModelRef {
     id: asString(get(value, "id")),
     variant: asString(get(value, "variant")),
   };
-}
-
-export function isoFromMillis(ms: number | null): string | null {
-  if (ms == null || !Number.isFinite(ms)) {
-    return null;
-  }
-  const date = new Date(ms);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }

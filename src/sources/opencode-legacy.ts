@@ -15,7 +15,6 @@ import {
 } from "../model.ts";
 import { preview } from "../tools.ts";
 import {
-  isoFromMillis,
   mcpServerPrefixes,
   normalizeOpenCodeToolName,
   type OpenCodeModelRef,
@@ -29,6 +28,7 @@ import {
   contentText,
   countUnknown,
   diagnosticRawLine,
+  isoFromMillis,
   jsonProblem,
   parseSourceJson,
   type UnknownTypes,

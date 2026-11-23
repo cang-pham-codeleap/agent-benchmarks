@@ -21,6 +21,7 @@ import {
   contentText,
   countUnknown,
   diagnosticRawLine,
+  isoFromMillis,
   jsonProblem,
   parseSourceJson,
   type UnknownTypes,
@@ -655,10 +656,6 @@ function count(value: number | null | undefined): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
 }
 
-export function isoFromSeconds(seconds: number | null): string | null {
-  if (seconds == null || !Number.isFinite(seconds)) {
-    return null;
-  }
-  const date = new Date(seconds * 1000);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+function isoFromSeconds(seconds: number | null): string | null {
+  return isoFromMillis(seconds == null ? null : seconds * 1000);
 }

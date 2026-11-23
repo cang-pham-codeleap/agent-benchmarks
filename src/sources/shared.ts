@@ -113,3 +113,19 @@ export function contentText(content: Json | undefined): string {
   }
   return "";
 }
+
+export function isoFromMillis(ms: number | null): string | null {
+  if (ms == null || !Number.isFinite(ms)) {
+    return null;
+  }
+  const date = new Date(ms);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+// A bare ±hh is a valid ISO-8601 offset, so it is never given an extra Z (Bun's Date rejects it).
+export function isoFromZoned(raw: string | null): string | null {
+  if (raw == null) {
+    return null;
+  }
+  return isoFromMillis(Date.parse(/(?:Z|[+-]\d{2}(?::?\d{2})?)$/i.test(raw) ? raw : `${raw}Z`));
+}
