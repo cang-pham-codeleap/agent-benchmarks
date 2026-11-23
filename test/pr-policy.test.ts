@@ -268,8 +268,18 @@ describe("stray files", () => {
   });
 
   test("flags local tooling files wherever they sit", () => {
-    const paths = ["node_modules", ".claude/settings.local.json", "docs/.DS_Store", "a.orig"];
+    const paths = [
+      "node_modules",
+      ".claude/settings.local.json",
+      ".claude/worktrees/x/a.ts",
+      "docs/.DS_Store",
+      "a.orig",
+    ];
     expect(checkStrayFiles(paths).map((finding) => finding.file)).toEqual(paths);
+  });
+
+  test("accepts the project skills under .claude/skills", () => {
+    expect(checkStrayFiles([".claude/skills/verify-sync-protocol/SKILL.md"])).toEqual([]);
   });
 });
 

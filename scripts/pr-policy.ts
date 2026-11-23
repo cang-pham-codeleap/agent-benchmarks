@@ -260,7 +260,7 @@ export const ROOT_FILE_ALLOWLIST = new Set([
 ]);
 
 const SCRATCH_PATH =
-  /(?:^|\/)(?:node_modules|\.claude|\.omp|\.DS_Store)(?:\/|$)|\.local\.json$|\.(?:orig|rej)$/;
+  /(?:^|\/)(?:node_modules|\.omp|\.DS_Store)(?:\/|$)|^\.claude\/(?!skills\/)|\.local\.json$|\.(?:orig|rej)$/;
 
 export function checkStrayFiles(added: string[]): Finding[] {
   const findings: Finding[] = [];
