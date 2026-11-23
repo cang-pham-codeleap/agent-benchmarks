@@ -7,7 +7,12 @@ import { exceptionAttributes, logHttpRequest, type StructuredLogger } from "./lo
 import { UI_ROUTE_PATHS } from "./route-paths.ts";
 import { DEFAULT_SERVE_HOST, DEFAULT_SERVE_PORT } from "./serve-defaults.ts";
 import { type Db, ensureDerivedMetadata } from "./server/context.ts";
-import { errorResponse, responseForError, serviceStartingResponse } from "./server/http.ts";
+import {
+  errorResponse,
+  guarded,
+  responseForError,
+  serviceStartingResponse,
+} from "./server/http.ts";
 import { resolveTrustedPeers } from "./server/peers.ts";
 import { ReadPool, type ReadPoolOptions } from "./server/read-pool.ts";
 import {
@@ -47,7 +52,6 @@ export {
 const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
 const ICON_HEADERS = {
   "cache-control": "public, max-age=86400",
-  "x-content-type-options": "nosniff",
 } as const;
 
 export interface ServeWatchOptions {
@@ -115,10 +119,10 @@ export function serve(options: ServeOptions): ReturnType<typeof Bun.serve> {
     port,
     maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
     routes: {
-      "/favicon.ico": new Response(Bun.file(faviconPath), {
+      "/favicon.ico": guarded(Bun.file(faviconPath), {
         headers: { ...ICON_HEADERS, "content-type": "image/x-icon" },
       }),
-      "/apple-touch-icon.png": new Response(Bun.file(appleTouchIconPath), {
+      "/apple-touch-icon.png": guarded(Bun.file(appleTouchIconPath), {
         headers: { ...ICON_HEADERS, "content-type": "image/png" },
       }),
       ...Object.fromEntries(

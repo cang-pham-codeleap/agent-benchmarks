@@ -10,7 +10,7 @@ import type {
 } from "../watch.ts";
 import { workerError, workerUrl } from "../worker-runtime.ts";
 import type { Db } from "./context.ts";
-import { json } from "./http.ts";
+import { type GuardedResponse, json } from "./http.ts";
 import { publishServerEvent } from "./sse.ts";
 
 export type SyncWorkerRunner = (
@@ -90,7 +90,7 @@ export async function syncNow(
   economics?: EconomicsCache,
   runSync: SyncWorkerRunner = runSyncWorker,
   runWithOwnership?: SyncCoordinator["runWithOwnership"],
-): Promise<Response> {
+): Promise<GuardedResponse> {
   const progress = (update: SyncProgress): void => {
     syncActivity.reason = "manual";
     syncActivity.progress = update;

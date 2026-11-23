@@ -88,7 +88,13 @@ import {
 } from "../stats.ts";
 import { AGENT_BENCHMARKS_VERSION } from "../version.ts";
 import { type Db, type RequestContext, withDb } from "./context.ts";
-import { type ApiErrorCode, errorResponse, isJsonObject, json } from "./http.ts";
+import {
+  type ApiErrorCode,
+  errorResponse,
+  type GuardedResponse,
+  isJsonObject,
+  json,
+} from "./http.ts";
 import { integerParam, isNonNegativeInteger, isValidSessionId, usageLimit } from "./params.ts";
 import { isLoopbackPeer } from "./peers.ts";
 import { readOutputResponse, reportHtmlResponse, runRead } from "./read.ts";
@@ -107,7 +113,7 @@ export interface RouteContext {
   params: { id: string; cellId: string };
 }
 
-export type RouteResult = Response | Promise<Response>;
+export type RouteResult = GuardedResponse | Promise<GuardedResponse>;
 
 type RouteHandler = (ctx: RouteContext) => RouteResult;
 
@@ -140,7 +146,7 @@ async function read<N extends ReadOpName>(
   { config, context, request }: RouteContext,
   name: N,
   args: ReadOpArgs<N>,
-): Promise<Response> {
+): Promise<GuardedResponse> {
   const output = await runRead(config, context, name, args, request.signal);
   return output == null ? withDb(config, context, sessionNotFound) : readOutputResponse(output);
 }
@@ -444,7 +450,7 @@ export const COMPILED_ROUTES: CompiledRoute[] = API_ROUTE_PATHS.map((path) => ({
   spec: ROUTES[path],
 }));
 
-function syncStatusResponse(): Response {
+function syncStatusResponse(): GuardedResponse {
   return json(syncStatusBody());
 }
 
@@ -453,7 +459,7 @@ const BACKGROUND_HANDOFF_DELAY_MS = 250;
 async function backgroundRoute(
   { config, context }: RouteContext,
   body: Record<string, unknown>,
-): Promise<Response> {
+): Promise<GuardedResponse> {
   const { enabled } = body;
   if (typeof enabled !== "boolean" || Object.keys(body).length !== 1) {
     return errorResponse("invalid_request", "send exactly { enabled: boolean }", {}, 400);
@@ -496,7 +502,7 @@ async function backgroundRoute(
 async function launchAgentRoute(
   { config, context }: RouteContext,
   body: Record<string, unknown>,
-): Promise<Response> {
+): Promise<GuardedResponse> {
   const { agent, prompt, key } = body;
   if (
     typeof agent !== "string" ||
@@ -552,7 +558,7 @@ function recommendationLaunchDir(
 async function launchIdeRoute(
   { config, context }: RouteContext,
   body: Record<string, unknown>,
-): Promise<Response> {
+): Promise<GuardedResponse> {
   const { dir } = body;
   if (typeof dir !== "string" || dir.trim() === "") {
     return errorResponse("invalid_request", "dir is required", { ok: false }, 400);
@@ -579,7 +585,10 @@ async function launchIdeRoute(
       );
 }
 
-function sessionStateRoute({ config, context, params }: RouteContext, rawBody: unknown): Response {
+function sessionStateRoute(
+  { config, context, params }: RouteContext,
+  rawBody: unknown,
+): GuardedResponse {
   const state = isJsonObject(rawBody) ? rawBody.state : undefined;
   const allowed = ["archived", "deleted", "visible"] as const;
   if (!allowed.includes(state as SessionUserStateUpdate)) {
@@ -711,7 +720,7 @@ function toolCallsRoute(ctx: RouteContext): RouteResult {
 function markRecommendationRoute(
   { config, context }: RouteContext,
   body: Record<string, unknown>,
-): Response {
+): GuardedResponse {
   const { key, source, note } = body;
   if (typeof key !== "string" || key.trim() === "") {
     return errorResponse("invalid_request", "key is required", {}, 400);
@@ -735,7 +744,7 @@ function markRecommendationRoute(
   });
 }
 
-async function evalStartRoute(ctx: RouteContext, body: unknown): Promise<Response> {
+async function evalStartRoute(ctx: RouteContext, body: unknown): Promise<GuardedResponse> {
   try {
     return json(await startEvalRun(ctx.config, ctx.context, body), 201);
   } catch (error) {
@@ -743,7 +752,7 @@ async function evalStartRoute(ctx: RouteContext, body: unknown): Promise<Respons
   }
 }
 
-function evalComboSaveRoute({ config }: RouteContext, body: unknown): Response {
+function evalComboSaveRoute({ config }: RouteContext, body: unknown): GuardedResponse {
   try {
     const evalDir = evalConfigDir(config.dbPath);
     const registry = loadAugments(evalDir);
@@ -756,7 +765,7 @@ function evalComboSaveRoute({ config }: RouteContext, body: unknown): Response {
 async function evalCancelRoute(
   ctx: RouteContext,
   body: Record<string, unknown>,
-): Promise<Response> {
+): Promise<GuardedResponse> {
   if (Object.keys(body).length !== 0)
     return errorResponse("invalid_request", "cancel body must be an empty object", {}, 400);
   try {
@@ -766,7 +775,7 @@ async function evalCancelRoute(
   }
 }
 
-function evalResumeRoute(ctx: RouteContext, body: Record<string, unknown>): Response {
+function evalResumeRoute(ctx: RouteContext, body: Record<string, unknown>): GuardedResponse {
   if (
     Object.keys(body).some((key) => key !== "retryFailed") ||
     (body.retryFailed != null && typeof body.retryFailed !== "boolean")
@@ -785,7 +794,7 @@ function evalResumeRoute(ctx: RouteContext, body: Record<string, unknown>): Resp
   }
 }
 
-function evalResultsRoute(ctx: RouteContext): Response {
+function evalResultsRoute(ctx: RouteContext): GuardedResponse {
   try {
     const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
     if (manifest == null) return errorResponse("not_found", "evaluation run not found", {}, 404);
@@ -797,7 +806,7 @@ function evalResultsRoute(ctx: RouteContext): Response {
   }
 }
 
-function evalAugmentsRoute({ config, context }: RouteContext): Response {
+function evalAugmentsRoute({ config, context }: RouteContext): GuardedResponse {
   try {
     const manifests = listRunManifests(config.dbPath).filter(
       (manifest) =>
@@ -831,7 +840,7 @@ function evalAugmentsRoute({ config, context }: RouteContext): Response {
   }
 }
 
-function evalRepoRoute({ config, url }: RouteContext): Response {
+function evalRepoRoute({ config, url }: RouteContext): GuardedResponse {
   try {
     return json(
       inspectRepo(
@@ -848,7 +857,7 @@ function evalRepoRoute({ config, url }: RouteContext): Response {
 async function evalRepoPickRoute(
   _ctx: RouteContext,
   body: Record<string, unknown>,
-): Promise<Response> {
+): Promise<GuardedResponse> {
   const { startPath = null } = body;
   if (
     Object.keys(body).some((key) => key !== "startPath") ||
@@ -867,7 +876,7 @@ async function evalRepoPickRoute(
   }
 }
 
-function evalCellRoute(ctx: RouteContext): Response {
+function evalCellRoute(ctx: RouteContext): GuardedResponse {
   try {
     const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
     const cellId = decodeURIComponent(ctx.params.cellId);
@@ -885,7 +894,7 @@ function evalCellRoute(ctx: RouteContext): Response {
   }
 }
 
-function evalCellEventsRoute(ctx: RouteContext): Response {
+function evalCellEventsRoute(ctx: RouteContext): GuardedResponse {
   try {
     const rawAfter = ctx.url.searchParams.get("after") ?? "0";
     if (!/^\d{1,9}$/.test(rawAfter))
@@ -910,7 +919,7 @@ function evalCellEventsRoute(ctx: RouteContext): Response {
   }
 }
 
-function evalReportRoute(ctx: RouteContext): Response {
+function evalReportRoute(ctx: RouteContext): GuardedResponse {
   try {
     const manifest = readRunManifest(ctx.config.dbPath, ctx.params.id);
     if (manifest == null) return errorResponse("not_found", "evaluation run not found", {}, 404);
@@ -930,7 +939,7 @@ function evalReportRoute(ctx: RouteContext): Response {
   }
 }
 
-function evalError(error: unknown): Response {
+function evalError(error: unknown): GuardedResponse {
   if (error instanceof EvalRequestError)
     return errorResponse(error.code as ApiErrorCode, error.message, {}, error.status);
   logger.error("Evaluation request failed.", {
@@ -968,7 +977,7 @@ function isKnownProjectDir(config: Config, context: RequestContext, dir: string)
   return known;
 }
 
-function sessionNotFound(db: Db): Response {
+function sessionNotFound(db: Db): GuardedResponse {
   const archiveEmpty =
     (
       db.query("SELECT NOT EXISTS (SELECT 1 FROM session LIMIT 1) AS empty").get() as {

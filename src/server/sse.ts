@@ -1,5 +1,5 @@
 import type { EvalCellActivityEvent, EvalProgressEvent } from "../eval/types.ts";
-import { errorResponse } from "./http.ts";
+import { errorResponse, type GuardedResponse, guarded } from "./http.ts";
 
 export type ServerEvent =
   | { type: string }
@@ -34,7 +34,7 @@ interface EventClient {
   close(): void;
 }
 
-export function eventStream(heartbeatMs = 5_000): Response {
+export function eventStream(heartbeatMs = 5_000): GuardedResponse {
   if (eventClients.size >= MAX_EVENT_CLIENTS) {
     return errorResponse(
       "server_busy",
@@ -103,7 +103,7 @@ export function eventStream(heartbeatMs = 5_000): Response {
     },
     { highWaterMark: EVENT_STREAM_HIGH_WATER_BYTES, size: (chunk) => chunk?.byteLength ?? 0 },
   );
-  return new Response(stream, {
+  return guarded(stream, {
     headers: {
       "content-type": "text/event-stream; charset=utf-8",
       "cache-control": "no-cache",

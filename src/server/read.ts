@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import type { Config } from "../config.ts";
 import { ARCHIVE_DIR_MODE, closeDb, openDb } from "../db.ts";
 import { type Db, ensureDerivedMetadata, type RequestContext } from "./context.ts";
+import { type GuardedResponse, guarded } from "./http.ts";
 import { executeReadOp, type ReadOpArgs, type ReadOpName, type ReadOpOutput } from "./read-ops.ts";
 import { ReadPoolClosedError } from "./read-pool.ts";
 
@@ -46,26 +47,22 @@ async function withDbAsync<T>(
   }
 }
 
-export function readOutputResponse(output: ReadOpOutput): Response {
+export function readOutputResponse(output: ReadOpOutput): GuardedResponse {
   if (output.type === "html") {
     return reportHtmlResponse(output.body, output.filename);
   }
-  return new Response(output.body, {
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "x-content-type-options": "nosniff",
-    },
+  return guarded(output.body, {
+    headers: { "content-type": "application/json; charset=utf-8" },
   });
 }
 
-export function reportHtmlResponse(value: string, filename: string): Response {
-  return new Response(value, {
+export function reportHtmlResponse(value: string, filename: string): GuardedResponse {
+  return guarded(value, {
     headers: {
       "content-disposition": `attachment; filename="${filename}"`,
       "content-security-policy":
         "default-src 'none'; style-src 'unsafe-inline'; font-src data:; frame-ancestors 'none'",
       "content-type": "text/html; charset=utf-8",
-      "x-content-type-options": "nosniff",
     },
   });
 }
