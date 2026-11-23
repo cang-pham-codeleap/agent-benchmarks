@@ -7,7 +7,7 @@ import {
 } from "../src/eval/models.ts";
 
 describe("harness model listings", () => {
-  test("copilot reads only the model entry of its config help", () => {
+  test("copilot reads only the model entry of its config help, plus Fusion", () => {
     const help = [
       "  `logLevel`: log level for CLI",
       '    - "all"',
@@ -19,7 +19,12 @@ describe("harness model listings", () => {
       "  `contextTier`: context window tier",
       '    - "default"',
     ].join("\n");
-    expect(parseCopilotConfigHelp(help)).toEqual(["claude-sonnet-5", "gpt-6-luna"]);
+    expect(parseCopilotConfigHelp(help)).toEqual([
+      "copilot-fusion",
+      "claude-sonnet-5",
+      "gpt-6-luna",
+    ]);
+    expect(parseCopilotConfigHelp("  `logLevel`: log level\n")).toEqual([]);
   });
 
   test("droid reads built-in and custom model tables, not option flags", () => {
