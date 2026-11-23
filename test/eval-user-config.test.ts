@@ -32,6 +32,17 @@ const augment = (recipes: object, extra: object = {}) =>
   });
 
 describe("user augments", () => {
+  test("a from file counts by content, not by where the checkout lives", () => {
+    const files = (prompt: string) => ({
+      "demo.json": augment({ claude: { files: { "p.md": { from: "p.md" } } } }),
+      "p.md": prompt,
+    });
+    const hashOf = (dir: string) => loadAugments(dir).get("demo")?.hash;
+    const same = hashOf(userDir("moved-a", files("same")));
+    expect(hashOf(userDir("moved-b", files("same")))).toBe(same);
+    expect(hashOf(userDir("moved-c", files("edited")))).not.toBe(same);
+  });
+
   test("a user file replaces the bundled augment with the same id, in full", () => {
     const registry = loadAugments(
       userDir("override", { "ptc.json": augment({ claude: { env: { PTC: "1" } } }) }),

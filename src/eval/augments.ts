@@ -111,13 +111,22 @@ function loadAugment(path: string, id: AugmentId, source: AugmentSource): Loaded
   }
 }
 
+/** Stable text for hashing; a `{ from }` file counts by its content, so moving the checkout keeps the hash. */
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (value != null && typeof value === "object")
-    return `{${Object.keys(value)
+  if (value != null && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if (typeof record.from === "string" && Object.keys(record).length === 1) {
+      const digest = existsSync(record.from)
+        ? createHash("sha256").update(readFileSync(record.from)).digest("hex")
+        : null;
+      return `{"sha256":${JSON.stringify(digest)}}`;
+    }
+    return `{${Object.keys(record)
       .sort()
-      .map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`)
+      .map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`)
       .join(",")}}`;
+  }
   return JSON.stringify(value);
 }
 
