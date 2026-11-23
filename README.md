@@ -4,7 +4,7 @@
 
 Agent Benchmarks is a private research fork for evaluating models, agent harnesses, and agentic workflows. It shows where coding agents spend tokens, money, and time. It reads the session logs that Claude Code, Codex, Gemini CLI, OpenCode, Cursor CLI, GitHub Copilot CLI, Copilot Chat in VS Code, Hermes Agent, Pi, Oh My Pi, and Factory Droid already write on your machine, plus [ATIF](https://harborframework.com/docs/agents/atif) trajectories you import, into one searchable archive.
 
-![Agent Benchmarks in under 30 seconds: Claude Code, Codex, and Copilot session logs in one local archive, with spend trends, cost by model, harness comparison, benchmarks with confidence intervals, side-by-side runs, and real tasks checked against the human commit](docs/images/demo.gif)
+![Agent Benchmarks demo: every agent's sessions and harness comparison, then a real-task evaluation that replays a commit on Claude Code, Codex, and OMP, streams each run live, checks the results against hidden tests and the human commit, and ends with Claude driving the evaluation through the agent-benchmarks MCP server](docs/images/demo.gif)
 
 [Watch the demo as MP4](docs/images/demo.mp4)
 
