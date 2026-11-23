@@ -198,9 +198,11 @@ describe("server routes", () => {
       const favicon = await fetch(`${base}/favicon.ico`);
       expect(favicon.status).toBe(200);
       expect(favicon.headers.get("content-type")).toBe("image/x-icon");
+      expect(favicon.headers.get("x-content-type-options")).toBe("nosniff");
       const touchIcon = await fetch(`${base}/apple-touch-icon.png`);
       expect(touchIcon.status).toBe(200);
       expect(touchIcon.headers.get("content-type")).toBe("image/png");
+      expect(touchIcon.headers.get("x-content-type-options")).toBe("nosniff");
 
       const unknown = await fetch(`${base}/no-page-here`);
       expect(unknown.status).toBe(404);
