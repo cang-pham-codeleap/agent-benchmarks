@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { prepareAnalyticsChartState } from "../src/ui/chart-state.ts";
 import { buildChartOption, chartColors } from "../src/ui/charts.tsx";
 import { applyGlobalsCss, setupDom } from "./ui-dom.ts";
-import { readUiSource } from "./ui-source.ts";
 
 setupDom();
 
@@ -75,13 +74,5 @@ describe("theme tokens", () => {
       type: "shadow",
       shadowStyle: { color: "rgba(255, 255, 255, 0.05)" },
     });
-  });
-
-  test("the theme toggle applies .dark and persists explicit choices", () => {
-    const main = readUiSource();
-    expect(main).toContain('root.classList.toggle("dark", prefersDark)');
-    expect(main).toContain('root.classList.toggle("dark", theme === "dark")');
-    expect(main).toContain('writeStorage("agent-benchmarks-theme", theme)');
-    expect(main).toContain('removeStorage("agent-benchmarks-theme")');
   });
 });

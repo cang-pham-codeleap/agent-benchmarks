@@ -1,4 +1,7 @@
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+// ECharts detects browser vs server once, at first import. Loading it before any DOM exists keeps
+// report SSR working after a DOM test draws a chart.
+import "echarts/core";
 
 // Radix picks its layout effect once, at first import, from globalThis.document. Loading it here
 // with a DOM present gives every test file the real effect regardless of file order.
