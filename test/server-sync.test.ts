@@ -481,6 +481,24 @@ describe("sync status", () => {
     expect(await readStatus(config)).toMatchObject({ in_progress: false });
   });
 
+  test("a watcher sync that ingested announces archive_updated with its own reason", async () => {
+    const config = freshConfig();
+    const stream = await handleRequest(new Request("http://127.0.0.1:3000/api/events"), config);
+    const reader = stream.body?.getReader();
+    if (reader == null) throw new Error("missing SSE body");
+    await reader.read();
+    try {
+      applyWatchEvent({ type: "sync", reason: "watch", report, status: idle }, economics);
+      let frames = "";
+      while (!frames.includes("event: archive_updated")) {
+        frames += new TextDecoder().decode((await reader.read()).value);
+      }
+      expect(frames).toContain('data: {"type":"archive_updated","reason":"watch"');
+    } finally {
+      await reader.cancel();
+    }
+  });
+
   test("a new archive counts as synced only after a sync completes", async () => {
     const config = freshConfig();
     const db = openDb(config.dbPath);
