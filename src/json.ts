@@ -2,8 +2,7 @@
 // `block.tool_input`, stringified unknown blocks) is stored with recursively
 // sorted keys and compact separators, so the same record always serializes to
 // the same bytes and goldens can compare it directly. JSON.stringify supplies
-// the string escaping and number formatting; the delta is key order, which must
-// be Unicode code-point order (UTF-8 byte order), not JS UTF-16 order.
+// the string escaping and number formatting; the delta is key order.
 import type { Json } from "./model.ts";
 import { compareCodePoints } from "./order.ts";
 

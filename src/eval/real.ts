@@ -424,7 +424,7 @@ export function prepareRealRun(
   mkdirSync(runDir, { recursive: true });
   git(runDir, "clone", "--quiet", "--local", input.repoPath, repo);
   git(repo, "checkout", "-q", "-B", "agent-benchmarks-base", baseSha);
-  // The agent shares this object store: leave no ref, remote, or reflog that leads to later commits.
+  // The agent shares this object store.
   git(repo, "remote", "remove", "origin");
   for (const ref of git(repo, "for-each-ref", "--format=%(refname)").split("\n"))
     if (ref !== "" && ref !== "refs/heads/agent-benchmarks-base")

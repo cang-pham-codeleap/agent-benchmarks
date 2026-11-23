@@ -675,6 +675,25 @@ describe("exportTrajectory", () => {
     );
     const out = exportTrajectory(db, sessionId);
     expect(out).toEqual({ ok: false, reason: "missing_user_records" });
+    const userOnly = upsertSession(
+      db,
+      parseClaudeSession(
+        "traj-5",
+        JSON.stringify({
+          type: "user",
+          timestamp: "2026-07-01T00:00:00.000Z",
+          message: { role: "user", content: [{ type: "text", text: "anyone there?" }] },
+        }),
+      ),
+      "/t5.jsonl",
+      1,
+      2,
+      "h",
+    );
+    expect(exportTrajectory(db, userOnly)).toEqual({
+      ok: false,
+      reason: "missing_assistant_records",
+    });
     expect(exportTrajectory(db, 999999)).toEqual({ ok: false, reason: "not_found" });
     db.close();
   });

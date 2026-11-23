@@ -69,8 +69,7 @@ function timestamp(value: unknown): number {
 }
 
 /**
- * Projects an ach raw transcript. `seq` is the 0-based line index, so it is a stable cursor;
- * a trailing line without a newline may still be mid-write and is left for the next read.
+ * Projects an ach raw transcript. `seq` is the 0-based line index.
  * `agentStartedAt` is the first event past startup, null while the CLI is still starting.
  */
 export function projectTranscript(raw: string): {

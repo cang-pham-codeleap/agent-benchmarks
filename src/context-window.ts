@@ -98,6 +98,13 @@ export const MESSAGE_RAW_META_SQL = `json_extract(${MESSAGE_METADATA_SQL}, '$.is
   '$.agentId', '$.data.preCompactionTokens', '$.extra.context_management.type',
   '$._compressed_summary', '$.tokensBefore')`;
 
+// SQLite TRIM strips only spaces; enrich's turn rule uses String.prototype.trim.
+export const JS_TRIM_WHITESPACE_CODES = [
+  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
+  0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+];
+const JS_TRIM_WHITESPACE_SQL = `char(${JS_TRIM_WHITESPACE_CODES.join(", ")})`;
+
 export function parseMessageRawMeta(value: string | null, tool?: string): MessageRawMeta {
   const none: MessageRawMeta = {
     isSidechain: false,
@@ -230,11 +237,9 @@ export function contextWindowForSession(
       ? session.explicit_window
       : null;
 
-  // has_text mirrors enrich's hasRealText turn rule (a text block that is not
-  // an interruption marker and not a slash-command wrapper) so per-point turn
-  // numbers line up with the session's stored turn_count. INDEXED BY keeps the
-  // lookup per message: a first sync has no planner statistics, and SQLite
-  // would otherwise scan every text block in the archive for each message.
+  // INDEXED BY keeps the lookup per message: a first sync has no planner
+  // statistics, and SQLite would otherwise scan every text block in the archive
+  // for each message.
   const rows = queryRows<TimelineRow>(
     db,
     `SELECT m.seq, m.timestamp, m.role,
@@ -243,7 +248,7 @@ export function contextWindowForSession(
               EXISTS(
                 SELECT 1 FROM block b INDEXED BY idx_block_message
                 WHERE b.message_id = m.id AND b.type = 'text'
-                  AND TRIM(COALESCE(b.text, '')) != ''
+                  AND TRIM(COALESCE(b.text, ''), ${JS_TRIM_WHITESPACE_SQL}) != ''
                   AND b.text NOT LIKE '[Request interrupted by user%'
                   AND b.text NOT LIKE '%<command-name>%'
               ) AS has_text
