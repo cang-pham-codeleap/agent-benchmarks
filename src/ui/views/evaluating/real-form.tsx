@@ -458,6 +458,7 @@ export function RealTaskForm({
             {combos.map((combo, index) => {
               const info = catalog.harnesses.find((harness) => harness.harness === combo.harness);
               const problem = info?.defaultConfigProblem ?? null;
+              const cleanProblem = info?.cleanConfigProblem ?? null;
               const choices = augmentChoices(
                 catalog,
                 combo.harness,
@@ -475,6 +476,10 @@ export function RealTaskForm({
                         harness: harness as EvalHarness,
                         model: "",
                         default: false,
+                        clean:
+                          combo.clean &&
+                          installed.find((next) => next.harness === harness)?.cleanConfigProblem ==
+                            null,
                         augments: [],
                       })
                     }
@@ -532,17 +537,26 @@ export function RealTaskForm({
                     </TooltipTrigger>
                     {problem && <TooltipContent>{problem}</TooltipContent>}
                   </Tooltip>
-                  <label
-                    htmlFor={fieldId(`clean-${combo.id}`)}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Checkbox
-                      id={fieldId(`clean-${combo.id}`)}
-                      checked={combo.clean}
-                      onCheckedChange={(checked) => updateCombo(index, { clean: checked === true })}
-                    />
-                    Clean (your login, no plugins or hooks)
-                  </label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <label
+                        htmlFor={fieldId(`clean-${combo.id}`)}
+                        className={`flex items-center gap-2 text-sm ${cleanProblem ? "opacity-50" : ""}`}
+                        tabIndex={cleanProblem ? 0 : undefined}
+                      >
+                        <Checkbox
+                          id={fieldId(`clean-${combo.id}`)}
+                          checked={combo.clean}
+                          disabled={cleanProblem != null}
+                          onCheckedChange={(checked) =>
+                            updateCombo(index, { clean: checked === true })
+                          }
+                        />
+                        Clean (your login, no plugins or hooks)
+                      </label>
+                    </TooltipTrigger>
+                    {cleanProblem && <TooltipContent>{cleanProblem}</TooltipContent>}
+                  </Tooltip>
                   <Button
                     type="button"
                     variant="ghost"

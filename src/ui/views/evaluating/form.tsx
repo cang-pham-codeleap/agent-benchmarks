@@ -402,6 +402,12 @@ export function EvalForm({
                       updateSetup(index, {
                         harness: harness as EvalSetup["harness"],
                         model: "",
+                        config:
+                          setup.config === "clean" &&
+                          installed.find((next) => next.harness === harness)?.cleanConfigProblem !=
+                            null
+                            ? "current"
+                            : setup.config,
                         augments: [],
                       })
                     }
@@ -451,7 +457,9 @@ export function EvalForm({
                       <SelectItem value="default" disabled={info?.defaultConfigProblem != null}>
                         Default (no user configuration)
                       </SelectItem>
-                      <SelectItem value="clean">Clean (your login, no plugins or hooks)</SelectItem>
+                      <SelectItem value="clean" disabled={info?.cleanConfigProblem != null}>
+                        Clean (your login, no plugins or hooks)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </label>

@@ -260,6 +260,12 @@ export function defaultConfigProblem(harness: string, env: NodeJS.ProcessEnv): s
   return missing == null ? null : `default config needs ~/${missing}`;
 }
 
+export function cleanConfigProblem(harness: string): string | null {
+  const definition = EVAL_HARNESSES[harness];
+  if (definition == null) return `unknown harness: ${harness}`;
+  return definition.clean == null ? `clean config is not supported for ${definition.label}` : null;
+}
+
 /** Why the augment cannot run for this harness on this machine, or null. */
 export function augmentProblem(
   augment: LoadedAugment,
@@ -310,12 +316,8 @@ export function validateSetupConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): AugmentId[] {
   const definition = EVAL_HARNESSES[harness]!;
-  if (config === "clean" && definition.clean == null)
-    throw new EvalRequestError(
-      `clean config is not supported for ${definition.label}`,
-      400,
-      "config_unsupported",
-    );
+  const cleanProblem = config === "clean" ? cleanConfigProblem(harness) : null;
+  if (cleanProblem != null) throw new EvalRequestError(cleanProblem, 400, "config_unsupported");
   if (rawAugments == null) return [];
   if (!Array.isArray(rawAugments) || rawAugments.some((id) => typeof id !== "string"))
     throw new EvalRequestError("augments must be a list of augment ids", 400, "augment_unknown");
