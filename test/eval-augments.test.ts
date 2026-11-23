@@ -128,6 +128,31 @@ describe("augment boundary", () => {
     ).toContain("clean or default config");
   });
 
+  test("efforts of one model are separate setups; Copilot Fusion takes only its tiers", () => {
+    const input = validateInput(
+      benchmark([
+        { harness: "claude", model: "opus" },
+        { harness: "claude", model: "opus", effort: "max" },
+      ]),
+      noAch,
+      bundled,
+      env(),
+    );
+    expect(input.setups.map((setup) => setup.effort)).toEqual([undefined, "max"]);
+    expect(
+      rejection(
+        benchmark([
+          { harness: "claude", model: "opus" },
+          { harness: "claude", model: "opus", effort: "" },
+        ]),
+      )?.message,
+    ).toBe("duplicate setup: claude:opus:current");
+    expect(
+      rejection(benchmark([{ harness: "copilot", model: "copilot-fusion", effort: "medium" }]))
+        ?.message,
+    ).toBe("effort for copilot-fusion must be one of standard, high, max");
+  });
+
   test("rejects an augment the harness has no recipe for, and clean where unsupported", () => {
     expect(
       rejection(

@@ -820,7 +820,7 @@ augments.
   with no pass loss and `worse` no greater than `better` is `adopt`; anything
   else is `no-saving`. With no token or cost data the verdict is `inconclusive`.
 - **Pooling.** `GET /api/evals/augments` pools the raw pairs of all completed
-  runs sharing harness, harness version, model, config, and augments, then
+  runs sharing harness, harness version, model, effort, config, and augments, then
   applies the same rules. Trials of a task add up across runs only when the
   task's content hash matches. A task without a hash, such as an older run's,
   counts per run. So two small runs of the same tasks can together reach a

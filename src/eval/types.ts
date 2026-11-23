@@ -18,6 +18,8 @@ export interface EvalSetup {
   config: EvalConfigMode;
   /** Sorted and unique; empty for a setup without augments. */
   augments: AugmentId[];
+  /** A level from `effortLevels`; absent runs at the harness and model default. */
+  effort?: string;
 }
 
 export type EvalPresetId = "smoke" | "quick" | "reliability" | "custom";
@@ -350,6 +352,7 @@ export interface AugmentVerdict {
   model: string;
   config: EvalConfigMode;
   augments: AugmentId[];
+  effort?: string;
   /** (task, trial) pairs on tasks that reach the trial floor; thinner tasks are left out. */
   pairs: number;
   /** Fewest paired trials of any counted task; of any task when none reach the floor. */

@@ -160,7 +160,8 @@ function baselineOf(setup: EvalSetup, setups: readonly EvalSetup[]): EvalSetup |
       other.augments.length === 0 &&
       other.harness === setup.harness &&
       other.model === setup.model &&
-      other.config === setup.config,
+      other.config === setup.config &&
+      other.effort === setup.effort,
   );
 }
 
@@ -173,7 +174,7 @@ export function augmentVerdicts(
     if (setup.augments.length === 0) continue;
     const baseline = baselineOf(setup, setups);
     if (!baseline) continue;
-    const { harness, model, config, augments } = setup;
+    const { harness, model, config, augments, effort } = setup;
     const baseKey = setupKey(baseline);
     const augKey = setupKey(setup);
     out.push({
@@ -183,6 +184,7 @@ export function augmentVerdicts(
       model,
       config,
       augments,
+      ...(effort ? { effort } : {}),
       ...verdictFor(buildPairs(cells, baseKey, augKey)),
     });
   }
@@ -204,7 +206,13 @@ export function poolAugmentVerdicts(
   const pools = new Map<
     string,
     {
-      id: { harness: EvalHarness; model: string; config: EvalConfigMode; augments: AugmentId[] };
+      id: {
+        harness: EvalHarness;
+        model: string;
+        config: EvalConfigMode;
+        augments: AugmentId[];
+        effort?: string;
+      };
       harnessVersion: string | null;
       runIds: string[];
       pairs: Pair[];
@@ -216,13 +224,13 @@ export function poolAugmentVerdicts(
       if (setup.augments.length === 0) continue;
       const baseline = baselineOf(setup, run.setups);
       if (!baseline) continue;
-      const { harness, model, config, augments } = setup;
+      const { harness, model, config, augments, effort } = setup;
       const harnessVersion = run.harnessVersions[harness] ?? null;
-      const key = JSON.stringify([harness, harnessVersion, model, config, augments]);
+      const key = JSON.stringify([harness, harnessVersion, model, effort, config, augments]);
       let pool = pools.get(key);
       if (!pool) {
         pool = {
-          id: { harness, model, config, augments },
+          id: { harness, model, config, augments, ...(effort ? { effort } : {}) },
           harnessVersion,
           runIds: [],
           pairs: [],

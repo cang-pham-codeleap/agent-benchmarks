@@ -23,6 +23,7 @@ import type { RequestContext } from "../server/context.ts";
 import { publishServerEvent } from "../server/sse.ts";
 import { syncNow } from "../server/sync.ts";
 import { getAchDir } from "../settings.ts";
+import { COPILOT_FUSION_MODEL } from "../sources/copilot.ts";
 import { augmentVerdicts } from "./augment-verdicts.ts";
 import {
   type AugmentRegistry,
@@ -32,6 +33,7 @@ import {
   runAugments,
 } from "./augments.ts";
 import { readEvalTasks } from "./catalog.ts";
+import { achModel } from "./efforts.ts";
 import { EvalRequestError } from "./errors.ts";
 import {
   achCellId,
@@ -69,6 +71,7 @@ import {
   configGroupEnv,
   EVAL_HARNESSES,
   EVAL_LIMITS,
+  parseEffort,
   rejectDuplicateSetup,
   removeConfigCredentials,
   resolveRecipe,
@@ -202,7 +205,7 @@ async function startBenchmarkRun(
       experiment: `agent-benchmarks-eval-${id}`,
       agents: group.setups.map((setup) => ({
         agent: EVAL_HARNESSES[setup.harness]!.achAgent,
-        models: [setup.model],
+        models: [achModel(setup)],
       })),
       tasks: input.taskIds.map((taskId) => ({ dir: join(runDir, "tasks", taskId) })),
       trials: input.trials,
@@ -246,7 +249,7 @@ async function startRealRun(
           cellId: achCellId(setup, taskId, trial),
           agent: EVAL_HARNESSES[setup.harness]?.achAgent ?? setup.harness,
           task: taskId,
-          model: setup.model,
+          model: achModel(setup),
           trial,
           status: "skipped-unavailable",
           runId: null,
@@ -261,7 +264,7 @@ async function startRealRun(
       Array.from(
         { length: input.trials },
         (_, trial) =>
-          `${group.key} → ${EVAL_HARNESSES[setup.harness]?.achAgent ?? setup.harness} → ${taskId} → ${setup.model} → ${trial + 1}`,
+          `${group.key} → ${EVAL_HARNESSES[setup.harness]?.achAgent ?? setup.harness} → ${taskId} → ${achModel(setup)} → ${trial + 1}`,
       ),
     ),
   );
@@ -672,13 +675,13 @@ function spawnGroup(
   ];
   if (retryFailed) args.push("--retry-failed");
   if (hermeticRoot != null) mkdirSync(hermeticRoot, { recursive: true });
-  const harnesses = [
-    ...new Set(
-      manifest.input.setups
-        .filter((setup) => groupId(setup.config, setup.augments).key === group.key)
-        .map((setup) => setup.harness),
-    ),
-  ];
+  const groupSetups = manifest.input.setups.filter(
+    (setup) => groupId(setup.config, setup.augments).key === group.key,
+  );
+  const harnesses = [...new Set(groupSetups.map((setup) => setup.harness))];
+  const effortHarnesses = new Set(
+    groupSetups.filter((setup) => setup.effort).map((setup) => setup.harness),
+  );
   const env: Record<string, string | undefined> = {
     ...process.env,
     ...configGroupEnv(group.config, runDir, harnesses),
@@ -711,6 +714,7 @@ function spawnGroup(
     hermeticRoot == null,
     env.PATH ?? "",
     definitions,
+    effortHarnesses,
   );
   if (bin != null) env.PATH = `${bin}:${env.PATH ?? ""}`;
   for (const [key, value] of Object.entries(env)) if (value === undefined) delete env[key];
@@ -775,6 +779,39 @@ const HARNESS_SHIMS: {
   },
 ];
 
+/** How each CLI takes a reasoning effort, given `$model` and `$effort` split from ach's `<model>#<effort>`.
+ * OpenCode reads `provider/model#variant` itself, so it needs no split. */
+const EFFORT_ARGS: Record<string, string> = {
+  claude: '--effort "$effort"',
+  codex: '-c "model_reasoning_effort=$effort"',
+  copilot: `"$([ "$model" = ${COPILOT_FUSION_MODEL} ] && echo --fusion-tier || echo --reasoning-effort)" "$effort"`,
+  omp: '"--thinking=$effort"',
+  droid: '--reasoning-effort "$effort"',
+};
+
+/** Rewrites "$@" so the value of `--model`, `-m`, or `--model=` loses its `#<effort>` suffix and the
+ * effort follows it as the CLI's own flag, before any prompt argument. */
+function effortSplit(effortArgs: string): string {
+  return [
+    "want=",
+    "for arg do shift",
+    "  pre=",
+    '  if [ -z "$want" ]; then',
+    '    case "$arg" in',
+    '      --model|-m) want=1; set -- "$@" "$arg"; continue;;',
+    "      --model=*) pre=--model=; arg=${arg#--model=};;",
+    '      *) set -- "$@" "$arg"; continue;;',
+    "    esac",
+    "  fi",
+    "  want=",
+    '  case "$arg" in',
+    `    *'#'*) model=\${arg%%#*} effort=\${arg#*#}; set -- "$@" "$pre$model" ${effortArgs};;`,
+    '    *) set -- "$@" "$pre$arg";;',
+    "  esac",
+    "done",
+  ].join("\n");
+}
+
 const JSON_ESCAPE = `sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g'`;
 
 /** Runs a group's prepare commands once per cell workspace, before the agent starts. The marker file
@@ -815,7 +852,8 @@ function prepareBlock(
 }
 
 /** Writes the group's recipe files and one PATH shim per harness in `runDir/bin/<group key>/`.
- * Returns that directory, or null when no harness in the group needs a shim. */
+ * `effortHarnesses` run a setup with an effort in this group. Returns that directory, or null when no
+ * harness in the group needs a shim. */
 export function writeHarnessShims(
   runDir: string,
   group: RunGroupId,
@@ -823,6 +861,7 @@ export function writeHarnessShims(
   realTask: boolean,
   path: string,
   definitions: Readonly<Record<AugmentId, AugmentDefinition>>,
+  effortHarnesses: ReadonlySet<string> = new Set(),
 ): string | null {
   const bin = join(runDir, "bin", group.key);
   const dir = augmentsDir(runDir);
@@ -841,7 +880,8 @@ export function writeHarnessShims(
       dir,
     );
     const extra = recipe.args.map(shellQuote).join(" ");
-    if (shim == null && extra === "" && recipe.prepare.length === 0) continue;
+    const effortArgs = effortHarnesses.has(harness) ? EFFORT_ARGS[harness] : undefined;
+    if (shim == null && extra === "" && recipe.prepare.length === 0 && effortArgs == null) continue;
     const installed = Bun.which(harness, { PATH: path });
     if (installed == null) continue;
     Object.assign(fileHashes, writeRecipeFiles(dir, recipe.files));
@@ -852,6 +892,7 @@ export function writeHarnessShims(
       "#!/bin/sh",
       ...(group.augments.length > 0 || group.config === "clean" ? [probeGuard] : []),
       ...(recipe.prepare.length > 0 ? [prepareBlock(runDir, group, harness, recipe.prepare)] : []),
+      ...(effortArgs == null ? [] : [effortSplit(effortArgs)]),
       body,
     ];
     mkdirSync(bin, { recursive: true });
@@ -1030,6 +1071,7 @@ export function validateInput(
         "config_unsupported",
       );
     const config = setup.config ?? "current";
+    const effort = parseEffort(setup.harness, setup.model, setup.effort);
     const normalized: EvalSetup = {
       harness: setup.harness,
       model: setup.model,
@@ -1041,6 +1083,7 @@ export function validateInput(
         registry,
         env,
       ),
+      ...(effort ? { effort } : {}),
     };
     rejectDuplicateSetup(keys, normalized);
     if (

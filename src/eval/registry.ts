@@ -11,6 +11,7 @@ import {
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import type { AugmentRegistry, LoadedAugment } from "./augments.ts";
+import { effortLevels } from "./efforts.ts";
 import { EvalRequestError } from "./errors.ts";
 import { setupKey } from "./stats.ts";
 import type {
@@ -354,6 +355,21 @@ export function validateSetupConfig(
       "augments_unsupported",
     );
   return augments;
+}
+
+/** Accepts a setup's effort from a request body; missing or empty means the harness default. */
+export function parseEffort(harness: string, model: string, raw: unknown): string | undefined {
+  if (raw == null || raw === "") return undefined;
+  const levels = effortLevels(harness, model);
+  if (typeof raw !== "string" || !levels.includes(raw))
+    throw new EvalRequestError(
+      levels.length === 0
+        ? `effort is not supported for ${EVAL_HARNESSES[harness]?.label ?? harness}`
+        : `effort for ${model} must be one of ${levels.join(", ")}`,
+      400,
+      "effort_unsupported",
+    );
+  return raw;
 }
 
 /** Throws on a duplicate; the key is the same one that labels the setup's cells. */

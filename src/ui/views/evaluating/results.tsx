@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   type CellOutcome,
@@ -27,36 +27,17 @@ import {
   type EvalRunManifest,
   GRADED_OUTCOME,
 } from "../../../eval/types.ts";
-import { Badge as ToneBadge, ToolBadge } from "../../badges.tsx";
-import { durationPrecise, money } from "../../format.ts";
+import { Badge as ToneBadge } from "../../badges.tsx";
+import { money } from "../../format.ts";
 import { setupText } from "../evaluating-form.ts";
 import { AugmentVerdictTable } from "./augments.tsx";
-import { harnessTool, OUTCOME_TONE } from "./tones.ts";
+import { CostTimeScatter, duration, Help, Leaders, percent, Scoreboard } from "./scoreboard.tsx";
 
-const percent = (value: number | null) =>
-  value == null ? "Unavailable" : `${(value * 100).toFixed(1)}%`;
-const duration = (value: number | null) => (value == null ? "Unavailable" : durationPrecise(value));
 const verdict = {
   inconclusive: "Inconclusive on this sample",
   "consistently-better": "Consistently better on this sample",
   "consistently-worse": "Consistently worse on this sample",
 } as const;
-
-function Help({ text, children }: { text: string; children: React.ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          className="cursor-help underline decoration-dotted underline-offset-4"
-        >
-          {children}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs">{text}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 export function EvalResultsView({
   results,
@@ -81,269 +62,176 @@ export function EvalResultsView({
     manifest.input.kind === "real"
       ? [...new Set(cells.map((cell) => cell.taskId))]
       : manifest.input.taskIds;
+  const descriptive = tasks.length < 20 || setups.some((setup) => setup.eligibleTasks < 20);
+  const totalSpend = setups.reduce((sum, setup) => sum + (setup.spendUsd ?? 0), 0);
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">Public tasks, verifier readable by agent</Badge>
-          {(tasks.length < 20 || setups.some((setup) => setup.eligibleTasks < 20)) && (
-            <Badge variant="secondary">Descriptive only</Badge>
-          )}
-        </div>
-        {results.warnings.map((warning, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: warning strings may repeat
-          <Alert key={`${index}-${warning}`}>
-            <AlertDescription>{warning}</AlertDescription>
-          </Alert>
-        ))}
         <Card>
           <CardHeader>
             <CardTitle>Results</CardTitle>
             <CardDescription>
-              {manifest.input.name} · {manifest.status} · Pass rate is the task mean over the common
-              eligible tasks.
+              {setups.length} setups · {tasks.length} tasks × {manifest.input.trials} trials ·{" "}
+              {money(totalSpend)} spend
             </CardDescription>
+            {results.warnings.length > 0 && (
+              <details className="text-sm text-muted-foreground">
+                <summary className="w-max cursor-pointer">
+                  {descriptive ? "Descriptive results, not a ranking" : "Read before comparing"} ·{" "}
+                  {results.warnings.length} notes
+                </summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {results.warnings.map((warning, index) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: warning strings may repeat
+                    <li key={`${index}-${warning}`}>{warning}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </CardHeader>
           <CardContent className="space-y-5">
-            <section
-              className="overflow-x-auto rounded-md border"
-              aria-label="Evaluation summary"
-              // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll container so keyboard users can scroll the table
-              tabIndex={0}
-            >
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Setup</TableHead>
-                    <TableHead>Pass rate</TableHead>
-                    <TableHead>pass@k</TableHead>
-                    <TableHead>pass^k</TableHead>
-                    <TableHead>Spend</TableHead>
-                    <TableHead>Cost/solved</TableHead>
-                    <TableHead>Time/solved</TableHead>
-                    <TableHead>Agent p50 / p95</TableHead>
-                    <TableHead>Outcomes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {setups.map((summary) => (
-                    <TableRow key={summary.setupKey}>
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-1">
-                          <ToolBadge tool={harnessTool(summary.setup.harness)} />
-                          <span>{summary.setup.model}</span>
-                          <Badge variant="secondary">{summary.setup.config}</Badge>
-                          {summary.setup.augments.map((id) => (
-                            <Badge key={id} variant="outline">
-                              +{id}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {percent(summary.passRate)}
-                        {summary.passRateCi && (
-                          <span className="block text-xs text-muted-foreground">
-                            95% CI {percent(summary.passRateCi.lo)}–{percent(summary.passRateCi.hi)}{" "}
-                            · fixed suite, {summary.eligibleTasks} tasks
-                          </span>
-                        )}
-                        <span className="block text-xs text-muted-foreground">
-                          {summary.graded}/{summary.planned} graded/planned
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {summary.passAtK == null ? (
-                          <Help text={summary.kUnavailableReason || "Not enough graded trials."}>
-                            Unavailable
-                          </Help>
-                        ) : (
-                          <>
-                            {percent(summary.passAtK)}{" "}
-                            <span className="text-muted-foreground">(k={summary.k})</span>
-                          </>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {summary.passHatK == null ? (
-                          <Help text={summary.kUnavailableReason || "Not enough graded trials."}>
-                            Unavailable
-                          </Help>
-                        ) : (
-                          <>
-                            {percent(summary.passHatK)}{" "}
-                            <span className="text-muted-foreground">(k={summary.k})</span>
-                          </>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {summary.spendUsd == null
-                          ? summary.priced.priced
-                            ? `Priced subtotal ${money(summary.pricedSubtotalUsd)}, ${summary.priced.priced}/${summary.priced.total} cells`
-                            : `Unavailable, 0/${summary.priced.total} cells priced`
-                          : money(summary.spendUsd)}
-                      </TableCell>
-                      <TableCell>
-                        {summary.costPerSolvedUsd == null
-                          ? summary.passed === 0 && summary.graded > 0
-                            ? "No solved tasks"
-                            : "Unavailable"
-                          : money(summary.costPerSolvedUsd)}
-                      </TableCell>
-                      <TableCell>{duration(summary.timePerSolvedMs)}</TableCell>
-                      <TableCell>
-                        {duration(summary.agentP50Ms)} / {duration(summary.agentP95Ms)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex min-w-36 flex-wrap gap-1">
-                          {Object.entries(summary.outcomes)
-                            .filter(([, count]) => count > 0)
-                            .map(([outcome, count]) => (
-                              <ToneBadge key={outcome} tone={OUTCOME_TONE[outcome as CellOutcome]}>
-                                {outcome} {count}
-                              </ToneBadge>
-                            ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </section>
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold">Paired comparison</h3>
+            {setups.length > 1 && <Leaders setups={setups} />}
+            <Scoreboard setups={setups} />
+            <Tabs defaultValue={setups.length > 1 ? "scatter" : "tasks"}>
+              <TabsList>
+                {setups.length > 1 && <TabsTrigger value="scatter">Cost vs time</TabsTrigger>}
+                {setups.length > 1 && <TabsTrigger value="paired">Paired comparison</TabsTrigger>}
+                <TabsTrigger value="tasks">Task × setup</TabsTrigger>
+              </TabsList>
+              <TabsContent value="scatter" className="pt-3">
+                <CostTimeScatter setups={setups} />
+              </TabsContent>
+              <TabsContent value="paired" className="space-y-3 pt-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">
                     Compare pass proportions on the same tasks.
                   </p>
+                  <label className="flex items-center gap-2 text-sm">
+                    Baseline
+                    <Select value={selectedBaseline} onValueChange={setBaseline}>
+                      <SelectTrigger className="w-56" aria-label="Baseline setup">
+                        <SelectValue placeholder="Choose baseline" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {setups.map((setup) => (
+                          <SelectItem key={setup.setupKey} value={setup.setupKey}>
+                            {setupText(setup.setup)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
                 </div>
-                <label className="flex items-center gap-2 text-sm">
-                  Baseline
-                  <Select value={selectedBaseline} onValueChange={setBaseline}>
-                    <SelectTrigger className="w-56" aria-label="Baseline setup">
-                      <SelectValue placeholder="Choose baseline" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {setups.map((setup) => (
-                        <SelectItem key={setup.setupKey} value={setup.setupKey}>
-                          {setupText(setup.setup)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </label>
-              </div>
-              {pairs.length ? (
-                <div className="overflow-x-auto rounded-md border">
+                {pairs.length ? (
+                  <div className="overflow-x-auto rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Setup</TableHead>
+                          <TableHead>Better tasks</TableHead>
+                          <TableHead>Worse tasks</TableHead>
+                          <TableHead>Tied tasks</TableHead>
+                          <TableHead>Verdict</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pairs.map((pair) => (
+                          <TableRow key={pair.other}>
+                            <TableCell>
+                              {byKey.has(pair.other)
+                                ? setupText(byKey.get(pair.other)!.setup)
+                                : pair.other}
+                            </TableCell>
+                            <TableCell>{pair.better}</TableCell>
+                            <TableCell>{pair.worse}</TableCell>
+                            <TableCell>{pair.tied}</TableCell>
+                            <TableCell>{verdict[pair.verdict]}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No paired comparisons available for this baseline.
+                  </p>
+                )}
+              </TabsContent>
+              <TabsContent value="tasks" className="space-y-3 pt-3">
+                <p className="text-sm text-muted-foreground">
+                  Passed / graded trials; unavailable outcomes are not graded.
+                </p>
+                <section
+                  className="overflow-x-auto rounded-md border"
+                  aria-label="Task by setup results"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll container so keyboard users can scroll the table
+                  tabIndex={0}
+                >
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Setup</TableHead>
-                        <TableHead>Better tasks</TableHead>
-                        <TableHead>Worse tasks</TableHead>
-                        <TableHead>Tied tasks</TableHead>
-                        <TableHead>Verdict</TableHead>
+                        <TableHead>Task</TableHead>
+                        {setups.map((setup) => (
+                          <TableHead key={setup.setupKey}>{setupText(setup.setup)}</TableHead>
+                        ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pairs.map((pair) => (
-                        <TableRow key={pair.other}>
-                          <TableCell>
-                            {byKey.has(pair.other)
-                              ? setupText(byKey.get(pair.other)!.setup)
-                              : pair.other}
-                          </TableCell>
-                          <TableCell>{pair.better}</TableCell>
-                          <TableCell>{pair.worse}</TableCell>
-                          <TableCell>{pair.tied}</TableCell>
-                          <TableCell>{verdict[pair.verdict]}</TableCell>
+                      {tasks.map((task) => (
+                        <TableRow key={task}>
+                          <TableHead scope="row">{task}</TableHead>
+                          {setups.map((setup) => {
+                            const trials = cells.filter(
+                              (cell) => cell.taskId === task && cell.setupKey === setup.setupKey,
+                            );
+                            const graded = trials.filter((cell) => GRADED_OUTCOME[cell.outcome]);
+                            const passed = graded.filter(
+                              (cell) => cell.outcome === "passed",
+                            ).length;
+                            const rate = graded.length ? passed / graded.length : null;
+                            return (
+                              <TableCell key={setup.setupKey}>
+                                <span
+                                  className={`inline-block rounded px-2 py-1 ${rate == null ? "bg-muted text-muted-foreground" : rate === 1 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : rate === 0 ? "bg-destructive/10 text-destructive" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}`}
+                                >
+                                  <Help
+                                    text={
+                                      trials.length
+                                        ? trials
+                                            .map((cell) => `Trial ${cell.trial}: ${cell.outcome}`)
+                                            .join("; ")
+                                        : "No trials recorded"
+                                    }
+                                  >
+                                    {passed}/{graded.length}{" "}
+                                    {rate == null ? "ungraded" : percent(rate)}
+                                  </Help>
+                                </span>
+                                <span className="mt-1 flex flex-wrap gap-1">
+                                  {trials.map((cell) => (
+                                    <Button
+                                      key={cell.cellId}
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs"
+                                      aria-label={`Watch ${setupText(setup.setup)} ${task} trial ${cell.trial}`}
+                                      onClick={() => onOpenCell(cell.cellId)}
+                                    >
+                                      Watch t{cell.trial}
+                                    </Button>
+                                  ))}
+                                </span>
+                              </TableCell>
+                            );
+                          })}
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No paired comparisons available for this baseline.
-                </p>
-              )}
-            </div>
-            <div className="space-y-3">
-              <div>
-                <h3 className="font-semibold">Task × setup</h3>
-                <p className="text-sm text-muted-foreground">
-                  Passed / graded trials; unavailable outcomes are not graded.
-                </p>
-              </div>
-              <section
-                className="overflow-x-auto rounded-md border"
-                aria-label="Task by setup results"
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll container so keyboard users can scroll the table
-                tabIndex={0}
-              >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Task</TableHead>
-                      {setups.map((setup) => (
-                        <TableHead key={setup.setupKey}>{setupText(setup.setup)}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tasks.map((task) => (
-                      <TableRow key={task}>
-                        <TableHead scope="row">{task}</TableHead>
-                        {setups.map((setup) => {
-                          const trials = cells.filter(
-                            (cell) => cell.taskId === task && cell.setupKey === setup.setupKey,
-                          );
-                          const graded = trials.filter((cell) => GRADED_OUTCOME[cell.outcome]);
-                          const passed = graded.filter((cell) => cell.outcome === "passed").length;
-                          const rate = graded.length ? passed / graded.length : null;
-                          return (
-                            <TableCell key={setup.setupKey}>
-                              <span
-                                className={`inline-block rounded px-2 py-1 ${rate == null ? "bg-muted text-muted-foreground" : rate === 1 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : rate === 0 ? "bg-destructive/10 text-destructive" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}`}
-                              >
-                                <Help
-                                  text={
-                                    trials.length
-                                      ? trials
-                                          .map((cell) => `Trial ${cell.trial}: ${cell.outcome}`)
-                                          .join("; ")
-                                      : "No trials recorded"
-                                  }
-                                >
-                                  {passed}/{graded.length}{" "}
-                                  {rate == null ? "ungraded" : percent(rate)}
-                                </Help>
-                              </span>
-                              <span className="mt-1 flex flex-wrap gap-1">
-                                {trials.map((cell) => (
-                                  <Button
-                                    key={cell.cellId}
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    aria-label={`Watch ${setupText(setup.setup)} ${task} trial ${cell.trial}`}
-                                    onClick={() => onOpenCell(cell.cellId)}
-                                  >
-                                    Watch t{cell.trial}
-                                  </Button>
-                                ))}
-                              </span>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </section>
-            </div>
+                </section>
+              </TabsContent>
+            </Tabs>
             {(manifest.status === "interrupted" || manifest.status === "cancelled") && (
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">
