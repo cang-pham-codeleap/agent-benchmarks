@@ -169,6 +169,7 @@ describe("inspectRepo", () => {
     const inspection = real.inspectRepo(repo, fixSha.slice(0, 7), profiles);
     expect(inspection.path).toBe(repo);
     expect(inspection.branch).toBe("main");
+    expect(inspection.branches).toEqual(["main"]);
     expect(inspection.dirty).toBe(false);
     expect(inspection.recentCommits.map((c) => c.subject)).toEqual(["later", "fix + test", "base"]);
     expect(inspection.commit).toEqual({
@@ -337,6 +338,57 @@ describe("prepareRealRun and real-verify", () => {
       files: [{ path: "test/x.test.js", passed: false }],
     });
     expect(result.diffStat.files).toEqual(["notes.txt"]);
+  });
+});
+
+describe("branchPrefix", () => {
+  const sonnet = { harness: "claude", model: "sonnet", config: "current" };
+
+  test("refuses branch names that collide or already exist", () => {
+    expect(
+      errorCode(() =>
+        validate(
+          replayInput({
+            setups: [
+              { ...sonnet, branchPrefix: "eval/same" },
+              { ...sonnet, model: "opus", branchPrefix: "eval/same" },
+            ],
+          }),
+        ),
+      ),
+    ).toBe("invalid_request");
+    expect(
+      errorCode(() => validate(replayInput({ setups: [{ ...sonnet, branchPrefix: "main" }] }))),
+    ).toBe("invalid_request");
+    expect(
+      errorCode(() =>
+        validate(replayInput({ setups: [{ ...sonnet, branchPrefix: "bad..name" }] })),
+      ),
+    ).toBe("invalid_request");
+  });
+
+  test("pushes each cell's work to the repository without the hidden files", () => {
+    const runDir = join(root, "run-branch");
+    const input = validate(replayInput({ setups: [{ ...sonnet, branchPrefix: " eval/run " }] }));
+    expect(input.setups[0]?.branchPrefix).toBe("eval/run");
+    const prepared = real.prepareRealRun(input, runDir, {});
+    const cell = `claude:${prepared.taskId}:sonnet:trial1`;
+    const worktree = join(root, "cell-branch");
+    git(join(runDir, "repo"), "worktree", "add", "-q", "-b", "cell-branch", worktree, "HEAD");
+    write(worktree, "src/x.js", fixed);
+    const run = Bun.spawnSync(["bun", verifyScript, join(runDir, "real-spec.json"), "current"], {
+      cwd: worktree,
+      env: { ...process.env, ACH_CELL_ID: cell, ACH_WORKSPACE: worktree },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(run.exitCode).toBe(0);
+    expect(git(repo, "rev-parse", "eval/run/current-t1^")).toBe(prepared.baseSha);
+    expect(git(repo, "show", "eval/run/current-t1:src/x.js")).toBe(fixed.trim());
+    expect(git(repo, "ls-tree", "-r", "--name-only", "eval/run/current-t1")).not.toContain(
+      "x.test.js",
+    );
+    expect(git(repo, "status", "--porcelain")).toBe("");
   });
 });
 

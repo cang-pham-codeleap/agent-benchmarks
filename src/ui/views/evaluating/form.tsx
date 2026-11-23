@@ -225,31 +225,33 @@ function SaveComboDialog({
   );
 }
 
-export function ModelPicker({
-  info,
-  model,
+export function ValuePicker({
+  options,
+  value,
   onChange,
-  index,
   label,
+  placeholder,
+  describedBy,
 }: {
-  info: EvalHarnessInfo | undefined;
-  model: string;
-  onChange: (model: string) => void;
-  index: number;
-  label?: string;
+  options: readonly string[];
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  placeholder: string;
+  describedBy?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const pick = (value: string) => {
-    onChange(value);
+  const pick = (next: string) => {
+    onChange(next);
     setOpen(false);
   };
   return (
     <Popover
       open={open}
-      onOpenChange={(value) => {
-        setOpen(value);
-        if (value) setSearch(model);
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setSearch("");
       }}
     >
       <PopoverTrigger asChild>
@@ -258,43 +260,40 @@ export function ModelPicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-label={label ?? `Model for setup ${index + 1}`}
+          aria-label={label}
+          aria-describedby={describedBy}
           className="w-full justify-between font-normal"
         >
-          <span className="truncate">{model || "Choose or enter a model"}</span>
+          <span className="truncate">{value || placeholder}</span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            aria-label="Search or enter a model"
-            placeholder="Search or enter a model"
+            aria-label={placeholder}
+            placeholder={placeholder}
             value={search}
             onValueChange={setSearch}
             onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                search.trim() &&
-                !info?.knownModels.includes(search.trim())
-              ) {
+              if (event.key === "Enter" && search.trim() && !options.includes(search.trim())) {
                 event.preventDefault();
                 pick(search.trim());
               }
             }}
           />
           <CommandList>
-            {info?.knownModels
+            {options
               .filter((option) => option.toLowerCase().includes(search.toLowerCase()))
               .map((option) => (
                 <CommandItem key={option} value={option} onSelect={() => pick(option)}>
                   <Check
-                    className={`mr-2 size-4 ${model === option ? "opacity-100" : "opacity-0"}`}
+                    className={`mr-2 size-4 ${value === option ? "opacity-100" : "opacity-0"}`}
                   />
                   {option}
                 </CommandItem>
               ))}
-            {search.trim() && !info?.knownModels.includes(search.trim()) && (
+            {search.trim() && !options.includes(search.trim()) && (
               <CommandItem value={search.trim()} onSelect={() => pick(search.trim())}>
                 Use “{search.trim()}”
               </CommandItem>
@@ -412,10 +411,11 @@ export function EvalForm({
                 </label>
                 <div className="grid min-w-48 flex-1 gap-2 text-sm">
                   <span>Model</span>
-                  <ModelPicker
-                    index={index}
-                    info={info}
-                    model={setup.model}
+                  <ValuePicker
+                    options={info?.knownModels ?? []}
+                    label={`Model for setup ${index + 1}`}
+                    placeholder="Choose or enter a model"
+                    value={setup.model}
                     onChange={(model) => updateSetup(index, { model })}
                   />
                 </div>

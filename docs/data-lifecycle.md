@@ -938,10 +938,16 @@ which becomes the cell's `prepMs`. A failed step exits with code 97 and the
 cell's outcome is `setup-error`. Manifests written before augments existed read
 back with `augments: []`.
 
-A real-task run never writes to your repository. Each cell works in its own
-git worktree of the private clone, and `ach trial --cleanup` removes the
-worktree once the cell's diff and logs are saved; its branch stays in the
-clone. The clone stays until you delete the run.
+A real-task run writes to your repository only when a setup carries
+`branchPrefix` (the form's Worktree branch field). Then, when the agent finishes, each
+cell's changes become one commit on the base, pushed to your repository as
+`<branchPrefix>/<config>[+<augment>…]-t<trial>`. Check out the branch or run
+`git worktree add` on it to inspect the agent's work; delete it with
+`git branch -D` when done. The run refuses branch names that already exist and
+never overwrites one. Each cell works in its own git worktree of the private
+clone, and `ach trial --cleanup` removes the worktree once the cell's diff and
+logs are saved; its branch stays in the clone. The clone stays until you delete
+the run.
 
 `evals/repo-profiles.json` remembers the setup command, checks, and
 hidden-test command last used for each repository, keyed by its real path.

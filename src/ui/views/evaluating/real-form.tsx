@@ -1,5 +1,5 @@
-import { Plus, Trash2 } from "lucide-react";
-import { useId, useState } from "react";
+import { FolderOpen, Plus, Trash2 } from "lucide-react";
+import { type ReactNode, useId, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,14 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cellBranch } from "../../../eval/cell-branch.ts";
 import type {
   AugmentId,
   EvalCatalog,
   EvalHarness,
   EvalSetup,
   RealRunInput,
+  RealSetup,
   RepoInspection,
 } from "../../../eval/types.ts";
 import { getJson } from "../../api.ts";
@@ -30,7 +32,7 @@ import {
   realStartReason,
   toggleAugment,
 } from "../evaluating-form.ts";
-import { ModelPicker } from "./form.tsx";
+import { ValuePicker } from "./form.tsx";
 
 interface Combo {
   id: number;
@@ -40,6 +42,8 @@ interface Combo {
   default: boolean;
   clean: boolean;
   augments: AugmentId[];
+  /** Empty means the row's placeholder prefix. */
+  branchPrefix: string;
 }
 
 let nextComboId = 0;
@@ -57,6 +61,21 @@ function comboSetups(combo: Combo): EvalSetup[] {
 const textareaClass =
   "w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
+const PREVIEW_BRANCHES = 4;
+
+function Hint({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <p id={id} className="text-xs font-normal text-muted-foreground">
+      {children}
+    </p>
+  );
+}
+
+function timestamp(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`;
+}
+
 export function RealTaskForm({
   catalog,
   busy,
@@ -69,6 +88,8 @@ export function RealTaskForm({
   const installed = catalog.harnesses.filter((harness) => harness.installed);
   const uid = useId();
   const fieldId = (field: string) => `${uid}-${field}`;
+  const hintId = (field: string) => `${uid}-${field}-hint`;
+  const [stamp] = useState(() => timestamp(new Date()));
   const [name, setName] = useState(`Real task ${new Date().toLocaleDateString()}`);
   const [repoPath, setRepoPath] = useState("");
   const [repo, setRepo] = useState<RepoInspection | null>(null);
@@ -91,6 +112,7 @@ export function RealTaskForm({
             default: false,
             clean: false,
             augments: [],
+            branchPrefix: "",
           },
         ]
       : [],
@@ -123,7 +145,26 @@ export function RealTaskForm({
     }
   }
 
-  const setups = combos.flatMap(comboSetups);
+  async function pickRepo() {
+    setError(null);
+    try {
+      const { path } = await getJson<{ path: string | null }>("/api/evals/repo/pick", {
+        method: "POST",
+        body: JSON.stringify(repoPath.trim().startsWith("/") ? { startPath: repoPath.trim() } : {}),
+      });
+      if (path == null) return;
+      setRepoPath(path);
+      await inspect(path, type === "replay" && sha.trim() ? sha.trim() : null);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure));
+    }
+  }
+
+  const prefixOf = (combo: Combo, index: number) =>
+    combo.branchPrefix.trim() || `eval/${stamp}/${combo.harness}-${index + 1}`;
+  const setups: RealSetup[] = combos.flatMap((combo, index) =>
+    comboSetups(combo).map((setup) => ({ ...setup, branchPrefix: prefixOf(combo, index) })),
+  );
   const input: RealRunInput = {
     kind: "real",
     name,
@@ -169,6 +210,7 @@ export function RealTaskForm({
         default: setup.config === "default",
         clean: setup.config === "clean",
         augments: setup.augments,
+        branchPrefix: "",
       })),
       ...combos.slice(index + 1),
     ]);
@@ -190,33 +232,41 @@ export function RealTaskForm({
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-wrap gap-4">
-          <label
-            htmlFor={fieldId("name")}
-            className="grid min-w-64 flex-1 gap-2 text-sm font-medium"
-          >
-            Name
+          <div className="grid min-w-64 flex-1 content-start gap-2 text-sm font-medium">
+            <label htmlFor={fieldId("name")}>Name</label>
             <Input
               id={fieldId("name")}
+              aria-describedby={hintId("name")}
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
-          </label>
-          <label
-            htmlFor={fieldId("repo")}
-            className="grid min-w-64 flex-[2] gap-2 text-sm font-medium"
-          >
-            Repository path
-            <Input
-              id={fieldId("repo")}
-              value={repoPath}
-              placeholder="/absolute/path/to/repo"
-              onChange={(event) => setRepoPath(event.target.value)}
-              onBlur={() => void inspect(repoPath, null)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void inspect(repoPath, null);
-              }}
-            />
-          </label>
+            <Hint id={hintId("name")}>Shown in the run list and the report.</Hint>
+          </div>
+          <div className="grid min-w-64 flex-[2] content-start gap-2 text-sm font-medium">
+            <label htmlFor={fieldId("repo")}>Repository</label>
+            <div className="flex gap-2">
+              <Input
+                id={fieldId("repo")}
+                aria-describedby={hintId("repo")}
+                value={repoPath}
+                placeholder="/absolute/path/to/repo"
+                onChange={(event) => setRepoPath(event.target.value)}
+                onBlur={() => void inspect(repoPath, null)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void inspect(repoPath, null);
+                }}
+              />
+              {catalog.canPickFolder && (
+                <Button type="button" variant="outline" onClick={() => void pickRepo()}>
+                  <FolderOpen /> Choose…
+                </Button>
+              )}
+            </div>
+            <Hint id={hintId("repo")}>
+              The git repository the agents work on. Each run uses a private clone, so your
+              uncommitted changes are left out and your checkout is never touched.
+            </Hint>
+          </div>
         </div>
         {repo?.dirty && (
           <Alert>
@@ -231,76 +281,101 @@ export function RealTaskForm({
             type="single"
             variant="outline"
             aria-labelledby="real-task-type"
+            aria-describedby={hintId("type")}
             value={type}
             onValueChange={(value) => value && setType(value as "prompt" | "replay")}
           >
             <ToggleGroupItem value="prompt">Prompt</ToggleGroupItem>
             <ToggleGroupItem value="replay">Replay commit</ToggleGroupItem>
           </ToggleGroup>
+          <Hint id={hintId("type")}>
+            Prompt: the agents do a task you describe. Replay commit: the agents redo a commit from
+            the history, starting at its parent, and its tests grade them.
+          </Hint>
         </div>
         {type === "prompt" ? (
-          <label htmlFor={fieldId("base")} className="grid max-w-md gap-2 text-sm font-medium">
-            Base ref
-            <Input
-              id={fieldId("base")}
+          <div className="grid max-w-md gap-2 text-sm font-medium">
+            <span aria-hidden="true">Base ref</span>
+            <ValuePicker
+              options={repo?.branches ?? []}
+              label="Base ref"
+              placeholder={repo ? "Choose a branch or enter a ref" : "Choose a repository first"}
+              describedBy={hintId("base")}
               value={baseRef}
-              onChange={(event) => setBaseRef(event.target.value)}
+              onChange={setBaseRef}
             />
-          </label>
+            <Hint id={hintId("base")}>
+              The branch, tag, or commit the agents start from. The list shows the repository's
+              branches, newest first.
+            </Hint>
+          </div>
         ) : (
-          <div className="flex flex-wrap gap-4">
-            <div className="grid min-w-64 flex-[2] gap-2 text-sm font-medium">
-              <span aria-hidden="true">Recent commit</span>
-              <Select
-                value={repo?.recentCommits.some((item) => item.sha === sha) ? sha : ""}
-                onValueChange={(value) => {
-                  setSha(value);
-                  void inspect(repoPath, value);
-                }}
-                disabled={!repo}
-              >
-                <SelectTrigger aria-label="Recent commit">
-                  <SelectValue placeholder="Choose a commit" />
-                </SelectTrigger>
-                <SelectContent>
-                  {repo?.recentCommits.map((item) => (
-                    <SelectItem key={item.sha} value={item.sha}>
-                      {item.sha.slice(0, 8)} {item.subject}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="grid gap-2">
+            <div className="flex flex-wrap gap-4">
+              <div className="grid min-w-64 flex-[2] gap-2 text-sm font-medium">
+                <span aria-hidden="true">Recent commit</span>
+                <Select
+                  value={repo?.recentCommits.some((item) => item.sha === sha) ? sha : ""}
+                  onValueChange={(value) => {
+                    setSha(value);
+                    void inspect(repoPath, value);
+                  }}
+                  disabled={!repo}
+                >
+                  <SelectTrigger aria-label="Recent commit" aria-describedby={hintId("commit")}>
+                    <SelectValue placeholder="Choose a commit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {repo?.recentCommits.map((item) => (
+                      <SelectItem key={item.sha} value={item.sha}>
+                        {item.sha.slice(0, 8)} {item.subject}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid min-w-48 flex-1 gap-2 text-sm font-medium">
+                <label htmlFor={fieldId("sha")}>Commit SHA</label>
+                <Input
+                  id={fieldId("sha")}
+                  aria-describedby={hintId("commit")}
+                  value={sha}
+                  onChange={(event) => setSha(event.target.value)}
+                  onBlur={() => sha.trim() && void inspect(repoPath, sha.trim())}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && sha.trim()) void inspect(repoPath, sha.trim());
+                  }}
+                />
+              </div>
             </div>
-            <label
-              htmlFor={fieldId("sha")}
-              className="grid min-w-48 flex-1 gap-2 text-sm font-medium"
-            >
-              Commit SHA
-              <Input
-                id={fieldId("sha")}
-                value={sha}
-                onChange={(event) => setSha(event.target.value)}
-                onBlur={() => sha.trim() && void inspect(repoPath, sha.trim())}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && sha.trim()) void inspect(repoPath, sha.trim());
-                }}
-              />
-            </label>
+            <Hint id={hintId("commit")}>
+              The commit to redo: pick a recent one or paste any SHA. The agents never see it.
+            </Hint>
           </div>
         )}
-        <label htmlFor={fieldId("prompt")} className="grid gap-2 text-sm font-medium">
-          Prompt
+        <div className="grid gap-2 text-sm font-medium">
+          <label htmlFor={fieldId("prompt")}>Prompt</label>
           <textarea
             id={fieldId("prompt")}
+            aria-describedby={hintId("prompt")}
             className={textareaClass}
             rows={6}
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
           />
-        </label>
+          <Hint id={hintId("prompt")}>
+            {type === "prompt"
+              ? "What every agent is asked to do, as you would write it in a chat."
+              : "Filled from the commit message. Reword it like an issue so it states the problem without giving away the fix."}
+          </Hint>
+        </div>
         {commit && commit.files.length > 0 && (
-          <fieldset className="space-y-2">
+          <fieldset className="space-y-2" aria-describedby={hintId("hidden")}>
             <legend className="text-sm font-medium">Hidden paths</legend>
+            <Hint id={hintId("hidden")}>
+              Files from the commit kept away from the agents and restored only for grading, usually
+              its tests.
+            </Hint>
             {commit.files.map((file) => (
               <label
                 key={file}
@@ -324,41 +399,61 @@ export function RealTaskForm({
           </fieldset>
         )}
         <div className="grid gap-4 md:grid-cols-2">
-          <label htmlFor={fieldId("setup")} className="grid gap-2 text-sm font-medium">
-            Setup command
+          <div className="grid content-start gap-2 text-sm font-medium">
+            <label htmlFor={fieldId("setup")}>Setup command</label>
             <Input
               id={fieldId("setup")}
+              aria-describedby={hintId("setup")}
               value={setupCommand}
+              placeholder="bun install"
               onChange={(event) => setSetupCommand(event.target.value)}
             />
-          </label>
+            <Hint id={hintId("setup")}>
+              Runs in each agent's checkout before the agent starts, such as installing
+              dependencies. Leave empty when nothing needs preparing.
+            </Hint>
+          </div>
           {type === "replay" && (
-            <label htmlFor={fieldId("hidden-test")} className="grid gap-2 text-sm font-medium">
-              Hidden-test command
+            <div className="grid content-start gap-2 text-sm font-medium">
+              <label htmlFor={fieldId("hidden-test")}>Hidden-test command</label>
               <Input
                 id={fieldId("hidden-test")}
+                aria-describedby={hintId("hidden-test")}
                 value={hiddenTestCommand}
                 placeholder="bun test {file}"
                 onChange={(event) => setHiddenTestCommand(event.target.value)}
               />
-            </label>
+              <Hint id={hintId("hidden-test")}>
+                Runs once per hidden test file after the agent finishes; {"{file}"} becomes the
+                file's path. A passing run counts as solved.
+              </Hint>
+            </div>
           )}
-          <label
-            htmlFor={fieldId("checks")}
-            className="grid gap-2 text-sm font-medium md:col-span-2"
-          >
-            Checks (one per line)
+          <div className="grid gap-2 text-sm font-medium md:col-span-2">
+            <label htmlFor={fieldId("checks")}>Checks</label>
             <textarea
               id={fieldId("checks")}
+              aria-describedby={hintId("checks")}
               className={textareaClass}
               rows={3}
               value={checks}
+              placeholder={"bun test\nbunx tsc --noEmit"}
               onChange={(event) => setChecks(event.target.value)}
             />
-          </label>
+            <Hint id={hintId("checks")}>
+              One command per line, run in the agent's checkout after it finishes. Exit code 0
+              passes. The repository's setup, checks, and hidden-test command are remembered for
+              next time.
+            </Hint>
+          </div>
         </div>
-        <fieldset className="space-y-3">
+        <fieldset className="space-y-3" aria-describedby={hintId("harness")}>
           <legend className="font-semibold">Harness and model</legend>
+          <Hint id={hintId("harness")}>
+            Each row runs one harness and model once per checked configuration. Current
+            configuration is the harness as you use it daily; default drops your instructions,
+            skills, tool servers, and settings.
+          </Hint>
           <TooltipProvider>
             {combos.map((combo, index) => {
               const info = catalog.harnesses.find((harness) => harness.harness === combo.harness);
@@ -396,11 +491,11 @@ export function RealTaskForm({
                     </SelectContent>
                   </Select>
                   <div className="min-w-48 flex-1">
-                    <ModelPicker
-                      index={index}
+                    <ValuePicker
+                      options={info?.knownModels ?? []}
                       label={`Model for row ${index + 1}`}
-                      info={info}
-                      model={combo.model}
+                      placeholder="Choose or enter a model"
+                      value={combo.model}
                       onChange={(model) => updateCombo(index, { model })}
                     />
                   </div>
@@ -457,6 +552,45 @@ export function RealTaskForm({
                   >
                     <Trash2 />
                   </Button>
+                  <div className="grid basis-full gap-1 text-sm">
+                    <label htmlFor={fieldId(`branch-${combo.id}`)} className="font-medium">
+                      Worktree branch
+                    </label>
+                    <Input
+                      id={fieldId(`branch-${combo.id}`)}
+                      aria-describedby={hintId(`branch-${combo.id}`)}
+                      className="max-w-md font-mono"
+                      value={combo.branchPrefix}
+                      placeholder={prefixOf({ ...combo, branchPrefix: "" }, index)}
+                      onChange={(event) => updateCombo(index, { branchPrefix: event.target.value })}
+                    />
+                    <Hint id={hintId(`branch-${combo.id}`)}>
+                      {(() => {
+                        const branches = comboSetups(combo).flatMap((setup) =>
+                          Array.from({ length: Math.max(trials, 1) }, (_, trial) =>
+                            cellBranch(prefixOf(combo, index), setup, trial + 1),
+                          ),
+                        );
+                        if (branches.length === 0)
+                          return "Check a configuration to see its branches.";
+                        const extra = branches.length - PREVIEW_BRANCHES;
+                        return (
+                          <>
+                            Each run's changes land in your repository as{" "}
+                            {branches.slice(0, PREVIEW_BRANCHES).map((branch, i) => (
+                              <span key={branch}>
+                                {i > 0 && ", "}
+                                <code className="font-mono text-foreground">{branch}</code>
+                              </span>
+                            ))}
+                            {extra > 0 && ` and ${extra} more`}. Check one out, or run{" "}
+                            <code className="font-mono">git worktree add</code> on it, to inspect
+                            the work.
+                          </>
+                        );
+                      })()}
+                    </Hint>
+                  </div>
                   {choices.length > 0 && (
                     <fieldset className="flex basis-full flex-wrap items-center gap-x-4 gap-y-2">
                       <legend className="sr-only">Augments for row {index + 1}</legend>
@@ -533,6 +667,7 @@ export function RealTaskForm({
                   default: false,
                   clean: false,
                   augments: [],
+                  branchPrefix: "",
                 },
               ])
             }
@@ -541,10 +676,11 @@ export function RealTaskForm({
           </Button>
         </fieldset>
         <div className="flex flex-wrap gap-4">
-          <label htmlFor={fieldId("trials")} className="grid gap-2 text-sm font-medium">
-            Trials
+          <div className="grid content-start gap-2 text-sm font-medium">
+            <label htmlFor={fieldId("trials")}>Trials</label>
             <Input
               id={fieldId("trials")}
+              aria-describedby={hintId("trials")}
               className="w-32"
               type="number"
               min="1"
@@ -553,11 +689,13 @@ export function RealTaskForm({
               value={trials || ""}
               onChange={(event) => setTrials(Number(event.target.value))}
             />
-          </label>
-          <label htmlFor={fieldId("wall")} className="grid gap-2 text-sm font-medium">
-            Timeout per cell (minutes)
+            <Hint id={hintId("trials")}>Runs per setup; more trials smooth out luck.</Hint>
+          </div>
+          <div className="grid content-start gap-2 text-sm font-medium">
+            <label htmlFor={fieldId("wall")}>Timeout per cell (minutes)</label>
             <Input
               id={fieldId("wall")}
+              aria-describedby={hintId("wall")}
               className="w-44"
               type="number"
               min="0"
@@ -566,7 +704,8 @@ export function RealTaskForm({
               defaultValue={wallMs / 60000}
               onChange={(event) => setWallMs(Math.round(Number(event.target.value) * 60000))}
             />
-          </label>
+            <Hint id={hintId("wall")}>How long one agent run may take before it is stopped.</Hint>
+          </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
           <p className="font-medium">

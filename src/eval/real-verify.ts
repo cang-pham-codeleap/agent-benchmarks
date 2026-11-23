@@ -1,15 +1,18 @@
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { artifactDir, isGroupKey } from "./paths.ts";
+import { apiCellId, artifactDir, isGroupKey } from "./paths.ts";
 import type { CheckResult, DiffStat, RealCellSummary, RepoProfile } from "./types.ts";
 
 export interface RealSpec {
   runDir: string;
+  repoPath: string;
   baseSha: string;
   /** Replay commit; null for prompt tasks. */
   sha: string | null;
   hiddenPaths: string[];
   profile: RepoProfile;
+  /** API cell id to the branch its result is pushed to; absent in specs written before branches existed. */
+  branches?: Record<string, string>;
 }
 
 export type RealCellResult = Pick<RealCellSummary, "diffStat" | "checks" | "hidden">;
@@ -108,6 +111,29 @@ export async function verifyCell(
   mkdirSync(join(dir, "checks"), { recursive: true });
   mkdirSync(join(dir, "hidden"), { recursive: true });
   git(workspace, "add", "-A");
+  const branch = spec.branches?.[apiCellId(group, cellId)];
+  if (branch != null) {
+    // A failed push (the user made the branch mid-run) must not cost the cell its grade.
+    try {
+      const tree = git(workspace, "write-tree").trim();
+      const commit = git(
+        workspace,
+        "-c",
+        "user.name=Agent Benchmarks",
+        "-c",
+        "user.email=agent-benchmarks@localhost",
+        "commit-tree",
+        tree,
+        "-p",
+        spec.baseSha,
+        "-m",
+        `agent-benchmarks ${apiCellId(group, cellId)}`,
+      ).trim();
+      git(workspace, "push", "-q", spec.repoPath, `${commit}:refs/heads/${branch}`);
+    } catch (error) {
+      console.error(`could not write branch ${branch}:`, error);
+    }
+  }
   writeFileSync(
     join(dir, "diff.patch"),
     git(workspace, "diff", "--cached", "--binary", "--no-renames", spec.baseSha),
