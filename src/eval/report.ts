@@ -1,5 +1,6 @@
 import { REPORT_CSS } from "../report/styles.ts";
 import { AGENT_BENCHMARKS_VERSION } from "../version.ts";
+import { achModel } from "./efforts.ts";
 import type {
   AugmentVerdict,
   CellArtifacts,
@@ -177,7 +178,7 @@ export function renderReport(
         manifest.input.setups.map((setup) =>
           row([
             setup.harness,
-            setup.model,
+            achModel(setup),
             configLabel(setup),
             setup.augments.join(", ") || "none",
             manifest.provenance.harnessVersions[setup.harness] ?? NONE,
@@ -269,7 +270,7 @@ function setupLabel(setup: EvalSetup): string {
   const { augments } = setup;
   return [
     setup.harness,
-    setup.model,
+    achModel(setup),
     configLabel(setup),
     ...(augments.length ? [`+${augments.join(" +")}`] : []),
   ].join(" · ");
@@ -302,7 +303,7 @@ function augmentVerdicts(verdicts: AugmentVerdict[]): string {
       verdicts.map((v) => {
         const saving = v.savingBasis === "cost" ? v.costDelta : v.tokenDelta;
         return row([
-          `${v.harness} · ${v.model} · ${v.config} +${v.augments.join(" +")}`,
+          `${v.harness} · ${achModel(v)} · ${v.config} +${v.augments.join(" +")}`,
           v.verdict,
           String(v.pairs),
           v.passDelta == null ? NONE : signed(v.passDelta, " pts"),

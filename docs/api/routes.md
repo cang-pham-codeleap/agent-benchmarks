@@ -346,6 +346,13 @@ without a recipe. `GET /api/evals/{id}` returns `augmentVerdicts`, one row per
 augmented setup with a baseline (same harness, model, config, no augments) in
 that run.
 
+Each setup may also carry `effort`, the reasoning effort passed through the
+harness's own flag (Copilot Fusion gets `--fusion-tier standard|high|max`).
+An effort outside the harness's levels is `400 effort_unsupported`. The setup
+key, cell ids, and labels name the model as `<model>#<effort>`, so efforts of
+one model compare side by side; an augment verdict's baseline has the same
+effort.
+
 Augment ids come from JSON files: the bundled `evals/augments/<id>.json`
 (`rtk`, `codegraph`, `caveman`, `ponytail`, `ptc`, `bash-cap`) and the user's
 `<evalDir>/augments/<id>.json`, where `evalDir` is `AGENT_BENCHMARKS_EVAL_DIR`

@@ -10,6 +10,7 @@ import {
 import { basename, dirname, isAbsolute, join } from "node:path";
 import type { AugmentRegistry } from "./augments.ts";
 import { cellBranch } from "./cell-branch.ts";
+import { achModel } from "./efforts.ts";
 import { EvalRequestError } from "./errors.ts";
 import { achCellId } from "./ledger.ts";
 import {
@@ -34,6 +35,7 @@ import {
   defaultConfigProblem,
   EVAL_HARNESSES,
   EVAL_LIMITS,
+  parseEffort,
   rejectDuplicateSetup,
   validateSetupConfig,
 } from "./registry.ts";
@@ -313,11 +315,13 @@ export function validateRealInput(
       registry,
       env,
     );
+    const effort = parseEffort(setup.harness, setup.model, setup.effort);
     const normalized: EvalSetup = {
       harness: setup.harness,
       model: setup.model,
       config: setup.config,
       augments,
+      ...(effort ? { effort } : {}),
     };
     rejectDuplicateSetup(keys, normalized);
     if (
@@ -480,7 +484,7 @@ export function prepareRealRun(
         experiment: `agent-benchmarks-eval-${basename(runDir)}`,
         agents: setups.map((setup) => ({
           agent: EVAL_HARNESSES[setup.harness]?.achAgent ?? setup.harness,
-          models: [setup.model],
+          models: [achModel(setup)],
         })),
         tasks: [
           {

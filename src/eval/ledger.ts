@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync, truncateSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { type EvalRegistryRun, joinSessionCost } from "./cost.ts";
+import { achModel } from "./efforts.ts";
 import {
   apiCellId,
   augmentsDir,
@@ -106,7 +107,7 @@ export function evalTaskIds(input: EvalRunInput): string[] {
 
 export function achCellId(setup: EvalSetup, taskId: string, trial: number): string {
   const agent = EVAL_HARNESSES[setup.harness]?.achAgent ?? setup.harness;
-  return `${agent}:${taskId}:${setup.model}:trial${trial}`;
+  return `${agent}:${taskId}:${achModel(setup)}:trial${trial}`;
 }
 
 /** Last ledger row per cell across every run group, keyed by API cell id. */

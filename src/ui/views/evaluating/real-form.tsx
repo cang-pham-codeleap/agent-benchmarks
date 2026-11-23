@@ -32,7 +32,7 @@ import {
   realStartReason,
   toggleAugment,
 } from "../evaluating-form.ts";
-import { ValuePicker } from "./form.tsx";
+import { EffortPicker, keptEffort, ValuePicker } from "./form.tsx";
 
 interface Combo {
   id: number;
@@ -42,6 +42,7 @@ interface Combo {
   default: boolean;
   clean: boolean;
   augments: AugmentId[];
+  effort?: string;
   /** Empty means the row's placeholder prefix. */
   branchPrefix: string;
 }
@@ -50,11 +51,12 @@ let nextComboId = 0;
 
 /** Augments ride on the default and clean setups only; `current` already carries the user's own configuration. */
 function comboSetups(combo: Combo): EvalSetup[] {
-  const { harness, model, augments } = combo;
+  const { harness, model, augments, effort } = combo;
+  const base = { harness, model, ...(effort ? { effort } : {}) };
   return [
-    ...(combo.current ? [{ harness, model, config: "current" as const, augments: [] }] : []),
-    ...(combo.default ? [{ harness, model, config: "default" as const, augments }] : []),
-    ...(combo.clean ? [{ harness, model, config: "clean" as const, augments }] : []),
+    ...(combo.current ? [{ ...base, config: "current" as const, augments: [] }] : []),
+    ...(combo.default ? [{ ...base, config: "default" as const, augments }] : []),
+    ...(combo.clean ? [{ ...base, config: "clean" as const, augments }] : []),
   ];
 }
 
@@ -198,6 +200,7 @@ export function RealTaskForm({
       model: combo.model,
       config: combo.default ? "default" : "clean",
       augments: [],
+      ...(combo.effort ? { effort: combo.effort } : {}),
     };
     const fresh = augmentSweep([...others, source], others.length, catalog).slice(others.length);
     setCombos([
@@ -210,6 +213,7 @@ export function RealTaskForm({
         default: setup.config === "default",
         clean: setup.config === "clean",
         augments: setup.augments,
+        effort: setup.effort,
         branchPrefix: "",
       })),
       ...combos.slice(index + 1),
@@ -476,6 +480,7 @@ export function RealTaskForm({
                         model: "",
                         default: false,
                         augments: [],
+                        effort: undefined,
                       })
                     }
                   >
@@ -496,9 +501,22 @@ export function RealTaskForm({
                       label={`Model for row ${index + 1}`}
                       placeholder="Choose or enter a model"
                       value={combo.model}
-                      onChange={(model) => updateCombo(index, { model })}
+                      onChange={(model) =>
+                        updateCombo(index, {
+                          model,
+                          effort: keptEffort(combo.harness, model, combo.effort),
+                        })
+                      }
                     />
                   </div>
+                  <EffortPicker
+                    harness={combo.harness}
+                    model={combo.model}
+                    value={combo.effort}
+                    onChange={(effort) => updateCombo(index, { effort })}
+                    label={`Effort for row ${index + 1}`}
+                    className="w-36"
+                  />
                   <label
                     htmlFor={fieldId(`current-${combo.id}`)}
                     className="flex items-center gap-2 text-sm"

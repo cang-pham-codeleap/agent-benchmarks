@@ -12,7 +12,7 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const installed = join(root, "installed");
 mkdirSync(installed);
-for (const name of ["codex", "copilot"]) {
+for (const name of ["claude", "codex", "copilot"]) {
   writeFileSync(join(installed, name), `#!/bin/sh\nfor arg do printf '%s\\n' "$arg"; done\n`);
   chmodSync(join(installed, name), 0o755);
 }
@@ -58,6 +58,53 @@ describe("harness shims", () => {
     ]);
     expect(
       writeHarnessShims(join(root, "run-c"), current, ["codex"], false, installed, {}),
+    ).toBeNull();
+  });
+
+  test("an effort leaves the model and reaches each CLI as its own flag, next to the model", () => {
+    const bin = writeHarnessShims(
+      join(root, "run-e"),
+      current,
+      ["claude", "codex", "copilot"],
+      false,
+      installed,
+      {},
+      new Set(["claude", "codex", "copilot"]),
+    );
+    expect(argsThroughShim(bin, "claude", ["-p", "--model=opus#max", "fix #1"])).toEqual([
+      "-p",
+      "--model=opus",
+      "--effort",
+      "max",
+      "fix #1",
+    ]);
+    expect(argsThroughShim(bin, "codex", ["exec", "-m", "gpt-5.5#xhigh", "do it"])).toEqual([
+      "exec",
+      "-m",
+      "gpt-5.5",
+      "-c",
+      "model_reasoning_effort=xhigh",
+      "do it",
+    ]);
+    expect(argsThroughShim(bin, "copilot", ["--model", "gpt-5.5#high", "-p", "x"])).toEqual([
+      "--model",
+      "gpt-5.5",
+      "--reasoning-effort",
+      "high",
+      "-p",
+      "x",
+    ]);
+    expect(argsThroughShim(bin, "copilot", ["--model", "copilot-fusion#max"])).toEqual([
+      "--model",
+      "auto",
+      "--fusion-tier",
+      "max",
+    ]);
+  });
+
+  test("a group without an effort gets no effort shim", () => {
+    expect(
+      writeHarnessShims(join(root, "run-g"), current, ["claude"], false, installed, {}),
     ).toBeNull();
   });
 });

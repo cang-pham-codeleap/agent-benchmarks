@@ -1,3 +1,4 @@
+import { achModel } from "../../eval/efforts.ts";
 import type {
   AugmentId,
   BenchmarkRunInput,
@@ -13,7 +14,7 @@ export function setupText(setup: EvalSetup): string {
   const { augments } = setup;
   return [
     setup.harness,
-    setup.model,
+    achModel(setup),
     setup.config,
     ...(augments.length ? [`+${augments.join(" +")}`] : []),
   ].join(" · ");
@@ -24,7 +25,7 @@ export function evaluationRunCount(input: BenchmarkRunInput): number {
 }
 
 const setupIdentity = (setup: EvalSetup) =>
-  JSON.stringify([setup.harness, setup.model, setup.config, setup.augments]);
+  JSON.stringify([setup.harness, setup.model, setup.effort, setup.config, setup.augments]);
 
 /** Augments the harness has a recipe for; empty unless the config is clean or default. */
 export function augmentChoices(
@@ -49,7 +50,12 @@ export function augmentSweep(
   const source = setups[index];
   if (!source) return setups;
   const config = source.config === "default" ? "default" : "clean";
-  const base = { harness: source.harness, model: source.model, config } as const;
+  const base = {
+    harness: source.harness,
+    model: source.model,
+    config,
+    ...(source.effort ? { effort: source.effort } : {}),
+  } as const;
   const sweep: EvalSetup[] = [
     { ...base, augments: [] },
     ...augmentChoices(catalog, source.harness, config)

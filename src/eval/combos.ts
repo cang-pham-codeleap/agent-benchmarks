@@ -105,11 +105,14 @@ function parseCombo(id: string, raw: unknown): EvalCombo {
     const augments = setup.augments ?? [];
     if (!Array.isArray(augments) || augments.some((augment) => typeof augment !== "string"))
       throw new EvalRequestError("setup augments must be a list of augment ids");
+    const effort = setup.effort ?? "";
+    if (typeof effort !== "string") throw new EvalRequestError("setup effort must be a string");
     return {
       harness: setup.harness as EvalHarness,
       model: setup.model,
       config: config as EvalConfigMode,
       augments: augments as string[],
+      ...(effort ? { effort } : {}),
     };
   });
   if (!Array.isArray(value.taskIds) || value.taskIds.some((task) => typeof task !== "string"))

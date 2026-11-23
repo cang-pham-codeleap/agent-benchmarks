@@ -1,3 +1,4 @@
+import { achModel } from "./efforts.ts";
 import {
   type EvalCell,
   type EvalSetup,
@@ -8,7 +9,7 @@ import {
 } from "./types.ts";
 
 export function setupKey(setup: EvalSetup): string {
-  const key = `${setup.harness}:${setup.model}:${setup.config}`;
+  const key = `${setup.harness}:${achModel(setup)}:${setup.config}`;
   return setup.augments.length === 0 ? key : `${key}+${setup.augments.join("+")}`;
 }
 

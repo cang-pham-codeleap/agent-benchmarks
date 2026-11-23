@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { achModel } from "../../../eval/efforts.ts";
 import type { AugmentPoolEntry, AugmentVerdict, AugmentVerdictKind } from "../../../eval/types.ts";
 import { Badge as ToneBadge } from "../../badges.tsx";
 import { durationPrecise } from "../../format.ts";
@@ -96,7 +97,7 @@ export function AugmentVerdictTable({ verdicts }: { verdicts: AugmentVerdict[] }
               {verdicts.map((row) => (
                 <TableRow key={row.augmented}>
                   <TableCell>
-                    {row.harness} · {row.model}
+                    {row.harness} · {achModel(row)}
                     <span className="block text-xs text-muted-foreground">{augmentSet(row)}</span>
                   </TableCell>
                   <TableCell>
@@ -126,7 +127,7 @@ export function AugmentVerdictTable({ verdicts }: { verdicts: AugmentVerdict[] }
 
 export function AugmentPoolPanel({ entries }: { entries: AugmentPoolEntry[] }) {
   if (entries.length === 0) return null;
-  const groups = Map.groupBy(entries, (entry) => `${entry.harness} · ${entry.model}`);
+  const groups = Map.groupBy(entries, (entry) => `${entry.harness} · ${achModel(entry)}`);
   return (
     <Card>
       <CardHeader>

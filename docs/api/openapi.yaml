@@ -1314,7 +1314,8 @@ paths:
       description: >-
         A body without `kind` is a benchmark run. Real-task validation failures
         return 400 with `repo_invalid`, `commit_invalid`, `hidden_invalid`,
-        `hidden_command_invalid`, or `config_unsupported`; nothing is written
+        `hidden_command_invalid`, or `config_unsupported`; a setup effort the
+        harness and model do not take is 400 `effort_unsupported`; nothing is written
         under `evals/` before validation passes. 409 `eval_active` means
         another run is active.
       requestBody:
@@ -1343,7 +1344,7 @@ paths:
       description: >-
         Writes `<evalDir>/combos/<id>.json` atomically after the same checks as
         starting a benchmark run (400 `augment_unknown`, `augments_unsupported`,
-        `config_unsupported`, or `invalid_request`; 503 `harness_missing` or
+        `config_unsupported`, `effort_unsupported`, or `invalid_request`; 503 `harness_missing` or
         `augment_unavailable`). An invalid id or label is 400 `invalid_request`.
         An existing id is 409 `combo_exists` unless `overwrite` is true.
       requestBody:
@@ -2049,6 +2050,18 @@ components:
             Augments enabled for this setup. Only allowed with `default` or
             `clean` config, and only for harnesses with a recipe. Missing means
             none; manifests always carry it, sorted.
+        effort:
+          type: string
+          description: >-
+            Reasoning effort, from the levels the harness's own flag accepts:
+            Claude Code `--effort`, Codex `model_reasoning_effort`, Copilot
+            `--reasoning-effort`, OpenCode's `provider/model#variant`, OMP
+            `--thinking`, Droid `--reasoning-effort`. Copilot model
+            `copilot-fusion` takes the Fusion tier `standard`, `high`, or `max`
+            (`--fusion-tier`). Whether a model supports a level is the CLI's call;
+            a level it rejects fails the cell. Missing or empty means the harness
+            and model default. Setups that differ only in effort are separate
+            setups, keyed and labeled `<model>#<effort>`.
         branchPrefix:
           type: string
           description: >-
@@ -2099,6 +2112,7 @@ components:
         augments:
           type: array
           items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+        effort: { type: string, description: The setup's effort; missing means the default. }
         pairs: { type: integer, minimum: 0, description: (task, trial) pairs on tasks with at least three paired trials. }
         minTrials: { type: integer, minimum: 0, description: Fewest paired trials of any counted task. }
         passDelta: { type: [number, "null"], description: Augmented pass share minus baseline pass share. }
@@ -2122,6 +2136,7 @@ components:
         augments:
           type: array
           items: { $ref: "#/components/schemas/EvaluationAugmentId" }
+        effort: { type: string, description: The setup's effort; missing means the default. }
         harnessVersion: { type: [string, "null"] }
         runIds: { type: array, items: { type: string } }
         recipeDrift:

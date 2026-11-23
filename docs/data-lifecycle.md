@@ -884,7 +884,7 @@ the server lists runs.
 | `plan.json`, `plan.<group>.json` | The `ach` matrix plan of each run group (see below) |
 | `ledger.jsonl`, `ledger.<group>.jsonl` | One `ach` record per cell and trial of each run group |
 | `tasks/<task id>/` | Benchmarks: a frozen copy of each picked task, from the `ach` checkout's `tasks/` or this repository's `evals/tasks/`, while the run can still resume |
-| `bin/<group>/` | PATH shims that adapt a harness CLI's flags to the installed version and append the group's clean and augment args |
+| `bin/<group>/` | PATH shims that adapt a harness CLI's flags to the installed version, turn a `<model>#<effort>` model into the CLI's effort flag, and append the group's clean and augment args |
 | `augments/` | Files the augment recipes use (prompt files, settings and MCP JSON), `sha256.json` with each file's hash, and `prep.jsonl` |
 | `repo/` | Real tasks: a private `git clone --local` of your repository, at the base commit, while the run can still resume |
 | `reference/` | Replays: the human change from the replayed commit |

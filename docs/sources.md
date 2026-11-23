@@ -139,7 +139,8 @@ models Fusion routed each request to.
 
 An evaluation setup with model `copilot-fusion` runs Copilot with `--model auto`
 on the CLI version `copilot --version` reports. Each cell's observed model is
-the model Fusion picked for that task.
+the model Fusion picked for that task. Its `effort` is the Fusion tier
+(`standard`, `high`, or `max`), passed as `--fusion-tier`.
 
 Agent Benchmarks does not read the rotated `events.<n>.jsonl` archives Copilot writes
 only when `COPILOT_SESSION_EVENT_LOG_ROTATION_BYTES` is set. The current

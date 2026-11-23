@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { effortLevels } from "../../../eval/efforts.ts";
 import {
   type BenchmarkRunInput,
   EVAL_DIFFICULTIES,
@@ -305,6 +306,50 @@ export function ValuePicker({
   );
 }
 
+const DEFAULT_EFFORT = "default";
+
+/** The setup's effort, or none when the harness and model take no such level. */
+export function keptEffort(harness: string, model: string, effort: string | undefined) {
+  return effort && effortLevels(harness, model).includes(effort) ? effort : undefined;
+}
+
+export function EffortPicker({
+  harness,
+  model,
+  value,
+  onChange,
+  label,
+  className,
+}: {
+  harness: string;
+  model: string;
+  value: string | undefined;
+  onChange: (value: string | undefined) => void;
+  label: string;
+  className?: string;
+}) {
+  const levels = effortLevels(harness, model);
+  return (
+    <Select
+      value={value ?? DEFAULT_EFFORT}
+      disabled={levels.length === 0}
+      onValueChange={(next) => onChange(next === DEFAULT_EFFORT ? undefined : next)}
+    >
+      <SelectTrigger className={className} aria-label={label}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={DEFAULT_EFFORT}>Default</SelectItem>
+        {levels.map((level) => (
+          <SelectItem key={level} value={level}>
+            {level}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 export function EvalForm({
   catalog,
   input,
@@ -375,7 +420,7 @@ export function EvalForm({
           <div>
             <h3 className="font-semibold">Setups</h3>
             <p className="text-sm text-muted-foreground">
-              Compare an installed harness and model for each setup.
+              Compare an installed harness, model, and effort for each setup.
             </p>
           </div>
           {input.setups.map((setup, index) => {
@@ -385,7 +430,7 @@ export function EvalForm({
               <div
                 // biome-ignore lint/suspicious/noArrayIndexKey: setups have no id and are edited by position
                 key={index}
-                className="grid items-end gap-3 rounded-md border p-3 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+                className="grid items-end gap-3 rounded-md border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_8rem_minmax(0,1fr)_auto]"
               >
                 <label className="grid gap-2 text-sm">
                   <span className="flex h-5 items-center gap-2">
@@ -403,10 +448,14 @@ export function EvalForm({
                         harness: harness as EvalSetup["harness"],
                         model: "",
                         augments: [],
+                        effort: undefined,
                       })
                     }
                   >
-                    <SelectTrigger className="w-full" aria-label={`Harness for setup ${index + 1}`}>
+                    <SelectTrigger
+                      className="w-full min-w-0"
+                      aria-label={`Harness for setup ${index + 1}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -426,7 +475,23 @@ export function EvalForm({
                     label={`Model for setup ${index + 1}`}
                     placeholder="Choose or enter a model"
                     value={setup.model}
-                    onChange={(model) => updateSetup(index, { model })}
+                    onChange={(model) =>
+                      updateSetup(index, {
+                        model,
+                        effort: keptEffort(setup.harness, model, setup.effort),
+                      })
+                    }
+                  />
+                </div>
+                <div className="grid gap-2 text-sm">
+                  <span>Effort</span>
+                  <EffortPicker
+                    harness={setup.harness}
+                    model={setup.model}
+                    value={setup.effort}
+                    onChange={(effort) => updateSetup(index, { effort })}
+                    label={`Effort for setup ${index + 1}`}
+                    className="w-full"
                   />
                 </div>
                 <label className="grid gap-2 text-sm">
