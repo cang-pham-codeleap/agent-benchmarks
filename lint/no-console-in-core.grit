@@ -1,0 +1,9 @@
+language js;
+
+or { `console.$method($args)`, `process.stderr.write($args)`, `process.stdout.write($args)` } as $call where {
+    register_diagnostic(
+        span = $call,
+        message = "Core modules stay print-free (AGENTS.md invariant 1). Use getAgentBenchmarksLogger(component) from src/logging.ts, or return data or a structured error. Printing belongs in src/cli.ts and src/cli/.",
+        severity = "error"
+    )
+}

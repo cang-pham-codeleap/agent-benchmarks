@@ -1,8 +1,11 @@
 import type { Database } from "bun:sqlite";
 import { realpathSync } from "node:fs";
 import { isPriceable } from "../cost.ts";
+import { exceptionAttributes, getAgentBenchmarksLogger } from "../logging.ts";
 import { sessionUsageAvailableSql } from "../stats.ts";
 import type { CellCost, CellTokens } from "./types.ts";
+
+const logger = getAgentBenchmarksLogger("eval");
 
 export interface EvalRegistryRun {
   runId: string;
@@ -129,10 +132,11 @@ function findByCwdAndTime(db: Database, tool: string, registry: EvalRegistryRun)
     try {
       realCwd = realpathSync(cwd);
     } catch (error) {
-      console.error(
-        `[eval/cost] run cwd no longer exists for ${registry.runId}; matching its path text`,
-        error,
-      );
+      logger.warning("Run cwd no longer exists; matching its path text.", {
+        "event.name": "agent-benchmarks.eval.cost_cwd_missing",
+        "eval.run.id": registry.runId,
+        ...exceptionAttributes(error),
+      });
       realCwd = cwd;
     }
     cwds = [realCwd, realCwd];

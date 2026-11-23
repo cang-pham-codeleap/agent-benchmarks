@@ -35,6 +35,7 @@ import {
   command as launchCommand,
   openIde,
 } from "../launcher.ts";
+import { exceptionAttributes, getAgentBenchmarksLogger } from "../logging.ts";
 import { openApiDocument } from "../openapi.ts";
 import { getSessionSummary } from "../query.ts";
 import {
@@ -130,6 +131,8 @@ interface RouteSpec {
   POST?: RouteEndpoint;
   validateId?: readonly RouteMethod[];
 }
+
+const logger = getAgentBenchmarksLogger("server");
 
 const SESSION_ID_METHODS = ["GET", "POST"] as const;
 
@@ -930,7 +933,10 @@ function evalReportRoute(ctx: RouteContext): Response {
 function evalError(error: unknown): Response {
   if (error instanceof EvalRequestError)
     return errorResponse(error.code as ApiErrorCode, error.message, {}, error.status);
-  console.error("[eval/routes] evaluation request failed", error);
+  logger.error("Evaluation request failed.", {
+    "event.name": "agent-benchmarks.eval.request_failed",
+    ...exceptionAttributes(error),
+  });
   return errorResponse(
     "internal_error",
     "Agent Benchmarks could not complete the evaluation request.",

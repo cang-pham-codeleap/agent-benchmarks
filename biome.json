@@ -15,7 +15,11 @@
       "!src/report/fonts/Source-Serif-OFL.md"
     ]
   },
-  "css": { "parser": { "tailwindDirectives": true } },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -29,7 +33,9 @@
       "a11y": {
         "noLabelWithoutControl": {
           "level": "error",
-          "options": { "inputComponents": ["Input", "Checkbox", "SelectTrigger"] }
+          "options": {
+            "inputComponents": ["Input", "Checkbox", "SelectTrigger"]
+          }
         }
       },
       "style": {
@@ -43,5 +49,11 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/**", "!src/cli.ts", "!src/cli/**", "!src/ui/**", "!src/logging.ts"],
+      "plugins": ["./lint/no-console-in-core.grit"]
+    }
+  ]
 }
