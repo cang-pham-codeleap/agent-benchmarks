@@ -21,10 +21,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { type EvalResults, type EvalRunManifest, GRADED_OUTCOME } from "../../../eval/types.ts";
+import {
+  type CellOutcome,
+  type EvalResults,
+  type EvalRunManifest,
+  GRADED_OUTCOME,
+} from "../../../eval/types.ts";
+import { Badge as ToneBadge, ToolBadge } from "../../badges.tsx";
 import { durationPrecise, money } from "../../format.ts";
 import { setupText } from "../evaluating-form.ts";
 import { AugmentVerdictTable } from "./augments.tsx";
+import { harnessTool, OUTCOME_TONE } from "./tones.ts";
 
 const percent = (value: number | null) =>
   value == null ? "Unavailable" : `${(value * 100).toFixed(1)}%`;
@@ -123,7 +130,7 @@ export function EvalResultsView({
                     <TableRow key={summary.setupKey}>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-1">
-                          <Badge variant="outline">{summary.setup.harness}</Badge>
+                          <ToolBadge tool={harnessTool(summary.setup.harness)} />
                           <span>{summary.setup.model}</span>
                           <Badge variant="secondary">{summary.setup.config}</Badge>
                           {summary.setup.augments.map((id) => (
@@ -192,16 +199,9 @@ export function EvalResultsView({
                           {Object.entries(summary.outcomes)
                             .filter(([, count]) => count > 0)
                             .map(([outcome, count]) => (
-                              <Badge
-                                key={outcome}
-                                variant={
-                                  GRADED_OUTCOME[outcome as keyof typeof GRADED_OUTCOME]
-                                    ? "outline"
-                                    : "secondary"
-                                }
-                              >
+                              <ToneBadge key={outcome} tone={OUTCOME_TONE[outcome as CellOutcome]}>
                                 {outcome} {count}
-                              </Badge>
+                              </ToneBadge>
                             ))}
                         </div>
                       </TableCell>
@@ -305,7 +305,7 @@ export function EvalResultsView({
                           return (
                             <TableCell key={setup.setupKey}>
                               <span
-                                className={`inline-block rounded px-2 py-1 ${rate == null ? "bg-muted text-muted-foreground" : rate === 1 ? "bg-primary/15" : rate === 0 ? "bg-destructive/10" : "bg-accent"}`}
+                                className={`inline-block rounded px-2 py-1 ${rate == null ? "bg-muted text-muted-foreground" : rate === 1 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : rate === 0 ? "bg-destructive/10 text-destructive" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}`}
                               >
                                 <Help
                                   text={

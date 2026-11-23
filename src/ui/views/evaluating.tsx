@@ -2,7 +2,6 @@ import { ArrowLeft } from "lucide-react";
 import { AlertDialog } from "radix-ui";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +26,7 @@ import type {
 } from "../../eval/types.ts";
 import { getJson } from "../api.ts";
 import { ApiFailureState } from "../api-failure.tsx";
+import { Badge as ToneBadge } from "../badges.tsx";
 import { durationPrecise } from "../format.ts";
 import { Link, visit } from "../link.tsx";
 import { AugmentPoolPanel } from "./evaluating/augments.tsx";
@@ -35,6 +35,7 @@ import { LiveView } from "./evaluating/live.tsx";
 import { RealTaskForm } from "./evaluating/real-form.tsx";
 import { RealResultsView } from "./evaluating/real-results.tsx";
 import { EvalResultsView } from "./evaluating/results.tsx";
+import { RUN_STATUS_TONE } from "./evaluating/tones.ts";
 import { setupText } from "./evaluating-form.ts";
 
 function initialInput(catalog: EvalCatalog): BenchmarkRunInput {
@@ -454,7 +455,9 @@ export function EvaluatingView({
                                 {run.input.kind === "real" ? "Real" : "Benchmark"}
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline">{run.status}</Badge>
+                                <ToneBadge tone={RUN_STATUS_TONE[run.status]}>
+                                  {run.status}
+                                </ToneBadge>
                               </TableCell>
                               <TableCell>{new Date(run.createdAt).toLocaleString()}</TableCell>
                               <TableCell>{run.input.setups.map(setupText).join(", ")}</TableCell>
@@ -489,7 +492,9 @@ export function EvaluatingView({
                 {current && (
                   <>
                     <h2 className="text-lg font-semibold">{current.manifest.input.name}</h2>
-                    <Badge variant="outline">{current.manifest.status}</Badge>
+                    <ToneBadge tone={RUN_STATUS_TONE[current.manifest.status]}>
+                      {current.manifest.status}
+                    </ToneBadge>
                     <span className="text-sm text-muted-foreground">
                       {new Date(current.manifest.createdAt).toLocaleString()}
                     </span>

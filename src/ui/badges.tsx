@@ -20,17 +20,18 @@ export function Badge({
   title?: string;
   tone?: BadgeTone;
 }) {
-  // Brand tones stay neutral: the brand icon already identifies the harness/model; color is reserved for status.
   const toneClasses: Record<BadgeTone, string> = {
     neutral: "",
-    accent: "",
-    info: "",
-    claude: "",
-    openai: "",
-    gemini: "",
-    opencode: "",
-    zai: "",
-    meta: "",
+    accent:
+      "border-violet-500/30 bg-violet-500/10 [&>svg]:text-violet-600 dark:[&>svg]:text-violet-400",
+    info: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
+    claude:
+      "border-orange-500/30 bg-orange-500/10 [&>svg]:text-orange-600 dark:[&>svg]:text-orange-400",
+    openai: "border-teal-500/30 bg-teal-500/10 [&>svg]:text-teal-600 dark:[&>svg]:text-teal-400",
+    gemini: "border-blue-500/30 bg-blue-500/10 [&>svg]:text-blue-600 dark:[&>svg]:text-blue-400",
+    opencode: "border-zinc-500/30 bg-zinc-500/10 [&>svg]:text-zinc-700 dark:[&>svg]:text-zinc-300",
+    zai: "border-indigo-500/30 bg-indigo-500/10 [&>svg]:text-indigo-600 dark:[&>svg]:text-indigo-400",
+    meta: "border-sky-500/30 bg-sky-500/10 [&>svg]:text-sky-600 dark:[&>svg]:text-sky-400",
     success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
     warning: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
     danger: "border-destructive/30 bg-destructive/10 text-destructive",

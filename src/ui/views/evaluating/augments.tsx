@@ -9,16 +9,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AugmentPoolEntry, AugmentVerdict, AugmentVerdictKind } from "../../../eval/types.ts";
+import { Badge as ToneBadge } from "../../badges.tsx";
 import { durationPrecise } from "../../format.ts";
+import type { BadgeTone } from "../../types.ts";
 
-const VERDICT: Record<
-  AugmentVerdictKind,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-> = {
-  adopt: { label: "Adopt", variant: "default" },
-  "quality-risk": { label: "Quality risk", variant: "destructive" },
-  "no-saving": { label: "No saving", variant: "secondary" },
-  inconclusive: { label: "Inconclusive", variant: "outline" },
+const VERDICT: Record<AugmentVerdictKind, { label: string; tone: BadgeTone }> = {
+  adopt: { label: "Adopt", tone: "success" },
+  "quality-risk": { label: "Quality risk", tone: "danger" },
+  "no-saving": { label: "No saving", tone: "warning" },
+  inconclusive: { label: "Inconclusive", tone: "neutral" },
 };
 
 const signed = (value: number, unit: string) =>
@@ -52,7 +51,7 @@ function Saving({ row }: { row: Row }) {
 }
 
 function VerdictBadge({ verdict }: { verdict: AugmentVerdictKind }) {
-  return <Badge variant={VERDICT[verdict].variant}>{VERDICT[verdict].label}</Badge>;
+  return <ToneBadge tone={VERDICT[verdict].tone}>{VERDICT[verdict].label}</ToneBadge>;
 }
 
 const augmentSet = (row: Pick<Row, "config" | "augments">) =>
