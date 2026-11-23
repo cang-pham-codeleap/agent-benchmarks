@@ -380,6 +380,7 @@ export type IconName =
   | "bolt"
   | "chart"
   | "check"
+  | "compare"
   | "chevronDown"
   | "chevronLeft"
   | "chevronRight"
