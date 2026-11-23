@@ -114,7 +114,7 @@ export interface CopilotModelUsageRow {
   usage: TokenUsage;
 }
 
-const COPILOT_FUSION_MODEL = "copilot-fusion";
+export const COPILOT_FUSION_MODEL = "copilot-fusion";
 
 export function parseCopilotSession(fallbackId: string, content: string): ParsedSession {
   const issues: ParsedSession["issues"] = [];
