@@ -362,6 +362,14 @@ augments, and recomputes the verdict over the pooled pairs. Cancelled and
 failed runs are left out. `recipeDrift` is true when the pooled runs captured
 different augment definitions; runs without a capture count as bundled.
 
+Each harness's `knownModels` is the list the harness itself reports, scanned
+once per process and started when `serve` starts: `copilot help config`,
+Codex's `models_cache.json`, `opencode models`, `omp models --json`, and
+`droid exec --help`. Claude Code has no listing, so it gets its aliases, the
+models cached in `~/.claude.json`, and the `claude-*` models from its archived
+sessions. A harness whose scan finds nothing falls back to the models of its
+archived sessions.
+
 `GET /api/evals/catalog` also lists `combos`, saved benchmark inputs read from
 `<evalDir>/combos/<id>.json`, each with the `problem` that starting it as saved
 would hit (unknown augment, missing harness or task, over a limit).

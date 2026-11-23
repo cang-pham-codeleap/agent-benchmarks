@@ -382,10 +382,20 @@ export function EvalForm({
             const info = catalog.harnesses.find((harness) => harness.harness === setup.harness);
             const choices = augmentChoices(catalog, setup.harness, setup.config);
             return (
-              // biome-ignore lint/suspicious/noArrayIndexKey: setups have no id and are edited by position
-              <div key={index} className="flex flex-wrap items-end gap-3 rounded-md border p-3">
-                <label className="grid min-w-48 flex-1 gap-2 text-sm">
-                  Harness
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: setups have no id and are edited by position
+                key={index}
+                className="grid items-end gap-3 rounded-md border p-3 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+              >
+                <label className="grid gap-2 text-sm">
+                  <span className="flex h-5 items-center gap-2">
+                    Harness
+                    {info && !info.metered && (
+                      <Badge variant="secondary" className="py-0">
+                        unmetered
+                      </Badge>
+                    )}
+                  </span>
                   <Select
                     value={setup.harness}
                     onValueChange={(harness) =>
@@ -396,7 +406,7 @@ export function EvalForm({
                       })
                     }
                   >
-                    <SelectTrigger aria-label={`Harness for setup ${index + 1}`}>
+                    <SelectTrigger className="w-full" aria-label={`Harness for setup ${index + 1}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -409,7 +419,7 @@ export function EvalForm({
                     </SelectContent>
                   </Select>
                 </label>
-                <div className="grid min-w-48 flex-1 gap-2 text-sm">
+                <div className="grid gap-2 text-sm">
                   <span>Model</span>
                   <ValuePicker
                     options={info?.knownModels ?? []}
@@ -419,7 +429,7 @@ export function EvalForm({
                     onChange={(model) => updateSetup(index, { model })}
                   />
                 </div>
-                <label className="grid min-w-48 flex-1 gap-2 text-sm">
+                <label className="grid gap-2 text-sm">
                   Configuration
                   <Select
                     value={setup.config}
@@ -430,7 +440,10 @@ export function EvalForm({
                       })
                     }
                   >
-                    <SelectTrigger aria-label={`Configuration for setup ${index + 1}`}>
+                    <SelectTrigger
+                      className="w-full"
+                      aria-label={`Configuration for setup ${index + 1}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -442,25 +455,19 @@ export function EvalForm({
                     </SelectContent>
                   </Select>
                 </label>
-                <div className="flex items-center gap-2 pb-1">
-                  {info?.version && (
-                    <span className="text-xs text-muted-foreground">{info.version}</span>
-                  )}
-                  {info && !info.metered && <Badge variant="secondary">unmetered</Badge>}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Remove setup ${index + 1}`}
-                    onClick={() =>
-                      onChange({ ...input, setups: input.setups.filter((_, i) => i !== index) })
-                    }
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remove setup ${index + 1}`}
+                  onClick={() =>
+                    onChange({ ...input, setups: input.setups.filter((_, i) => i !== index) })
+                  }
+                >
+                  <Trash2 />
+                </Button>
                 {choices.length > 0 && (
-                  <fieldset className="flex basis-full flex-wrap items-center gap-x-4 gap-y-2">
+                  <fieldset className="col-span-full flex flex-wrap items-center gap-x-4 gap-y-2">
                     <legend className="sr-only">Augments for setup {index + 1}</legend>
                     {choices.map((augment) => {
                       const id = `augment-${index}-${augment.id}`;
