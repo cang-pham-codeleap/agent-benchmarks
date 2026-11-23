@@ -5,7 +5,7 @@ export const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Overview",
     items: [
       { key: "analytics", href: "/", label: "Analytics", icon: "chart" },
-      { key: "compare", href: "/compare", label: "Compare", icon: "chart" },
+      { key: "compare", href: "/compare", label: "Compare", icon: "compare" },
       { key: "evaluating", href: "/evaluating", label: "Evaluating", icon: "beaker" },
       { key: "insights", href: "/insights", label: "Insights", icon: "lightbulb" },
     ],

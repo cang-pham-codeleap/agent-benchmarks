@@ -21,6 +21,7 @@ import {
   FileType2,
   FlaskConical,
   Folder,
+  GitCompareArrows,
   Inbox,
   Info,
   Layers,
@@ -106,6 +107,8 @@ export function iconComponent(name: IconName): LucideIcon {
       return BarChart3;
     case "check":
       return Check;
+    case "compare":
+      return GitCompareArrows;
     case "chevronDown":
       return ChevronDown;
     case "chevronLeft":
