@@ -1,4 +1,10 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { INGEST_PIPELINE_REVISION } from "../src/ingest.ts";
 import { decodeMessageRaw } from "../src/message-storage.ts";
+import { MODEL_USAGE_FORMAT_VERSION } from "../src/model-usage.ts";
+import { SESSION_ECONOMICS_FORMAT_VERSION } from "../src/token-economics.ts";
 
 export const GOLDEN_NOW = new Date("2026-11-04T22:00:00.000Z");
 
@@ -56,4 +62,75 @@ export const ROW_QUERIES = {
            link_label, icon, tone, impact_label, score, status, status_source, note
     FROM recommendation
     ORDER BY key`,
+  model_usage: `
+    SELECT s.tool, s.source_session_id, u.provider, u.model, u.tier, u.requests,
+           u.input_tokens, u.output_tokens, u.cache_read_tokens, u.cache_creation_tokens,
+           u.cache_creation_1h_tokens, u.reported_cost_usd
+    FROM session_model_usage u JOIN session s ON s.id = u.session_id
+    ORDER BY s.tool, s.source_session_id, u.provider, u.model, u.tier`,
+  economics: `
+    SELECT s.tool, s.source_session_id,
+           json_remove(e.vector_json, '$.id', '$.input_cost', '$.output_cost', '$.reported_cost')
+             AS vector
+    FROM session_economics e JOIN session s ON s.id = e.session_id
+    ORDER BY s.tool, s.source_session_id`,
 } as const;
+
+type RowDump = keyof typeof ROW_QUERIES;
+
+const DERIVED_ROW_VERSIONS = {
+  INGEST_PIPELINE_REVISION: {
+    value: INGEST_PIPELINE_REVISION,
+    file: "src/ingest.ts",
+    dumps: ["sessions", "messages", "blocks", "tool_calls", "file_refs"],
+  },
+  MODEL_USAGE_FORMAT_VERSION: {
+    value: MODEL_USAGE_FORMAT_VERSION,
+    file: "src/model-usage.ts",
+    dumps: ["model_usage"],
+  },
+  SESSION_ECONOMICS_FORMAT_VERSION: {
+    value: SESSION_ECONOMICS_FORMAT_VERSION,
+    file: "src/token-economics.ts",
+    dumps: ["economics"],
+  },
+} as const satisfies Record<string, { value: number; file: string; dumps: RowDump[] }>;
+
+type DerivedRowVersion = keyof typeof DERIVED_ROW_VERSIONS;
+export type RevisionLock = Record<DerivedRowVersion, { value: number; sha256: string }>;
+
+// Every sync reprices stored sessions, so a rate change needs no re-derive.
+function withoutRepricedCost(row: unknown): unknown {
+  if (row == null || typeof row !== "object") return row;
+  const { estimated_cost_usd: _, ...rest } = row as Record<string, unknown>;
+  return rest;
+}
+
+export function goldenRevisionLock(goldenDir: string): RevisionLock {
+  return Object.fromEntries(
+    Object.entries(DERIVED_ROW_VERSIONS).map(([name, { value, dumps }]) => {
+      const hash = createHash("sha256");
+      for (const dump of dumps) {
+        const rows = JSON.parse(readFileSync(join(goldenDir, "rows", `${dump}.json`), "utf8"));
+        hash.update(JSON.stringify((rows as unknown[]).map(withoutRepricedCost)));
+      }
+      return [name, { value, sha256: hash.digest("hex") }];
+    }),
+  ) as RevisionLock;
+}
+
+export function unbumpedRevisionErrors(locked: RevisionLock, current: RevisionLock): string[] {
+  const reingested =
+    locked.INGEST_PIPELINE_REVISION.value !== current.INGEST_PIPELINE_REVISION.value;
+  return (Object.keys(DERIVED_ROW_VERSIONS) as DerivedRowVersion[]).flatMap((name) => {
+    const was = locked[name];
+    const now = current[name];
+    if (was === undefined || was.sha256 === now.sha256 || was.value !== now.value || reingested) {
+      return [];
+    }
+    const { file, dumps } = DERIVED_ROW_VERSIONS[name];
+    return [
+      `Derived ${dumps.join(", ")} rows changed but ${name} is still ${now.value}, so existing archives keep the old rows. Bump ${name} in ${file}, then run: bun scripts/regen-goldens.ts --i-reviewed-the-diff`,
+    ];
+  });
+}

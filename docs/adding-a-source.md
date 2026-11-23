@@ -124,7 +124,9 @@ bun run scripts/regen-goldens.ts --i-reviewed-the-diff
 ```
 
 Review the generated diff before committing it. An unreviewed golden update can
-hide a parser regression.
+hide a parser regression. A new source adds golden rows, so it also bumps
+`INGEST_PIPELINE_REVISION`; see
+[Rebuilds and migrations](data-lifecycle.md#rebuilds-and-migrations).
 
 ## Definition of done
 

@@ -1,0 +1,14 @@
+{
+  "INGEST_PIPELINE_REVISION": {
+    "value": 25,
+    "sha256": "9167207736e04ad05a0eafea1b0416cdcd7bfc60f9d34eeff8d8cca539ecd102"
+  },
+  "MODEL_USAGE_FORMAT_VERSION": {
+    "value": 4,
+    "sha256": "9c5e4c2d19292657bf7671fd99ac1afb178dc44060eb343d0a79cf3e087453df"
+  },
+  "SESSION_ECONOMICS_FORMAT_VERSION": {
+    "value": 12,
+    "sha256": "62e71053cf23c5daa13e2840a8315b65d05e53962fdd149671d855fa1f477475"
+  }
+}

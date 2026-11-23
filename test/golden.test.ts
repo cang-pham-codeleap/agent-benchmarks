@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { goldenRevisionLock, type RevisionLock, unbumpedRevisionErrors } from "./golden-rows.ts";
 
 const goldenDir = join(import.meta.dir, "golden");
 const keySeparator = "\0";
@@ -59,7 +60,14 @@ describe("golden harness", () => {
     const keys = new Set(sessions.map((s) => `${s.tool}${keySeparator}${s.source_session_id}`));
     expect(keys.size).toBe(sessions.length);
 
-    const sessionKeyedDumps = new Set(["messages", "blocks", "tool_calls", "file_refs"]);
+    const sessionKeyedDumps = new Set([
+      "messages",
+      "blocks",
+      "tool_calls",
+      "file_refs",
+      "model_usage",
+      "economics",
+    ]);
     for (const dump of meta.row_dumps) {
       const rows = await loadGolden<Record<string, unknown>[]>(`rows/${dump}.json`);
       expect(rows.length).toBeGreaterThan(0);
@@ -113,5 +121,35 @@ describe("golden harness", () => {
       `atif${keySeparator}synthetic-trial-1-summarization-1-summary/trajectory.summarization-1-summary`,
       `hermes${keySeparator}20261101_090110_d4e5f6`,
     ]);
+  });
+});
+
+describe("derived row revision lock", () => {
+  test("golden rows changed only alongside the version that re-derives them", async () => {
+    const locked = await loadGolden<RevisionLock>("revision-lock.json");
+    const current = goldenRevisionLock(goldenDir);
+    expect(unbumpedRevisionErrors(locked, current)).toEqual([]);
+    expect(
+      locked,
+      "test/golden/revision-lock.json is stale: run bun scripts/regen-goldens.ts --i-reviewed-the-diff",
+    ).toEqual(current);
+  });
+
+  test("an ingest revision bump re-derives every dump, a format bump only its own", () => {
+    const lock = (ingest: number, usage: number, sha256: string): RevisionLock => ({
+      INGEST_PIPELINE_REVISION: { value: ingest, sha256 },
+      MODEL_USAGE_FORMAT_VERSION: { value: usage, sha256 },
+      SESSION_ECONOMICS_FORMAT_VERSION: { value: 1, sha256 },
+    });
+    expect(unbumpedRevisionErrors(lock(1, 1, "old"), lock(1, 1, "new"))).toEqual([
+      expect.stringContaining("Bump INGEST_PIPELINE_REVISION in src/ingest.ts"),
+      expect.stringContaining("Bump MODEL_USAGE_FORMAT_VERSION in src/model-usage.ts"),
+      expect.stringContaining("Bump SESSION_ECONOMICS_FORMAT_VERSION in src/token-economics.ts"),
+    ]);
+    expect(unbumpedRevisionErrors(lock(1, 1, "old"), lock(1, 2, "new"))).toEqual([
+      expect.stringContaining("Bump INGEST_PIPELINE_REVISION"),
+      expect.stringContaining("Bump SESSION_ECONOMICS_FORMAT_VERSION"),
+    ]);
+    expect(unbumpedRevisionErrors(lock(1, 1, "old"), lock(2, 1, "new"))).toEqual([]);
   });
 });

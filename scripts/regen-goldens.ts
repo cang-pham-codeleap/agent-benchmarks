@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -16,7 +17,13 @@ import { type IngestConfig, sync } from "../src/ingest.ts";
 import { compareCodePoints } from "../src/order.ts";
 import { AGENT_BENCHMARKS_VERSION } from "../src/version.ts";
 import { buildCursorChat } from "../test/cursor-fixture.ts";
-import { decodeGoldenRows, GOLDEN_NOW, ROW_QUERIES } from "../test/golden-rows.ts";
+import {
+  decodeGoldenRows,
+  GOLDEN_NOW,
+  goldenRevisionLock,
+  ROW_QUERIES,
+  unbumpedRevisionErrors,
+} from "../test/golden-rows.ts";
 import { buildHermesFixtureDb } from "../test/hermes-fixture.ts";
 import { buildOpenCodeFixtureDb } from "../test/opencode-fixture.ts";
 import { stripGoldenVolatility } from "./golden-normalize.ts";
@@ -204,6 +211,11 @@ async function regenerate(): Promise<void> {
           canonicalizeRows(decodeGoldenRows(db.query(sql).all()), caseDir),
         );
       }
+      const lockPath = join(goldenDir, "revision-lock.json");
+      const lock = goldenRevisionLock(goldenDir);
+      const errors = unbumpedRevisionErrors(JSON.parse(readFileSync(lockPath, "utf8")), lock);
+      if (errors.length > 0) throw new Error(errors.join("\n"));
+      writeJson(lockPath, lock);
     } finally {
       closeDb(db);
     }

@@ -90,6 +90,9 @@ A change is ready when:
    branch, so put later schema adjustments in a new migration. Bump
    `INGEST_PIPELINE_REVISION` whenever unchanged sources must be re-derived so
    the next sync backfills them once and later syncs stay idempotent.
+   `test/golden/revision-lock.json` fails the golden tests when derived golden
+   rows change without that bump (or the `MODEL_USAGE_FORMAT_VERSION` or
+   `SESSION_ECONOMICS_FORMAT_VERSION` bump for those tables).
 6. **Parsers are the extension point.** A new source requires
    `src/sources/<tool>.ts`, hand-written synthetic fixtures, parser tests,
    ingest/query coverage, and reviewed golden updates. Follow
