@@ -17,7 +17,7 @@ import { loadAugments } from "../src/eval/augments.ts";
 import { EvalRequestError } from "../src/eval/errors.ts";
 import { apiCellId, artifactDir } from "../src/eval/paths.ts";
 import * as real from "../src/eval/real.ts";
-import { configGroupEnv, defaultConfigProblem } from "../src/eval/registry.ts";
+import { cleanConfigProblem, configGroupEnv, defaultConfigProblem } from "../src/eval/registry.ts";
 import type { EvalCell, RealRunInput } from "../src/eval/types.ts";
 
 const verifyScript = join(import.meta.dir, "..", "src", "eval", "real-verify.ts");
@@ -404,6 +404,11 @@ describe("config modes", () => {
     );
     write(home, ".codex/auth.json", "{}");
     expect(defaultConfigProblem("codex", { HOME: home })).toBeNull();
+  });
+
+  test("cleanConfigProblem names harnesses without a clean recipe", () => {
+    expect(cleanConfigProblem("claude")).toBeNull();
+    expect(cleanConfigProblem("copilot")).toBe("clean config is not supported for GitHub Copilot");
   });
 
   test("configGroupEnv isolates the default group", () => {
