@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
-// `bun build --env=AGENT_BENCHMARKS_BUILD_VERSION*` inlines only a direct `process.env.NAME` read.
+// The `define` in scripts/build-binaries.ts replaces only a direct `process.env.NAME` read.
 const INLINED_BUILD_VERSION = process.env.AGENT_BENCHMARKS_BUILD_VERSION;
 
 export interface VersionResolutionOptions {

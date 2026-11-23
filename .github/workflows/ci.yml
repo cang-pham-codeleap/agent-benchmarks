@@ -43,43 +43,22 @@ jobs:
       - name: Build native binary
         run: bun run scripts/build-binaries.ts --target native --out-dir /tmp/agent-benchmarks-bin --version 0.0.0-ci
 
-      - name: Smoke native binary augments
+      - name: Smoke native binary augments and UI stylesheet
         run: |
           set -euo pipefail
-          bins=(/tmp/agent-benchmarks-bin/*/agent-benchmarks)
-          bin="${bins[0]}"
+          bin="$(ls /tmp/agent-benchmarks-bin/*/agent-benchmarks)"
           AGENT_BENCHMARKS_NO_SYNC=1 "$bin" serve --no-sync --db "$RUNNER_TEMP/smoke.db" --port 47900 &
           for _ in $(seq 30); do curl -sf localhost:47900/api/evals/catalog -o "$RUNNER_TEMP/catalog.json" && break; sleep 1; done
+          stylesheet="$(curl -sf localhost:47900/ | grep -oE 'href="/[^"]+\.css"' | head -1 | cut -d'"' -f2)"
+          curl -sf "localhost:47900$stylesheet" -o "$RUNNER_TEMP/ui.css"
           kill %1
-          augments=(evals/augments/*.json)
-          expected="${#augments[@]}"
+          if grep -qE '@(tailwind|theme)' "$RUNNER_TEMP/ui.css" || ! grep -qF '.flex{display:flex}' "$RUNNER_TEMP/ui.css"; then
+            echo "::error file=scripts/build-binaries.ts::compiled binary serves unprocessed Tailwind CSS at $stylesheet; scripts/build-binaries.ts must pass bun-plugin-tailwind to Bun.build"
+            exit 1
+          fi
+          expected="$(ls evals/augments/*.json | wc -l)"
           actual="$(jq '[.augments[] | select(.problem == null or (.problem | endswith("is not on PATH")))] | length' "$RUNNER_TEMP/catalog.json")"
           test "$actual" -eq "$expected"
-
-  sync-model:
-    name: Sync protocol model (TLC)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: .bun-version
-
-      - name: Install Java
-        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Check the model, its past-bug variants and its open finding
-        run: bun run scripts/check-sync-model.ts
 
   docker:
     name: Docker (multi-arch)

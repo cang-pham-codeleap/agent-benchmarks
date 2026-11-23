@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import tailwind from "bun-plugin-tailwind";
 
 const targets = [
   { key: "darwin-arm64", bunTarget: "bun-darwin-arm64" },
@@ -26,32 +26,32 @@ const selected =
       : targets.filter((target) => target.key === selector);
 if (selected.length === 0) throw new Error(`unsupported target: ${selector}`);
 
+const root = resolve(import.meta.dir, "..");
 for (const target of selected) {
   const outPath = resolve(join(outDir, target.key, "agent-benchmarks"));
   mkdirSync(dirname(outPath), { recursive: true });
-  const buildArgs = [
-    "build",
-    "--compile",
-    "--minify",
-    "--splitting",
-    "--define",
-    'process.env.NODE_ENV="production"',
-    "--target",
-    target.bunTarget,
-    ...(version === "" ? [] : ["--env=AGENT_BENCHMARKS_BUILD_VERSION*"]),
-    "src/cli.ts",
-    "src/sync-worker.ts",
-    "src/stats-worker.ts",
-    "src/read-worker.ts",
-    "--outfile",
-    outPath,
-  ];
-  const result = spawnSync("bun", buildArgs, {
-    cwd: resolve(import.meta.dir, ".."),
-    env: version === "" ? process.env : { ...process.env, AGENT_BENCHMARKS_BUILD_VERSION: version },
-    stdio: "inherit",
+  // The CLI `bun build --compile` cannot load plugins; without tailwind the embedded UI CSS ships unprocessed.
+  const result = await Bun.build({
+    entrypoints: [
+      "src/cli.ts",
+      "src/sync-worker.ts",
+      "src/stats-worker.ts",
+      "src/read-worker.ts",
+    ].map((entry) => join(root, entry)),
+    compile: { target: target.bunTarget, outfile: outPath },
+    minify: true,
+    splitting: true,
+    define: {
+      "process.env.NODE_ENV": '"production"',
+      ...(version === ""
+        ? {}
+        : { "process.env.AGENT_BENCHMARKS_BUILD_VERSION": JSON.stringify(version) }),
+    },
+    plugins: [tailwind],
+    throw: false,
   });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  for (const log of result.logs) console.error(log);
+  if (!result.success) process.exit(1);
   chmodSync(outPath, 0o755);
   process.stdout.write(`built ${target.key}: ${outPath}\n`);
 }
