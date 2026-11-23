@@ -414,6 +414,49 @@ describe("contextWindowForSession", () => {
     db.close();
   });
 
+  test("counts the same turns as the stored session turn_count", () => {
+    const db = freshDb();
+    const turn = (n: number, text: string): string[] => [
+      record({
+        type: "user",
+        uuid: `u${n}`,
+        parentUuid: n === 1 ? null : `a${n - 1}`,
+        timestamp: `2026-05-03T10:0${n}:00.000Z`,
+        message: { role: "user", content: [{ type: "text", text }] },
+      }),
+      record({
+        type: "assistant",
+        uuid: `a${n}`,
+        parentUuid: `u${n}`,
+        requestId: `req-${n}`,
+        timestamp: `2026-05-03T10:0${n}:30.000Z`,
+        message: {
+          role: "assistant",
+          model: "claude-opus-4-7",
+          stop_reason: "end_turn",
+          usage: usage(10, 10, 0, 1000 * n),
+          content: [{ type: "text", text: "ok" }],
+        },
+      }),
+    ];
+    const content = [
+      ...turn(1, "real prompt"),
+      ...turn(2, "   \n"),
+      ...turn(3, "[Request interrupted by user]"),
+      ...turn(4, "<command-name>/clear</command-name>"),
+      ...turn(5, "second real prompt"),
+    ].join("\n");
+    upsertSession(db, parseClaudeSession("sess-ctx", content), "/turns.jsonl", 1, 2, "h");
+    const sessionId = listSessions(db)[0]?.id ?? 0;
+
+    const timeline = contextWindowForSession(db, sessionId);
+    const stored = db.query("SELECT turn_count FROM session WHERE id = ?1").get(sessionId);
+    expect(stored).toEqual({ turn_count: 2 });
+    expect(timeline?.points.map((point) => point.turn)).toEqual([1, 1, 1, 1, 2]);
+    expect(timeline?.turn_count).toBe(2);
+    db.close();
+  });
+
   test("returns null for an unknown session", () => {
     const { db } = seeded();
     expect(contextWindowForSession(db, 999_999)).toBeNull();

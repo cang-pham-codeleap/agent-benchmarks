@@ -393,9 +393,7 @@ function ensureSchema(db: Database): void {
       try {
         db.exec("ROLLBACK;");
       } catch {
-        // A concurrent initializer may have committed before handing a
-        // lower-version winner to migrate(); never mask that later error with
-        // "cannot rollback - no transaction is active".
+        // migrate() rolls back its own transaction, so SQLite reports "no transaction is active".
       }
       throw error;
     }
@@ -765,8 +763,7 @@ function migrate(db: Database, current: number): void {
       ).run();
     }
     if (current < 23) {
-      // Serves listToolCalls's ORDER BY so a page of 50 stops sorting the whole
-      // table. test/db.test.ts asserts the plan.
+      // Serves listToolCalls's ORDER BY so a page of 50 stops sorting the whole table.
       if (hasTable(db, "tool_call")) {
         db.exec(
           "CREATE INDEX IF NOT EXISTS idx_toolcall_timestamp ON tool_call(timestamp DESC, id DESC)",

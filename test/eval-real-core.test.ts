@@ -218,6 +218,7 @@ describe("prepareRealRun and real-verify", () => {
     expect(existsSync(join(clone, "test", "x.test.js"))).toBe(false);
     expect(git(clone, "log", "--all", "--format=%H")).not.toContain(fixSha);
     expect(git(clone, "remote")).toBe("");
+    expect(git(clone, "reflog", "--all")).toBe("");
     expect(git(repo, "for-each-ref")).toBe(refsBefore);
     expect(git(repo, "status", "--porcelain")).toBe("");
 
@@ -389,6 +390,41 @@ describe("branchPrefix", () => {
       "x.test.js",
     );
     expect(git(repo, "status", "--porcelain")).toBe("");
+  });
+});
+
+describe("a push to a branch the user made mid-run", () => {
+  test("still grades the cell", () => {
+    const runDir = join(root, "run-branch-taken");
+    const input = validate(
+      replayInput({
+        setups: [
+          { harness: "claude", model: "sonnet", config: "current", branchPrefix: "eval/taken" },
+        ],
+      }),
+    );
+    const prepared = real.prepareRealRun(input, runDir, {});
+    git(repo, "branch", "eval/taken/current-t1", fixSha);
+    const cell = `claude:${prepared.taskId}:sonnet:trial1`;
+    const worktree = join(root, "cell-branch-taken");
+    git(join(runDir, "repo"), "worktree", "add", "-q", "-b", "cell-branch-taken", worktree, "HEAD");
+    write(worktree, "src/x.js", fixed);
+    const run = Bun.spawnSync(["bun", verifyScript, join(runDir, "real-spec.json"), "current"], {
+      cwd: worktree,
+      env: { ...process.env, ACH_CELL_ID: cell, ACH_WORKSPACE: worktree },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(run.exitCode).toBe(0);
+    const result = JSON.parse(
+      readFileSync(join(artifactDir(runDir, "current", cell), "result.json"), "utf8"),
+    );
+    expect(result.hidden).toEqual({
+      passed: 1,
+      total: 1,
+      files: [{ path: "test/x.test.js", passed: true }],
+    });
+    expect(git(repo, "rev-parse", "eval/taken/current-t1")).toBe(fixSha);
   });
 });
 

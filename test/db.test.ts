@@ -1408,6 +1408,39 @@ describe("openDb", () => {
     expect((caught as Error).message).not.toContain("simulated rollback failure");
   });
 
+  test("keeps the migration error when a concurrent initializer won the empty archive", () => {
+    const path = freshPath();
+    const originalExec = Database.prototype.exec;
+    let raced = false;
+    Database.prototype.exec = function (this: Database, sql: string) {
+      if (!raced && sql.trim().toUpperCase() === "BEGIN IMMEDIATE;") {
+        raced = true;
+        Database.prototype.exec = originalExec;
+        const winner = openDb(path);
+        winner.exec(`
+          ALTER TABLE session ADD COLUMN unexpected_local_state TEXT;
+          DELETE FROM schema_migrations WHERE version >= 19;
+        `);
+        winner.close();
+      }
+      return originalExec.call(this, sql);
+    } as Database["exec"];
+    let caught: unknown;
+    try {
+      openDb(path);
+    } catch (error) {
+      caught = error;
+    } finally {
+      Database.prototype.exec = originalExec;
+    }
+
+    expect(raced).toBe(true);
+    expect(caught).toBeInstanceOf(SchemaDriftError);
+    expect((caught as Error).message).toContain(
+      "unexpected columns: session.unexpected_local_state",
+    );
+  });
+
   test("fails fast on owned-schema drift with one actionable error record", () => {
     const path = freshPath();
     const db = openDb(path);

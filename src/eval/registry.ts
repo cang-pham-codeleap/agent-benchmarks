@@ -26,8 +26,8 @@ import type {
 } from "./types.ts";
 
 export interface DefaultConfigSupport {
-  /** At least one must be set: a per-run config dir cannot see a keychain login. */
-  requiresAnyEnv?: string[];
+  /** Any one must be set: a per-run config dir cannot see a keychain login. */
+  requiresAnyEnv?: [string, ...string[]];
   /** Env var that relocates the harness home to a clean per-run directory. */
   homeEnv?: string;
   /** Files relative to the user's home copied into that directory (credentials only). */
@@ -254,7 +254,7 @@ export function defaultConfigProblem(harness: string, env: NodeJS.ProcessEnv): s
   if (definition == null) return `unknown harness: ${harness}`;
   const support = definition.defaultConfig;
   if (support == null) return `default config is not supported for ${definition.label}`;
-  if (support.requiresAnyEnv?.length && !support.requiresAnyEnv.some((name) => env[name]))
+  if (support.requiresAnyEnv != null && !support.requiresAnyEnv.some((name) => env[name]))
     return `default config needs ${support.requiresAnyEnv.join(" or ")}`;
   const home = env.HOME || homedir();
   const missing = support.copyFromHome?.find((file) => !existsSync(join(home, file)));

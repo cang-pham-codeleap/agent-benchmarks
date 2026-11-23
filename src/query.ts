@@ -1266,8 +1266,8 @@ function withDisplayTitles(db: Database, sessions: SessionSummary[]): SessionSum
   return sessions.map((session) => {
     const title =
       titleBySession.get(session.id) ?? readableUserTitle(session.title, session.is_subagent);
-    // Always replace the parser fallback. In Codex logs the first normalized
-    // "user" row can be a developer prompt rather than something a human typed.
+    // In Codex logs the first normalized "user" row can be a developer prompt
+    // rather than something a human typed.
     return { ...session, title };
   });
 }

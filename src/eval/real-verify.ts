@@ -113,7 +113,6 @@ export async function verifyCell(
   git(workspace, "add", "-A");
   const branch = spec.branches?.[apiCellId(group, cellId)];
   if (branch != null) {
-    // A failed push (the user made the branch mid-run) must not cost the cell its grade.
     try {
       const tree = git(workspace, "write-tree").trim();
       const commit = git(
