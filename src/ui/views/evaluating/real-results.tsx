@@ -25,6 +25,7 @@ import { Badge } from "../../badges.tsx";
 import { durationPrecise, errorMessage, money } from "../../format.ts";
 import { Link } from "../../link.tsx";
 import { setupText } from "../evaluating-form.ts";
+import { Term } from "./glossary.tsx";
 import { OUTCOME_TONE } from "./tones.ts";
 
 export const REFERENCE = "reference";
@@ -379,12 +380,22 @@ export function RealResultsView({ results }: { results: EvalResults }) {
                 <TableHead />
                 <TableHead>Setup</TableHead>
                 <TableHead>Outcomes</TableHead>
-                <TableHead>Hidden</TableHead>
-                <TableHead>Checks</TableHead>
+                <TableHead>
+                  <Term name="Hidden" />
+                </TableHead>
+                <TableHead>
+                  <Term name="Checks" />
+                </TableHead>
                 <TableHead>Diff</TableHead>
-                <TableHead>Overlap</TableHead>
-                <TableHead>Size ratio</TableHead>
-                <TableHead>Agent p50</TableHead>
+                <TableHead>
+                  <Term name="Overlap" />
+                </TableHead>
+                <TableHead>
+                  <Term name="Size ratio" />
+                </TableHead>
+                <TableHead>
+                  <Term name="Agent p50" />
+                </TableHead>
                 <TableHead>Tokens</TableHead>
                 <TableHead>Cost</TableHead>
               </TableRow>

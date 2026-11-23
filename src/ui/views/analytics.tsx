@@ -46,6 +46,7 @@ import {
   roundedPercents,
   usageMetric,
 } from "../format.ts";
+import { HelpLabel } from "../help-label.tsx";
 import { Icon } from "../icons.tsx";
 import { Link } from "../link.tsx";
 import { repoSessionsHref } from "../navigation.ts";
@@ -263,12 +264,12 @@ export function AnalyticsView({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           detail={delta(sessions, previousSummary?.sessions)}
+          help="Top-level sessions. Subagent runs count toward the session that started them."
           icon="sessions"
           label="Sessions"
           loading={summaryLoading}
           updating={summaryUpdating}
           value={tile(formatInt(sessions))}
-          valueTitle="Top-level sessions. Subagent runs count toward the session that started them."
         />
         <StatCard
           detail={delta(summary?.messages ?? 0, previousSummary?.messages)}
@@ -293,6 +294,7 @@ export function AnalyticsView({
               : null
           }
           detailTitle="Completed means the transcript ended on an assistant reply. It does not show that the work shipped."
+          help={PER_COMPLETED_TITLE}
           icon="check"
           label="Per completed session"
           loading={
@@ -304,16 +306,15 @@ export function AnalyticsView({
           value={
             usageUnavailable ? "Unavailable" : perCompleted == null ? "-" : money(perCompleted)
           }
-          valueTitle={PER_COMPLETED_TITLE}
         />
         <StatCard
           detail={delta(summary?.input_tokens ?? 0, previousSummary?.input_tokens)}
+          help="Prompt tokens sent without a cache hit."
           icon="download"
           label="Input tokens"
           loading={summaryLoading}
           updating={summaryUpdating}
           value={tile(usageMetric(sessions, usageSessions, compact(summary?.input_tokens ?? 0)))}
-          valueTitle="Prompt tokens sent without a cache hit."
         />
         <StatCard
           detail={cacheDetail(hitRate, previousHitRate)}
@@ -326,6 +327,7 @@ export function AnalyticsView({
                     : `, against ${Math.round(previousHitRate * 100)}% in the ${previousPeriodLabel(previous.days)}.`
                 }`
           }
+          help="Prompt tokens read from the provider's cache. They bill at a fraction of the input rate but are usually most of the volume."
           icon="layers"
           label="Cache reads"
           loading={summaryLoading}
@@ -333,7 +335,6 @@ export function AnalyticsView({
           value={tile(
             usageMetric(sessions, usageSessions, compact(summary?.cache_read_tokens ?? 0)),
           )}
-          valueTitle="Prompt tokens read from the provider's cache. They bill at a fraction of the input rate but are usually most of the volume."
         />
         <StatCard
           detail={delta(summary?.output_tokens ?? 0, previousSummary?.output_tokens)}
@@ -345,15 +346,13 @@ export function AnalyticsView({
         />
         <StatCard
           detail={delta(summary?.estimated_cost_usd ?? 0, previousSummary?.estimated_cost_usd)}
+          help="Token usage priced at current API list prices. A subscription bill can differ."
           icon="money"
           label="Est. cost"
           loading={summaryLoading}
           updating={summaryUpdating}
           value={tile(estCost.text)}
-          valueTitle={
-            estCost.title ??
-            "Token usage priced at current API list prices. A subscription bill can differ."
-          }
+          valueTitle={estCost.title}
         />
       </div>
 
@@ -449,6 +448,7 @@ export function AnalyticsView({
                 />
                 <SortableHeader
                   align="right"
+                  help="Hidden thinking tokens the model generated before its visible answer, where the source records them."
                   label="Reason tok"
                   onSort={(key) => setModelSort((sort) => nextSort(sort, key))}
                   sort={modelSort}
@@ -884,19 +884,23 @@ export function TokenEconomicsPanel({
                 </th>
                 <th scope="col">Time spent</th>
                 <th className="text-right" scope="col">
-                  Time
+                  <HelpLabel label="Time" help={TIME_HELP} />
                 </th>
                 <th className="text-right" scope="col">
-                  Generated
+                  <HelpLabel
+                    label="Generated"
+                    help="Output tokens the model wrote while doing this activity."
+                  />
                 </th>
                 <th className="text-right" scope="col">
-                  <span title={WINDOW_TITLE}>Window</span>
+                  <HelpLabel label="Window" help={WINDOW_TITLE} />
                 </th>
                 {showAgentRuns ? (
                   <th className="text-right" scope="col">
-                    <span title="Root sessions and nested subagent runs contributing to this activity">
-                      Agent runs
-                    </span>
+                    <HelpLabel
+                      label="Agent runs"
+                      help="Root sessions and nested subagent runs contributing to this activity."
+                    />
                   </th>
                 ) : null}
               </tr>
@@ -976,6 +980,9 @@ export function TokenEconomicsPanel({
 
 const WINDOW_TITLE =
   "Context-window volume: tokens each activity put into the model's context, such as tool results and file reads.";
+
+const TIME_HELP =
+  "Active time attributed from message timestamps. Each gap is charged to the later message and capped at five minutes, so it is not stopwatch time.";
 
 export function WeekdayPanel({
   activity,
