@@ -599,7 +599,9 @@ describe("server routes", () => {
       const frames =
         new TextDecoder().decode((await reader.read()).value) +
         new TextDecoder().decode((await reader.read()).value);
-      expect(frames).toContain("event: archive_updated");
+      expect(frames).toContain(
+        'event: archive_updated\ndata: {"type":"archive_updated","reason":"manual"',
+      );
     } finally {
       await reader.cancel();
       await economics.dispose();

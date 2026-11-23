@@ -2,7 +2,7 @@ import { Gauge, Monitor, Moon, Search, Settings, Sun } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { EvalCellActivityEvent, EvalProgressEvent } from "../eval/types.ts";
-import { ApiError, getJson, getSyncStatus } from "./api.ts";
+import { getJson, getSyncStatus } from "./api.ts";
 import { ApiFailureState } from "./api-failure.tsx";
 import { paletteShortcutLabel, shouldOpenCommandPalette } from "./command-palette.ts";
 import { CommandPalette } from "./command-palette-view.tsx";
@@ -72,18 +72,17 @@ import {
 import { type DashboardSource, sourceScopeQuery } from "./source-scope.ts";
 import { SyncButton } from "./sync-button.tsx";
 import {
-  isForegroundSync,
+  INITIAL_SYNC_STATE,
   LIVE_SESSIONS_REFRESH_MS,
   LIVE_SESSIONS_TOP_PX,
   type LiveSessionsViewer,
-  liveSessionsAction,
   parseSyncFailure,
-  planArchiveUpdate,
-  restoreSync,
+  reduceSync,
+  SYNC_COMPLETE_MS,
+  type SyncEvent,
+  type SyncState,
   sessionsAutoRefresh,
-  showsSync,
   showsSyncComplete,
-  supersededStatus,
   syncAnnouncement,
   syncCompleteLabel,
   syncNoticeDelay,
@@ -97,7 +96,6 @@ import type {
   ServerEventPayload,
   SessionPageState,
   SyncProgress,
-  SyncStatus,
   ThemeChoice,
 } from "./types.ts";
 import { AnalyticsView } from "./views/analytics.tsx";
@@ -141,32 +139,27 @@ function App() {
   });
   const [sourceSelection, setSourceSelection] = useState<DashboardSource>("");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [localSyncing, setLocalSyncing] = useState(false);
-  const [syncError, setSyncError] = useState<unknown>(null);
-  const [syncComplete, setSyncComplete] = useState(false);
+  const [sync, setSync] = useState<SyncState>(INITIAL_SYNC_STATE);
+  const {
+    syncing: localSyncing,
+    complete: syncComplete,
+    archiveSynced,
+    updateOffered: archiveUpdateAvailable,
+    error: syncError,
+    completion,
+  } = sync;
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [evalProgress, setEvalProgress] = useState<EvalProgressEvent | null>(null);
   const [evalActivity, setEvalActivity] = useState<EvalCellActivityEvent | null>(null);
-  const [archiveSynced, setArchiveSynced] = useState(true);
   const [syncNoticeShown, setSyncNoticeShown] = useState(false);
-  const [archiveUpdateAvailable, setArchiveUpdateAvailable] = useState(false);
   const [liveDisconnected, setLiveDisconnected] = useState(false);
   const [liveConnectionKey, setLiveConnectionKey] = useState(0);
   const [sessionTextFilterActive, setSessionTextFilterActive] = useState(false);
-  const syncCompleteTimerRef = useRef<number | null>(null);
+  const syncRef = useRef<SyncState>(INITIAL_SYNC_STATE);
   const syncProgressThrottleRef = useRef<LatestThrottle<SyncProgress> | null>(null);
   const liveSessionsThrottleRef = useRef<LatestThrottle<null> | null>(null);
   const liveSessionsRef = useRef(false);
   const liveDisconnectTimerRef = useRef<number | null>(null);
-  const liveDroppedRef = useRef(false);
-  const manualSyncPendingRef = useRef(false);
-  const syncStatusReadRef = useRef(0);
-  const syncStatusAppliedRef = useRef(0);
-  const sawSyncRef = useRef(false);
-  const syncEndedRef = useRef(0);
-  const archiveSyncedRef = useRef(true);
-  const caughtUpRef = useRef(true);
-  const localSyncingRef = useRef(false);
   const failedSlicesRef = useRef<DataSlice[]>([]);
   useTodayRollover(dateRangeSelection.preset === "today", setDateRangeSelection);
   const dateQuery = dateRangeQuery(dateRangeSelection);
@@ -200,16 +193,56 @@ function App() {
     return stored === "light" || stored === "dark" ? stored : "system";
   });
 
-  const requestRefresh = useCallback(() => {
-    caughtUpRef.current = true;
-    if (refreshTimerRef.current != null) {
-      window.clearTimeout(refreshTimerRef.current);
+  const dispatchSync = useCallback(function dispatch(event: SyncEvent): void {
+    const step = reduceSync(syncRef.current, event);
+    syncRef.current = step.state;
+    setSync(step.state);
+    for (const effect of step.effects) {
+      switch (effect.type) {
+        case "refresh":
+          if (refreshTimerRef.current != null) {
+            window.clearTimeout(refreshTimerRef.current);
+          }
+          refreshTimerRef.current = window.setTimeout(() => {
+            refreshTimerRef.current = null;
+            setReloadKey((key) => key + 1);
+          }, 100);
+          break;
+        case "post_sync":
+          getJson<unknown>("/api/sync", { method: "POST", body: "{}" }).then(
+            () => dispatch({ type: "manual_sync_done" }),
+            (error: unknown) => dispatch({ type: "manual_sync_failed", error }),
+          );
+          break;
+        case "read_status": {
+          const { read, endedBefore, reconnect } = effect;
+          getSyncStatus().then(
+            (status) => dispatch({ type: "status_answered", read, endedBefore, reconnect, status }),
+            () => dispatch({ type: "status_failed", reconnect }),
+          );
+          break;
+        }
+        case "live_refresh":
+          liveSessionsThrottleRef.current?.push(null);
+          break;
+        case "show_progress":
+          syncProgressThrottleRef.current?.push(effect.progress);
+          break;
+        case "flush_progress":
+          syncProgressThrottleRef.current?.flush();
+          break;
+        case "clear_progress":
+          syncProgressThrottleRef.current?.cancel();
+          setSyncProgress(null);
+          break;
+      }
     }
-    refreshTimerRef.current = window.setTimeout(() => {
-      refreshTimerRef.current = null;
-      setReloadKey((key) => key + 1);
-    }, 100);
   }, []);
+
+  const requestRefresh = useCallback(
+    () => dispatchSync({ type: "refresh_requested" }),
+    [dispatchSync],
+  );
 
   useEffect(() => {
     const onPop = () => setPath(locationPath());
@@ -220,88 +253,26 @@ function App() {
   useDisabledFocusRescue();
 
   useEffect(() => {
-    localSyncingRef.current = localSyncing;
-  }, [localSyncing]);
+    dispatchSync({ type: "page_loaded" });
+  }, [dispatchSync]);
 
   useEffect(() => {
-    archiveSyncedRef.current = archiveSynced;
-  }, [archiveSynced]);
-
-  const dismissSyncComplete = useCallback(() => {
-    if (syncCompleteTimerRef.current == null) {
+    if (!syncComplete) {
       return;
     }
-    window.clearTimeout(syncCompleteTimerRef.current);
-    syncCompleteTimerRef.current = null;
-    setSyncComplete(false);
-    setSyncProgress(null);
-  }, []);
-
-  const readSyncStatus = useCallback(async (): Promise<boolean> => {
-    let status: SyncStatus;
-    for (;;) {
-      const read = ++syncStatusReadRef.current;
-      const endedBefore = syncEndedRef.current;
-      try {
-        status = await getSyncStatus();
-      } catch {
-        return false;
-      }
-      if (read !== syncStatusReadRef.current) {
-        const superseded = supersededStatus(status, {
-          newerApplied: syncStatusAppliedRef.current === syncStatusReadRef.current,
-          syncing: localSyncingRef.current,
-        });
-        if (superseded.sawSync) {
-          sawSyncRef.current = true;
-        }
-        if (!superseded.readAgain) {
-          return true;
-        }
-      } else if (endedBefore === syncEndedRef.current) {
-        syncStatusAppliedRef.current = read;
-        break;
-      }
-    }
-    const restored = restoreSync(status, {
-      syncing: localSyncingRef.current,
-      manualPending: manualSyncPendingRef.current,
-      sawSync: sawSyncRef.current,
-    });
-    sawSyncRef.current = false;
-    setArchiveSynced(restored.archiveSynced);
-    if (restored.syncing) {
-      setLocalSyncing(true);
-      setSyncError(null);
-      dismissSyncComplete();
-      if (restored.progress != null) {
-        syncProgressThrottleRef.current?.push(restored.progress);
-      }
-    } else {
-      syncProgressThrottleRef.current?.cancel();
-      setLocalSyncing(false);
-      setSyncProgress(null);
-    }
-    if (restored.ended) {
-      setArchiveUpdateAvailable(false);
-      requestRefresh();
-      if (restored.failure != null) {
-        setSyncError(new ApiError(500, "internal_error", restored.failure));
-      }
-    }
-    return true;
-  }, [dismissSyncComplete, requestRefresh]);
-
-  useEffect(() => {
-    void readSyncStatus();
-  }, [readSyncStatus]);
+    const timer = window.setTimeout(
+      () => dispatchSync({ type: "complete_elapsed", completion }),
+      SYNC_COMPLETE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [completion, dispatchSync, syncComplete]);
 
   const firstSync = localSyncing && !archiveSynced;
   useEffect(() => {
     if (!localSyncing) {
       return;
     }
-    const delay = syncNoticeDelay({ firstSync, requested: manualSyncPendingRef.current });
+    const delay = syncNoticeDelay({ firstSync, requested: syncRef.current.manualPending });
     if (delay === 0) {
       setSyncNoticeShown(true);
       return;
@@ -324,25 +295,21 @@ function App() {
   });
 
   useEffect(() => {
-    const throttle = createLatestThrottle<null>(() => {
-      const action = liveSessionsAction(
-        liveSessionsRef.current,
-        localSyncingRef.current,
-        liveSessionsViewer(),
-      );
-      if (action === "refresh") {
-        setArchiveUpdateAvailable(false);
-        requestRefresh();
-      } else if (action === "offer_update") {
-        setArchiveUpdateAvailable(true);
-      }
-    }, LIVE_SESSIONS_REFRESH_MS);
+    const throttle = createLatestThrottle<null>(
+      () =>
+        dispatchSync({
+          type: "live_sessions_due",
+          autoRefresh: liveSessionsRef.current,
+          viewer: liveSessionsViewer(),
+        }),
+      LIVE_SESSIONS_REFRESH_MS,
+    );
     liveSessionsThrottleRef.current = throttle;
     return () => {
       throttle.cancel();
       liveSessionsThrottleRef.current = null;
     };
-  }, [requestRefresh]);
+  }, [dispatchSync]);
 
   useEffect(() => {
     liveSessionsRef.current = liveSessions;
@@ -475,26 +442,21 @@ function App() {
       SYNC_PROGRESS_RENDER_MS,
     );
     syncProgressThrottleRef.current = progressThrottle;
-    const markConnected = () => {
-      if (liveDroppedRef.current) {
-        liveDroppedRef.current = false;
-        if (failedSlicesRef.current.length > 0) {
-          requestRefresh();
-        } else {
-          setArchiveUpdateAvailable(true);
-          caughtUpRef.current = false;
-        }
-        void readSyncStatus().then((read) => {
-          if (read) {
-            return;
-          }
-          if (!manualSyncPendingRef.current) {
-            progressThrottle.cancel();
-            setLocalSyncing(false);
-            setSyncProgress(null);
-          }
-        });
+    const parse = (
+      event: MessageEvent<string>,
+    ): ServerEventPayload & { progress?: SyncProgress } => {
+      try {
+        return JSON.parse(event.data);
+      } catch {
+        return {};
       }
+    };
+    const markConnected = (opened = false) => {
+      dispatchSync({
+        type: "stream_message",
+        opened,
+        failedSlices: failedSlicesRef.current.length > 0,
+      });
       if (liveDisconnectTimerRef.current != null) {
         window.clearTimeout(liveDisconnectTimerRef.current);
         liveDisconnectTimerRef.current = null;
@@ -503,23 +465,8 @@ function App() {
     };
     const handleProgress = (event: MessageEvent<string>) => {
       markConnected();
-      try {
-        const payload = JSON.parse(event.data) as {
-          progress?: SyncProgress;
-          reason?: string;
-        };
-        if (!showsSync(payload.reason, archiveSyncedRef.current)) {
-          return;
-        }
-        if (payload.progress != null) {
-          if (!localSyncingRef.current) {
-            syncEndedRef.current += 1;
-            dismissSyncComplete();
-          }
-          progressThrottle.push(payload.progress);
-          setLocalSyncing(true);
-        }
-      } catch {}
+      const { reason, progress } = parse(event);
+      dispatchSync({ type: "sync_progress", reason, progress });
     };
     const handleEvalProgress = (event: MessageEvent<string>) => {
       markConnected();
@@ -535,79 +482,24 @@ function App() {
     };
     const handleSync = (event: MessageEvent<string>) => {
       markConnected();
-      let payload: ServerEventPayload = {};
-      try {
-        payload = JSON.parse(event.data) as ServerEventPayload;
-      } catch {}
-      const shown = showsSync(payload.reason, archiveSyncedRef.current);
-      syncEndedRef.current += 1;
-      setArchiveSynced(true);
-      if (!shown) {
-        return;
-      }
-      if (!isForegroundSync(payload.reason) && manualSyncPendingRef.current) {
-        return;
-      }
-      progressThrottle.flush();
-      setArchiveUpdateAvailable(false);
-      setLocalSyncing(false);
-      setSyncError(null);
-      setSyncComplete(true);
-      if (syncCompleteTimerRef.current != null) {
-        window.clearTimeout(syncCompleteTimerRef.current);
-      }
-      syncCompleteTimerRef.current = window.setTimeout(() => {
-        syncCompleteTimerRef.current = null;
-        setSyncComplete(false);
-        setSyncProgress(null);
-      }, 1_500);
-      requestRefresh();
+      dispatchSync({ type: "sync_ended", reason: parse(event).reason });
     };
     const handleArchiveUpdated = (event: MessageEvent<string>) => {
-      let payload: ServerEventPayload = {};
-      try {
-        payload = JSON.parse(event.data) as ServerEventPayload;
-      } catch {}
-      const plan = planArchiveUpdate(payload.reason, caughtUpRef.current, localSyncingRef.current);
-      caughtUpRef.current = plan.caughtUp;
-      if (plan.refresh) {
-        setArchiveUpdateAvailable(false);
-        requestRefresh();
-        return;
-      }
-      if (plan.offerUpdate) {
-        const liveRefresh = liveSessionsThrottleRef.current;
-        if (liveSessionsRef.current && liveRefresh != null) {
-          liveRefresh.push(null);
-        } else {
-          setArchiveUpdateAvailable(true);
-        }
-      }
+      dispatchSync({
+        type: "archive_updated",
+        reason: parse(event).reason,
+        liveSessions: liveSessionsRef.current && liveSessionsThrottleRef.current != null,
+      });
     };
-    const handleOpen = () => {
-      const dropped = liveDroppedRef.current;
-      markConnected();
-      if (!dropped) {
-        void readSyncStatus();
-      }
-    };
+    const handleOpen = () => markConnected(true);
     const handleError = (event: Event) => {
       const failure = parseSyncFailure(event);
       if (failure != null) {
         markConnected();
-        syncEndedRef.current += 1;
-        if (
-          showsSync(failure.reason, archiveSyncedRef.current) &&
-          (isForegroundSync(failure.reason) || !manualSyncPendingRef.current)
-        ) {
-          progressThrottle.cancel();
-          setLocalSyncing(false);
-          setSyncProgress(null);
-          setSyncError(new ApiError(500, "internal_error", failure.error));
-        }
+        dispatchSync({ type: "sync_failed", ...failure });
         return;
       }
-      liveDroppedRef.current = true;
+      dispatchSync({ type: "stream_dropped" });
       if (liveDisconnectTimerRef.current != null) {
         return;
       }
@@ -646,11 +538,8 @@ function App() {
         window.clearTimeout(liveDisconnectTimerRef.current);
         liveDisconnectTimerRef.current = null;
       }
-      if (syncCompleteTimerRef.current != null) {
-        window.clearTimeout(syncCompleteTimerRef.current);
-      }
     };
-  }, [dismissSyncComplete, liveConnectionKey, readSyncStatus, requestRefresh]);
+  }, [dispatchSync, liveConnectionKey]);
 
   useEffect(() => {
     const openSearch = (event: KeyboardEvent) => {
@@ -684,45 +573,7 @@ function App() {
   const lastActivity = formatDay(data.dateBounds?.latest_started_at ?? null);
   const syncInProgress = localSyncing;
   const syncCompleteShown = showsSyncComplete(syncComplete, syncInProgress);
-  const runSync = () => {
-    if (syncInProgress) {
-      return;
-    }
-    setSyncError(null);
-    dismissSyncComplete();
-    syncProgressThrottleRef.current?.cancel();
-    setSyncProgress(null);
-    setArchiveUpdateAvailable(false);
-    setLocalSyncing(true);
-    manualSyncPendingRef.current = true;
-    void getJson<unknown>("/api/sync", { method: "POST", body: "{}" })
-      .finally(() => {
-        manualSyncPendingRef.current = false;
-        syncEndedRef.current += 1;
-      })
-      .then(() => {
-        syncProgressThrottleRef.current?.flush();
-        setArchiveUpdateAvailable(false);
-        setArchiveSynced(true);
-        setLocalSyncing(false);
-        setSyncComplete(true);
-        requestRefresh();
-        if (syncCompleteTimerRef.current != null) {
-          window.clearTimeout(syncCompleteTimerRef.current);
-        }
-        syncCompleteTimerRef.current = window.setTimeout(() => {
-          syncCompleteTimerRef.current = null;
-          setSyncComplete(false);
-          setSyncProgress(null);
-        }, 1_500);
-      })
-      .catch((err: unknown) => {
-        syncProgressThrottleRef.current?.cancel();
-        setLocalSyncing(false);
-        setSyncProgress(null);
-        setSyncError(err);
-      });
-  };
+  const runSync = () => dispatchSync({ type: "sync_clicked" });
   const handleDateRangeChange = useCallback(
     (next: DateRangeSelection) => {
       if (sessionPageFromPath(path) > 1) {
@@ -732,15 +583,11 @@ function App() {
     },
     [path],
   );
-  const loadArchiveUpdates = () => {
-    setArchiveUpdateAvailable(false);
-    requestRefresh();
-  };
+  const loadArchiveUpdates = () => dispatchSync({ type: "update_clicked" });
   const reconnectLiveUpdates = () => {
-    liveDroppedRef.current = false;
     setLiveDisconnected(false);
     setLiveConnectionKey((key) => key + 1);
-    requestRefresh();
+    dispatchSync({ type: "reconnect_clicked" });
   };
   const analyticsReport = pathOnly(path) === "/reports/analytics";
   const sessionReportMatch = pathOnly(path).match(/^\/reports\/session\/(\d+)$/);
