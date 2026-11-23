@@ -19,6 +19,7 @@ import type {
   LiveStep,
 } from "../../../eval/types.ts";
 import { getJson } from "../../api.ts";
+import { Badge as ToneBadge } from "../../badges.tsx";
 import { durationPrecise, money } from "../../format.ts";
 import { setupText } from "../evaluating-form.ts";
 import {
@@ -28,6 +29,7 @@ import {
   mergeStream,
   watchTarget,
 } from "./live-model.ts";
+import { OUTCOME_TONE } from "./tones.ts";
 
 const stateStyle: Record<CellLiveState, string> = {
   live: "border-emerald-500/60 text-emerald-600 dark:text-emerald-400",
@@ -238,7 +240,7 @@ function CellColumn({
               {state === "live" ? "● live" : state}
             </Badge>
             {state === "done" && cell != null && cell.outcome !== "pending" && (
-              <Badge variant="secondary">{cell.outcome}</Badge>
+              <ToneBadge tone={OUTCOME_TONE[cell.outcome]}>{cell.outcome}</ToneBadge>
             )}
             {elapsed != null && (
               <span className="text-muted-foreground">{durationPrecise(elapsed)}</span>

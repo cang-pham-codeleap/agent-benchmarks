@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,9 +21,11 @@ import {
   type RealCellSummary,
 } from "../../../eval/types.ts";
 import { getJson } from "../../api.ts";
+import { Badge } from "../../badges.tsx";
 import { durationPrecise, errorMessage, money } from "../../format.ts";
 import { Link } from "../../link.tsx";
 import { setupText } from "../evaluating-form.ts";
+import { OUTCOME_TONE } from "./tones.ts";
 
 export const REFERENCE = "reference";
 const MAX_COMPARE = 3;
@@ -284,7 +285,7 @@ function Metrics({ row }: { row: RealRow }) {
       <TableCell>
         <div className="flex flex-wrap gap-1">
           {Object.entries(row.outcomes).map(([outcome, count]) => (
-            <Badge key={outcome} variant={outcome === "passed" ? "outline" : "secondary"}>
+            <Badge key={outcome} tone={OUTCOME_TONE[outcome as CellOutcome]}>
               {outcome} {count}
             </Badge>
           ))}
