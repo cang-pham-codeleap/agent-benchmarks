@@ -4,6 +4,7 @@ import type { CellOutcome, SetupSummary } from "../../../eval/types.ts";
 import { Badge as ToneBadge, ToolBadge } from "../../badges.tsx";
 import { Bar } from "../../common.tsx";
 import { durationPrecise, money } from "../../format.ts";
+import { type GlossaryTerm, Term } from "./glossary.tsx";
 import { harnessTool, OUTCOME_TONE } from "./tones.ts";
 
 export const percent = (value: number | null) =>
@@ -28,7 +29,7 @@ export function Help({ text, children }: { text: string; children: React.ReactNo
 }
 
 interface Metric {
-  label: string;
+  label: GlossaryTerm;
   value: (summary: SetupSummary) => number | null;
   format: (value: number) => string;
   better: "higher" | "lower";
@@ -122,7 +123,9 @@ function Details({ summary }: { summary: SetupSummary }) {
   const kReason = summary.kUnavailableReason || "Not enough graded trials.";
   return (
     <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
-      <dt className="text-muted-foreground">Pass rate</dt>
+      <dt className="text-muted-foreground">
+        <Term name="Pass rate" />
+      </dt>
       <dd>
         {percent(summary.passRate)}
         {summary.passRateCi &&
@@ -132,7 +135,9 @@ function Details({ summary }: { summary: SetupSummary }) {
       <dd>
         {summary.graded}/{summary.planned}
       </dd>
-      <dt className="text-muted-foreground">pass@k</dt>
+      <dt className="text-muted-foreground">
+        <Term name="pass@k" />
+      </dt>
       <dd>
         {summary.passAtK == null ? (
           <Help text={kReason}>Unavailable</Help>
@@ -140,7 +145,9 @@ function Details({ summary }: { summary: SetupSummary }) {
           `${percent(summary.passAtK)} (k=${summary.k})`
         )}
       </dd>
-      <dt className="text-muted-foreground">pass^k</dt>
+      <dt className="text-muted-foreground">
+        <Term name="pass^k" />
+      </dt>
       <dd>
         {summary.passHatK == null ? (
           <Help text={kReason}>Unavailable</Help>
@@ -148,7 +155,9 @@ function Details({ summary }: { summary: SetupSummary }) {
           `${percent(summary.passHatK)} (k=${summary.k})`
         )}
       </dd>
-      <dt className="text-muted-foreground">Spend</dt>
+      <dt className="text-muted-foreground">
+        <Term name="Spend" />
+      </dt>
       <dd>
         {summary.spendUsd == null
           ? summary.priced.priced
@@ -156,7 +165,9 @@ function Details({ summary }: { summary: SetupSummary }) {
             : `Unavailable, 0/${summary.priced.total} cells priced`
           : money(summary.spendUsd)}
       </dd>
-      <dt className="text-muted-foreground">Cost / solved</dt>
+      <dt className="text-muted-foreground">
+        <Term name="Cost / solved" />
+      </dt>
       <dd>
         {summary.costPerSolvedUsd == null
           ? summary.passed === 0 && summary.graded > 0
@@ -164,11 +175,15 @@ function Details({ summary }: { summary: SetupSummary }) {
             : "Unavailable"
           : money(summary.costPerSolvedUsd)}
       </dd>
-      <dt className="text-muted-foreground">Agent p50 / p95</dt>
+      <dt className="text-muted-foreground">
+        <Term name="Agent p50 / p95" />
+      </dt>
       <dd>
         {duration(summary.agentP50Ms)} / {duration(summary.agentP95Ms)}
       </dd>
-      <dt className="text-muted-foreground">Time / solved</dt>
+      <dt className="text-muted-foreground">
+        <Term name="Time / solved" />
+      </dt>
       <dd>{duration(summary.timePerSolvedMs)}</dd>
     </dl>
   );
@@ -197,7 +212,7 @@ export function Scoreboard({ setups }: { setups: readonly SetupSummary[] }) {
             <th className="px-3 py-2 font-medium">Setup</th>
             {METRICS.map((metric) => (
               <th key={metric.label} className="w-[19%] px-3 py-2 font-medium">
-                {metric.label}
+                <Term name={metric.label} />
               </th>
             ))}
             <th className="px-3 py-2 font-medium">Outcomes</th>

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { clampNumber, costDisplay } from "./format.ts";
+import { HelpLabel } from "./help-label.tsx";
 import { Icon } from "./icons.tsx";
 import { cn } from "./lib/utils.ts";
 import type { BadgeTone, IconName } from "./types.ts";
@@ -280,6 +281,7 @@ export function StatCard({
   alert = false,
   detail,
   detailTitle,
+  help,
   icon,
   label,
   loading = false,
@@ -290,6 +292,7 @@ export function StatCard({
   alert?: boolean;
   detail?: string | null;
   detailTitle?: string;
+  help?: string;
   icon: IconName;
   label: string;
   loading?: boolean;
@@ -306,7 +309,9 @@ export function StatCard({
       data-updating={updating ? "true" : undefined}
     >
       <div>
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {help ? <HelpLabel label={label} help={help} /> : label}
+        </span>
         {loading ? (
           <strong>
             <i

@@ -1,3 +1,4 @@
+import { HelpIcon } from "./help-label.tsx";
 import { Icon } from "./icons.tsx";
 import { formatMcpServer } from "./mcp-server.ts";
 import type { DimensionRow, FileRow, McpRow, ToolRow } from "./types.ts";
@@ -159,12 +160,14 @@ export function fileSortValue(row: FileRow, key: FileSortKey): SortValue {
 
 export function SortableHeader<Key extends string>({
   align = "left",
+  help,
   label,
   onSort,
   sort,
   sortKey,
 }: {
   align?: "left" | "right";
+  help?: string;
   label: string;
   onSort: (key: Key) => void;
   sort: SortState<Key>;
@@ -176,14 +179,17 @@ export function SortableHeader<Key extends string>({
       aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
       className={align === "right" ? "text-right" : undefined}
     >
-      <button
-        className={`inline-flex items-center gap-1 text-sm font-medium hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring ${align === "right" ? "justify-end" : ""} ${active ? "text-foreground" : "text-muted-foreground"}`}
-        onClick={() => onSort(sortKey)}
-        type="button"
-      >
-        <span>{label}</span>
-        <Icon name={active && sort.direction === "asc" ? "chevronUp" : "chevronDown"} />
-      </button>
+      <span className="inline-flex items-center gap-1">
+        <button
+          className={`inline-flex items-center gap-1 text-sm font-medium hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring ${align === "right" ? "justify-end" : ""} ${active ? "text-foreground" : "text-muted-foreground"}`}
+          onClick={() => onSort(sortKey)}
+          type="button"
+        >
+          <span>{label}</span>
+          <Icon name={active && sort.direction === "asc" ? "chevronUp" : "chevronDown"} />
+        </button>
+        {help ? <HelpIcon term={label} help={help} /> : null}
+      </span>
     </th>
   );
 }
