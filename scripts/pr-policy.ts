@@ -252,6 +252,7 @@ export const ROOT_FILE_ALLOWLIST = new Set([
   "SECURITY.md",
   "biome.json",
   "bun.lock",
+  "bunfig.toml",
   "components.json",
   "justfile",
   "package.json",
