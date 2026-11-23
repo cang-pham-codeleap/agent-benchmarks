@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { getAchDir } from "../settings.ts";
 import { evalConfigDir, loadAugments } from "./augments.ts";
 import { readCombos } from "./combos.ts";
+import { harnessModels } from "./models.ts";
 import {
   augmentInfos,
   defaultConfigProblem,
@@ -16,6 +17,7 @@ import {
   EVAL_DIFFICULTIES,
   type EvalCatalog,
   type EvalDifficulty,
+  type EvalHarness,
   type EvalHarnessInfo,
   type EvalTask,
 } from "./types.ts";
@@ -47,7 +49,10 @@ export async function readCatalog(
           label: definition.label,
           installed,
           version,
-          knownModels: knownModels(db, definition.sessionTool, definition.qualifiedModels),
+          knownModels: await harnessModels(
+            harness as EvalHarness | "null",
+            knownModels(db, definition.sessionTool, definition.qualifiedModels),
+          ),
           metered: definition.metered,
           defaultConfigProblem: defaultConfigProblem(harness, process.env),
         } as EvalHarnessInfo;

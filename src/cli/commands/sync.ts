@@ -379,6 +379,11 @@ export function registerSyncCommands(ctx: CliContext): void {
             }
             throw error;
           }
+          const [{ scanHarnessModels }, { EVAL_HARNESSES }] = await Promise.all([
+            import("../../eval/models.ts"),
+            import("../../eval/registry.ts"),
+          ]);
+          scanHarnessModels(Object.keys(EVAL_HARNESSES) as Parameters<typeof scanHarnessModels>[0]);
           const signal = waitForProcessSignal();
           let exitCode = 0;
           let stopBinaryWatch: (() => void) | null = null;
