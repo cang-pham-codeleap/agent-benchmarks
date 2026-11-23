@@ -36,7 +36,9 @@ repos:
 
       - id: ts-test
         name: TypeScript tests
-        entry: bun test
+        # Git exports GIT_DIR to hooks, and Bun.spawn passes its startup environment to children,
+        # so test scratch repositories would act on this checkout's index and hooks.
+        entry: env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX bun test
         language: system
         files: '^(src|test|fixtures)/.*|^(package\.json|bun\.lock)$'
         pass_filenames: false
