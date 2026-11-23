@@ -321,6 +321,8 @@ export interface EvalHarnessInfo {
   metered: boolean;
   /** Null when the harness can run with default configuration; otherwise why not. */
   defaultConfigProblem: string | null;
+  /** Null when the harness can run with clean configuration; otherwise why not. */
+  cleanConfigProblem: string | null;
 }
 
 export interface EvalAugmentInfo {

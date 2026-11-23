@@ -341,7 +341,9 @@ hidden path is test-named, the command runs on each one.
 
 Each setup may also carry `config: "clean"` (keeps the login, drops hooks,
 plugins, MCP servers, settings, and instruction files) and `augments`, a list
-of augment ids. Augments are rejected with `current` config and for harnesses
+of augment ids. Clean config is rejected for harnesses without a clean recipe;
+each `GET /api/evals/catalog` harness says why in `cleanConfigProblem`, null
+when clean runs. Augments are rejected with `current` config and for harnesses
 without a recipe. `GET /api/evals/{id}` returns `augmentVerdicts`, one row per
 augmented setup with a baseline (same harness, model, config, no augments) in
 that run.

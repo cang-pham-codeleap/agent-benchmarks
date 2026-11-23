@@ -50,6 +50,7 @@ const catalog: EvalCatalog = {
       knownModels: [],
       metered: true,
       defaultConfigProblem: null,
+      cleanConfigProblem: null,
     },
   ],
   tasks: [

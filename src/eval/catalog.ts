@@ -7,6 +7,7 @@ import { readCombos } from "./combos.ts";
 import { harnessModels } from "./models.ts";
 import {
   augmentInfos,
+  cleanConfigProblem,
   defaultConfigProblem,
   EVAL_HARNESSES,
   EVAL_LIMITS,
@@ -55,6 +56,7 @@ export async function readCatalog(
           ),
           metered: definition.metered,
           defaultConfigProblem: defaultConfigProblem(harness, process.env),
+          cleanConfigProblem: cleanConfigProblem(harness),
         } as EvalHarnessInfo;
       }),
     ),
