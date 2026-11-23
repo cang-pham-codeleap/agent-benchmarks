@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
-// This direct access is intentionally kept at module scope so `bun build
-// --compile --env=AGENT_BENCHMARKS_BUILD_VERSION*` can replace it in release binaries.
+// This direct access is intentionally kept at module scope so the `define` in
+// scripts/build-binaries.ts can replace it in release binaries.
 const INLINED_BUILD_VERSION = process.env.AGENT_BENCHMARKS_BUILD_VERSION;
 
 export interface VersionResolutionOptions {

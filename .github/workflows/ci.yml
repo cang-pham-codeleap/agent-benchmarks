@@ -43,13 +43,19 @@ jobs:
       - name: Build native binary
         run: bun run scripts/build-binaries.ts --target native --out-dir /tmp/agent-benchmarks-bin --version 0.0.0-ci
 
-      - name: Smoke native binary augments
+      - name: Smoke native binary augments and UI stylesheet
         run: |
           set -euo pipefail
           bin="$(ls /tmp/agent-benchmarks-bin/*/agent-benchmarks)"
           AGENT_BENCHMARKS_NO_SYNC=1 "$bin" serve --no-sync --db "$RUNNER_TEMP/smoke.db" --port 47900 &
           for _ in $(seq 30); do curl -sf localhost:47900/api/evals/catalog -o "$RUNNER_TEMP/catalog.json" && break; sleep 1; done
+          stylesheet="$(curl -sf localhost:47900/ | grep -oE 'href="/[^"]+\.css"' | head -1 | cut -d'"' -f2)"
+          curl -sf "localhost:47900$stylesheet" -o "$RUNNER_TEMP/ui.css"
           kill %1
+          if grep -qE '@(tailwind|theme)' "$RUNNER_TEMP/ui.css" || ! grep -qF '.flex{display:flex}' "$RUNNER_TEMP/ui.css"; then
+            echo "::error file=scripts/build-binaries.ts::compiled binary serves unprocessed Tailwind CSS at $stylesheet; scripts/build-binaries.ts must pass bun-plugin-tailwind to Bun.build"
+            exit 1
+          fi
           expected="$(ls evals/augments/*.json | wc -l)"
           actual="$(jq '[.augments[] | select(.problem == null or (.problem | endswith("is not on PATH")))] | length' "$RUNNER_TEMP/catalog.json")"
           test "$actual" -eq "$expected"
