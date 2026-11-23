@@ -1,6 +1,8 @@
 // Cyclic with src/cli.ts, but runCli is only called after both modules have loaded. A dynamic
 // import would deadlock: the entry module is still awaiting runCli when serve runs.
 import { runCli } from "../cli.ts";
+import { openApiDocument } from "../openapi.ts";
+import { DEFAULT_SERVE_HOST, DEFAULT_SERVE_PORT } from "../serve-defaults.ts";
 import { DIMENSIONS } from "../stats.ts";
 import { AGENT_BENCHMARKS_VERSION } from "../version.ts";
 
@@ -9,15 +11,28 @@ interface InputSchema {
   properties: Record<string, unknown>;
   required: string[];
   additionalProperties: false;
+  $defs?: Record<string, unknown>;
 }
 
-interface McpTool {
+interface CliTool {
   name: string;
   description: string;
   inputSchema: InputSchema;
   command: string[];
   positional?: string;
 }
+
+/** One local API operation, called on the running `agent-benchmarks serve`. */
+interface ApiTool {
+  name: string;
+  description: string;
+  inputSchema: InputSchema;
+  method: string;
+  path: string;
+  params: { name: string; in: "path" | "query" }[];
+}
+
+export const DEFAULT_SERVER_URL = `http://${DEFAULT_SERVE_HOST}:${DEFAULT_SERVE_PORT}`;
 
 const str = (description: string) => ({ type: "string", description });
 const int = (description: string, minimum: number) => ({ type: "integer", minimum, description });
@@ -29,7 +44,7 @@ const schema = (properties: Record<string, unknown>, required: string[] = []): I
   additionalProperties: false,
 });
 
-const TOOLS: McpTool[] = [
+const CLI_TOOLS: CliTool[] = [
   {
     name: "search_sessions",
     description:
@@ -91,6 +106,95 @@ const TOOLS: McpTool[] = [
   },
 ];
 
+type OpenApiNode = Record<string, unknown>;
+
+/** Operations whose answer is not JSON, or that only describe the API itself. */
+const isProxyable = (operationId: string, operation: OpenApiNode): boolean =>
+  operationId !== "getOpenApiDocument" &&
+  !/text\/(html|event-stream)/.test(JSON.stringify(operation.responses));
+
+function apiTools(): ApiTool[] {
+  const document = openApiDocument(AGENT_BENCHMARKS_VERSION) as unknown as {
+    paths: Record<string, OpenApiNode>;
+    components: { schemas: Record<string, unknown>; parameters: Record<string, OpenApiNode> };
+  };
+  const { schemas, parameters } = document.components;
+  const refName = (ref: string): string => ref.slice(ref.lastIndexOf("/") + 1);
+  const resolveParameter = (node: OpenApiNode): OpenApiNode =>
+    (typeof node.$ref === "string" ? parameters[refName(node.$ref)] : undefined) ?? node;
+  const withDefs = (root: unknown): { schema: unknown; defs: Record<string, unknown> } => {
+    const defs: Record<string, unknown> = {};
+    const rewrite = (node: unknown): unknown => {
+      if (Array.isArray(node)) return node.map(rewrite);
+      if (node == null || typeof node !== "object") return node;
+      return Object.fromEntries(
+        Object.entries(node).map(([key, value]) => {
+          if (key !== "$ref" || typeof value !== "string") return [key, rewrite(value)];
+          const name = refName(value);
+          if (!(name in defs)) {
+            defs[name] = null;
+            defs[name] = rewrite(schemas[name]);
+          }
+          return [key, `#/$defs/${name}`];
+        }),
+      );
+    };
+    return { schema: rewrite(root), defs };
+  };
+  const cliNames = new Set(CLI_TOOLS.map((tool) => tool.name));
+  const tools: ApiTool[] = [];
+  for (const [path, item] of Object.entries(document.paths)) {
+    for (const [method, value] of Object.entries(item)) {
+      const operation = value as OpenApiNode;
+      const operationId = operation.operationId;
+      if (typeof operationId !== "string" || !isProxyable(operationId, operation)) continue;
+      const name = operationId.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+      if (cliNames.has(name)) continue;
+      const declared = [
+        ...((item.parameters as OpenApiNode[] | undefined) ?? []),
+        ...((operation.parameters as OpenApiNode[] | undefined) ?? []),
+      ].map(resolveParameter);
+      const body = (operation.requestBody as OpenApiNode | undefined)?.content as
+        | Record<string, { schema: unknown }>
+        | undefined;
+      const properties: Record<string, unknown> = {};
+      const required: string[] = [];
+      for (const parameter of declared) {
+        const key = parameter.name as string;
+        properties[key] = { ...(parameter.schema as object), description: parameter.description };
+        if (parameter.required === true) required.push(key);
+      }
+      if (body?.["application/json"] != null) {
+        properties.body = body["application/json"].schema;
+        required.push("body");
+      }
+      const { schema, defs } = withDefs(properties);
+      tools.push({
+        name,
+        description: [operation.summary, operation.description]
+          .filter((text) => typeof text === "string")
+          .join("\n\n"),
+        inputSchema: {
+          type: "object",
+          properties: schema as Record<string, unknown>,
+          required,
+          additionalProperties: false,
+          ...(Object.keys(defs).length === 0 ? {} : { $defs: defs }),
+        },
+        method: method.toUpperCase(),
+        path,
+        params: declared.map((parameter) => ({
+          name: parameter.name as string,
+          in: parameter.in as "path" | "query",
+        })),
+      });
+    }
+  }
+  return tools;
+}
+
+const API_TOOLS = apiTools();
+
 const PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 type Json = Record<string, unknown>;
@@ -100,6 +204,8 @@ export interface McpServerOptions {
   db?: string;
   env?: Record<string, string | undefined>;
   homeDir?: string | null;
+  /** Base URL of the `agent-benchmarks serve` that API tools call. */
+  server: string;
 }
 
 const isObject = (value: unknown): value is Json =>
@@ -107,7 +213,7 @@ const isObject = (value: unknown): value is Json =>
 
 const rpcError = (code: number, message: string): Reply => ({ error: { code, message } });
 
-function toArgv(tool: McpTool, args: Json, db: string | undefined): string[] {
+function toArgv(tool: CliTool, args: Json, db: string | undefined): string[] {
   const flags: string[] = [];
   for (const [key, value] of Object.entries(args)) {
     if (
@@ -133,13 +239,18 @@ function toArgv(tool: McpTool, args: Json, db: string | undefined): string[] {
 }
 
 async function callTool(params: unknown, options: McpServerOptions): Promise<Reply> {
-  const tool = isObject(params) ? TOOLS.find((item) => item.name === params.name) : undefined;
+  const tool = isObject(params)
+    ? [...CLI_TOOLS, ...API_TOOLS].find((item) => item.name === params.name)
+    : undefined;
   if (!isObject(params) || tool == null) {
     return rpcError(-32602, "unknown tool name");
   }
   const args = params.arguments ?? {};
   if (!isObject(args)) {
     return rpcError(-32602, "arguments must be an object");
+  }
+  if (!("command" in tool)) {
+    return callApi(tool, args, options.server);
   }
   const result = await runCli(toArgv(tool, args, options.db), {
     env: options.env,
@@ -151,6 +262,39 @@ async function callTool(params: unknown, options: McpServerOptions): Promise<Rep
   const stderr = result.stderr.trimEnd();
   const text = stderr.split("\n").at(-1) || stderr;
   return { result: { content: [{ type: "text", text }], isError: true } };
+}
+
+async function callApi(tool: ApiTool, args: Json, server: string): Promise<Reply> {
+  let path = tool.path;
+  const query = new URLSearchParams();
+  for (const param of tool.params) {
+    const value = args[param.name];
+    if (value == null) continue;
+    if (param.in === "path")
+      path = path.replace(`{${param.name}}`, encodeURIComponent(String(value)));
+    else query.set(param.name, String(value));
+  }
+  const url = `${server}${path}${query.size === 0 ? "" : `?${query}`}`;
+  const reply = (text: string, isError: boolean): Reply => ({
+    result: { content: [{ type: "text", text }], isError },
+  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: tool.method,
+      headers: { accept: "application/json", "content-type": "application/json" },
+      body: tool.method === "GET" ? undefined : JSON.stringify(args.body ?? {}),
+    });
+  } catch {
+    return reply(
+      JSON.stringify({
+        error: `agent-benchmarks serve is not reachable at ${server}; start it with \`agent-benchmarks serve\` or \`agent-benchmarks service install\``,
+        code: "server_unreachable",
+      }),
+      true,
+    );
+  }
+  return reply(await response.text(), !response.ok);
 }
 
 async function handle(message: unknown, options: McpServerOptions): Promise<Json | null> {
@@ -187,7 +331,7 @@ async function dispatch(
     case "tools/list":
       return {
         result: {
-          tools: TOOLS.map(({ name, description, inputSchema }) => ({
+          tools: [...CLI_TOOLS, ...API_TOOLS].map(({ name, description, inputSchema }) => ({
             name,
             description,
             inputSchema,

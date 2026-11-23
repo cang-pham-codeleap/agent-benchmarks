@@ -16,7 +16,7 @@ import {
 import { tokenEconomics } from "../../token-economics.ts";
 import type { CliContext } from "../context.ts";
 import { parseDay, parseOffset, resolveListScope, type ScopeOptions } from "../list-options.ts";
-import { serveMcp } from "../mcp-server.ts";
+import { DEFAULT_SERVER_URL, serveMcp } from "../mcp-server.ts";
 import { parseChoice, parseInteger, parseWith } from "../parse.ts";
 
 export function registerStatsCommands(ctx: CliContext): void {
@@ -210,9 +210,27 @@ export function registerStatsCommands(ctx: CliContext): void {
   addMcpStats(mcp.command("stats"));
   mcp
     .command("serve")
-    .description("serve read-only archive tools to an agent over MCP on stdio (never syncs)")
-    .action(() =>
-      ctx.run(() => serveMcp({ db: ctx.globals().db, env: ctx.env, homeDir: ctx.homeDir })),
+    .description(
+      "serve archive tools, and the local API of a running `serve`, to an agent over MCP on stdio",
+    )
+    .option(
+      "--server <url>",
+      "base URL of the running agent-benchmarks serve",
+      parseWith(
+        (value) => (URL.canParse(value) ? value.replace(/\/+$/, "") : null),
+        ["http://host:port"],
+      ),
+      DEFAULT_SERVER_URL,
+    )
+    .action((commandOptions: { server: string }) =>
+      ctx.run(() =>
+        serveMcp({
+          db: ctx.globals().db,
+          env: ctx.env,
+          homeDir: ctx.homeDir,
+          server: commandOptions.server,
+        }),
+      ),
     );
 }
 
