@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync, truncateSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { exceptionAttributes, getAgentBenchmarksLogger } from "../logging.ts";
 import { type EvalRegistryRun, joinSessionCost, sessionActiveMs } from "./cost.ts";
 import { achModel } from "./efforts.ts";
 import {
@@ -21,6 +22,8 @@ import type {
   EvalSetup,
   InterruptedAttempt,
 } from "./types.ts";
+
+const logger = getAgentBenchmarksLogger("eval");
 
 export interface EvalLedgerRow {
   v: number;
@@ -144,7 +147,11 @@ function readPrepRows(runDir: string): PrepRow[] {
     try {
       rows.push(JSON.parse(line) as PrepRow);
     } catch (error) {
-      console.error(`[eval/ledger] ignoring malformed prep row in ${path}`, error);
+      logger.warning("Ignoring malformed prep row.", {
+        "event.name": "agent-benchmarks.eval.ledger_prep_row_invalid",
+        "file.path": path,
+        ...exceptionAttributes(error),
+      });
     }
   }
   return rows;
@@ -274,7 +281,11 @@ export function repairTornLedger(runDir: string): boolean {
     const tornPath = join(runDir, `ledger.torn-${Date.now()}-${name}`);
     writeFileSync(tornPath, fragment, { mode: 0o600 });
     truncateSync(path, newline < 0 ? 0 : newline + 1);
-    console.error(`[eval/ledger] repaired torn tail in ${path}: saved ${tornPath}`);
+    logger.warning("Repaired torn ledger tail.", {
+      "event.name": "agent-benchmarks.eval.ledger_tail_repaired",
+      "file.path": path,
+      "file.saved_path": tornPath,
+    });
     repaired = true;
   }
   return repaired;
@@ -289,7 +300,11 @@ function readLedger(path: string): EvalLedgerRow[] {
       const row = JSON.parse(line) as EvalLedgerRow;
       last.set(row.cellId, row);
     } catch (error) {
-      console.error(`[eval/ledger] ignoring malformed complete row in ${path}`, error);
+      logger.warning("Ignoring malformed complete row.", {
+        "event.name": "agent-benchmarks.eval.ledger_complete_row_invalid",
+        "file.path": path,
+        ...exceptionAttributes(error),
+      });
     }
   }
   return [...last.values()];
@@ -303,7 +318,11 @@ export function readRegistry(runDir: string): RunRecord[] {
     try {
       records.push(JSON.parse(readFileSync(join(root, name), "utf8")) as RunRecord);
     } catch (error) {
-      console.error(`[eval/ledger] ignoring corrupt registry file ${name}`, error);
+      logger.warning("Ignoring corrupt registry file.", {
+        "event.name": "agent-benchmarks.eval.ledger_registry_invalid",
+        "file.name": name,
+        ...exceptionAttributes(error),
+      });
     }
   }
   return records;

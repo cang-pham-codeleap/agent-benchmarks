@@ -1,8 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { exceptionAttributes, getAgentBenchmarksLogger } from "../logging.ts";
 import { COPILOT_FUSION_MODEL } from "../sources/copilot.ts";
 import type { EvalHarness } from "./types.ts";
+
+const logger = getAgentBenchmarksLogger("eval");
 
 type ScannedHarness = EvalHarness | "null";
 
@@ -28,7 +31,11 @@ function scanned(harness: ScannedHarness): Promise<string[]> {
   let scan = scans.get(harness);
   if (scan == null) {
     scan = listModels(harness).catch((error: unknown) => {
-      console.error(`[eval/models] ${harness} model scan failed: ${String(error)}`);
+      logger.warning("Model scan failed.", {
+        "event.name": "agent-benchmarks.eval.models_scan_failed",
+        "eval.harness": harness,
+        ...exceptionAttributes(error),
+      });
       return [];
     });
     scans.set(harness, scan);

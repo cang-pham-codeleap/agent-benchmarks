@@ -74,6 +74,8 @@ A change is ready when:
 1. **Core modules stay print-free.** Parsing, ingest, query, stats, distill,
    recommendations, and database helpers return data or structured errors.
    Human-readable CLI output and exit codes belong in `src/cli.ts` and `src/cli/`.
+   `lint/no-console-in-core.grit` enforces this outside `src/cli.ts`, `src/cli/`, `src/ui/`, and
+   `src/logging.ts`; log through `getAgentBenchmarksLogger(component)`.
 2. **One process owns SQLite.** The CLI process opens the archive directly. WAL
    mode allows reads and ingest to coexist, so do not add another process that
    opens the database behind a separate contract.

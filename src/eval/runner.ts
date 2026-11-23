@@ -19,6 +19,7 @@ import type { FileSink } from "bun";
 import type { Config } from "../config.ts";
 import { ARCHIVE_DIR_MODE } from "../db.ts";
 import type { IngestConfig } from "../ingest.ts";
+import { exceptionAttributes, getAgentBenchmarksLogger } from "../logging.ts";
 import type { RequestContext } from "../server/context.ts";
 import { publishServerEvent } from "../server/sse.ts";
 import { syncNow } from "../server/sync.ts";
@@ -90,6 +91,8 @@ import type {
   EvalSetup,
   RealRunInput,
 } from "./types.ts";
+
+const logger = getAgentBenchmarksLogger("eval");
 
 const transitions: Record<EvalRunStatus, EvalRunStatus[]> = {
   running: ["completed", "failed", "cancelled", "cancel-incomplete", "interrupted"],
@@ -378,7 +381,12 @@ export async function cancelEvalRun(dbPath: string, id: string): Promise<EvalRun
     try {
       process.kill(-pid, "SIGTERM");
     } catch (error) {
-      console.error(`[eval/cancel] failed SIGTERM for ${id} pgid ${pid}`, error);
+      logger.warning("SIGTERM failed.", {
+        "event.name": "agent-benchmarks.eval.cancel_sigterm_failed",
+        "eval.id": id,
+        "process.pgid": pid,
+        ...exceptionAttributes(error),
+      });
     }
   }
   await Bun.sleep(5000);
@@ -387,7 +395,12 @@ export async function cancelEvalRun(dbPath: string, id: string): Promise<EvalRun
     try {
       process.kill(survivor, "SIGKILL");
     } catch (error) {
-      console.error(`[eval/cancel] failed SIGKILL for ${id} pid ${survivor}`, error);
+      logger.warning("SIGKILL failed.", {
+        "event.name": "agent-benchmarks.eval.cancel_sigkill_failed",
+        "eval.id": id,
+        "process.pid": survivor,
+        ...exceptionAttributes(error),
+      });
     }
   }
   await Bun.sleep(250);
@@ -636,13 +649,21 @@ function spawnRun(
         }
       })
       .catch(async (error) => {
-        console.error(`[eval/runner] child failed for ${id}`, error);
+        logger.error("Eval child failed.", {
+          "event.name": "agent-benchmarks.eval.runner_child_failed",
+          "eval.id": id,
+          ...exceptionAttributes(error),
+        });
         await stop();
       });
   };
   if (groups.length === 0) {
     void finish(manifest, 0, null, []).catch((error) =>
-      console.error(`[eval/runner] finishing ${id} failed`, error),
+      logger.error("Finishing eval failed.", {
+        "event.name": "agent-benchmarks.eval.runner_finish_failed",
+        "eval.id": id,
+        ...exceptionAttributes(error),
+      }),
     );
     return;
   }
@@ -735,10 +756,18 @@ function spawnGroup(
   writeManifest(runDir, manifest);
   children.set(manifest.id, child);
   void pipeOutput(child.stdout, log, manifest.id, null).catch((error) =>
-    console.error(`[eval/runner] stdout pipe failed for ${manifest.id}`, error),
+    logger.warning("Stdout pipe failed.", {
+      "event.name": "agent-benchmarks.eval.runner_stdout_pipe_failed",
+      "eval.id": manifest.id,
+      ...exceptionAttributes(error),
+    }),
   );
   void pipeOutput(child.stderr, log, manifest.id, group.key).catch((error) =>
-    console.error(`[eval/runner] stderr pipe failed for ${manifest.id}`, error),
+    logger.warning("Stderr pipe failed.", {
+      "event.name": "agent-benchmarks.eval.runner_stderr_pipe_failed",
+      "eval.id": manifest.id,
+      ...exceptionAttributes(error),
+    }),
   );
   return child;
 }
@@ -930,7 +959,12 @@ async function syncAfterRun(
         context.syncCoordinator?.runWithOwnership,
       );
     } catch (error) {
-      console.error(`[eval/sync] ${label} sync failed for ${id}`, error);
+      logger.warning("Archive sync failed.", {
+        "event.name": "agent-benchmarks.eval.runner_sync_failed",
+        "eval.id": id,
+        "sync.label": label,
+        ...exceptionAttributes(error),
+      });
     }
   }
 }
@@ -1142,9 +1176,11 @@ function evalSurvivors(manifest: EvalRunManifest, runDir: string): number[] {
     });
     // lsof exits 1 with empty stderr when no process has a cwd under the root.
     if (lsof.exitCode !== 0 && lsof.stderr.length > 0)
-      console.error(
-        `[eval/cancel] could not scan cwd survivors for ${manifest.id}: ${lsof.stderr.toString().trim()}`,
-      );
+      logger.warning("Could not scan cwd survivors.", {
+        "event.name": "agent-benchmarks.eval.cancel_scan_failed",
+        "eval.id": manifest.id,
+        "error.message": lsof.stderr.toString().trim(),
+      });
     let currentPid: number | null = null;
     for (const line of lsof.stdout.toString().split("\n")) {
       if (line.startsWith("p")) currentPid = Number(line.slice(1));
@@ -1185,7 +1221,12 @@ async function versionOf(command: string, args: readonly string[]): Promise<stri
   ]);
   const exit = await child.exited;
   clearTimeout(timer);
-  if (exit !== 0) console.error(`[eval/runner] version failed for ${command}`, error.trim());
+  if (exit !== 0)
+    logger.warning("Harness version command failed.", {
+      "event.name": "agent-benchmarks.eval.runner_version_failed",
+      "process.command": command,
+      "error.message": error.trim(),
+    });
   return exit === 0 ? `${output}${error}`.trim().split(/\r?\n/, 1)[0] || null : null;
 }
 
@@ -1201,7 +1242,11 @@ function readManifest(runDir: string): EvalRunManifest | null {
   try {
     return parseManifest(JSON.parse(readFileSync(path, "utf8")));
   } catch (error) {
-    console.error(`[eval/runner] corrupt manifest ${path}`, error);
+    logger.warning("Corrupt eval manifest.", {
+      "event.name": "agent-benchmarks.eval.runner_manifest_corrupt",
+      "file.path": path,
+      ...exceptionAttributes(error),
+    });
     return null;
   }
 }
@@ -1240,7 +1285,12 @@ function processExists(pid: number): boolean {
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "EPERM") return true;
-    if (code !== "ESRCH") console.error(`[eval/runner] cannot probe pid ${pid}`, error);
+    if (code !== "ESRCH")
+      logger.warning("Cannot probe pid.", {
+        "event.name": "agent-benchmarks.eval.runner_pid_probe_failed",
+        "process.pid": pid,
+        ...exceptionAttributes(error),
+      });
     return false;
   }
 }
