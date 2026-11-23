@@ -175,7 +175,9 @@ export function EvaluatingView({
   const selectedId = page.kind === "run" ? page.id : null;
   const pageKey = selectedId ?? page.kind;
   // biome-ignore lint/correctness/useExhaustiveDependencies: pageKey is the trigger; visit only resets scroll on pathname changes
-  useEffect(() => window.scrollTo(0, 0), [pageKey]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pageKey]);
   const [catalog, setCatalog] = useState<EvalCatalog | null>(null);
   const [runs, setRuns] = useState<EvalRunManifest[] | null>(null);
   const [pool, setPool] = useState<AugmentPoolEntry[]>([]);
