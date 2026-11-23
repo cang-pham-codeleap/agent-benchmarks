@@ -99,6 +99,25 @@ A change is ready when:
    runtime representation. Keep the implementation, OpenAPI document, route
    guide, and contract tests in sync.
 
+## Rules and what enforces them
+
+Each row is a mistake that reached this repository more than once. The check
+fails when the mistake comes back, so run it instead of rereading the rule.
+When a reviewer corrects a repeated mistake, add a row together with its check.
+Drop a row once its mistake cannot be written at all.
+
+| Rule | Enforced by | Run |
+|---|---|---|
+| Every per-source table covers every source | `Record<Tool, …>` tables and switches with no `default` | `bunx tsc --noEmit` |
+| Core modules do not print | `lint/no-console-in-core.grit` | `bunx biome ci .` |
+| Sources convert timestamps through one helper | `lint/iso-timestamp-helpers.grit`, `isoFromMillis` and `isoFromZoned` in `src/sources/shared.ts` | `bunx biome ci .` |
+| Derived rows change only with the version that re-derives them | `test/golden/revision-lock.json`, checked by `test/golden.test.ts` | `bun test test/golden.test.ts` |
+| Every API response carries the security headers and leaks no internals | `GuardedResponse` in `src/server/http.ts`, `test/route-responses.test.ts` | `bunx tsc --noEmit`, `bun test test/route-responses.test.ts` |
+| Sync, Update, and completion state change in one place | `reduceSync` in `src/ui/sync-events.ts`, `models/sync-protocol/SyncProtocol.tla` | `bun test test/ui-sync-events.test.ts`, `bun run scripts/check-sync-model.ts` |
+| Tests use synthetic home paths, and no scratch or root files are committed | `private-data` and `stray-file` rules in `scripts/pr-policy.ts` | `bun run scripts/pr-policy.ts` |
+| A Claude request is billed once | `billAssistant` in `src/sources/claude.ts`, `billed_request` in `src/billed-requests.ts` | `bun test test/billed-requests.test.ts test/claude.test.ts` |
+| Committed migrations never change | `frozen-migration` rule in `scripts/pr-policy.ts` | `bun run scripts/pr-policy.ts` |
+
 ## Security and privacy
 
 - Never commit secrets, API keys, tokens, `.env` files, private keys, real
