@@ -292,14 +292,14 @@ describe("worktree pure classifiers", () => {
       worktreeTool: "git",
     });
     expect(classifyIntree("/.worktrees/feature")).toBeNull();
-    expect(classifyIntree("/Users/x/repo/.worktrees")).toBeNull();
-    expect(externalContainer("/Users/x/.warp-worktrees")).toBeNull();
+    expect(classifyIntree("/Users/dev/repo/.worktrees")).toBeNull();
+    expect(externalContainer("/Users/dev/.warp-worktrees")).toBeNull();
     expect(classifyExternal("t3", "plainname", "/x", []).rootPath).toBe("plainname");
     expect(classifyExternal("warp", "one-two", "/x", []).rootPath).toBe("one-two");
     expect(classifyExternal("conductor", "solo", "/x", []).rootPath).toBe("solo");
     expect(classifyExternal("unknown-tool", "whatever", "/x", []).rootPath).toBe("whatever");
-    const empty = classifyExternal("conductor", "-x", "/Users/x/conductor/workspaces/-x", []);
-    expect(empty.rootPath).toBe("/Users/x/conductor/workspaces/-x");
+    const empty = classifyExternal("conductor", "-x", "/Users/dev/conductor/workspaces/-x", []);
+    expect(empty.rootPath).toBe("/Users/dev/conductor/workspaces/-x");
     expect(empty.worktreeLabel).toBeNull();
     expect(basename("/u/x/dosu/")).toBe("dosu");
     expect(basename("dosu")).toBe("dosu");
@@ -368,15 +368,15 @@ describe("git worktree pointer resolution", () => {
     writeFileSync(join(wt, ".git"), "gitdir: /.git/worktrees/wt\n");
     expect(resolveGitRoot(wt)).toBeNull();
 
-    writeFileSync(join(wt, ".git"), "gitdir: /Users/x/repo/.git/worktrees/\n");
+    writeFileSync(join(wt, ".git"), "gitdir: /Users/dev/repo/.git/worktrees/\n");
     expect(resolveGitRoot(wt)).toBeNull();
 
     writeFileSync(join(wt, ".git"), "gitdir: ../main/.git/worktrees/wt\n");
     expect(resolveGitRoot(wt)).toBeNull();
 
-    writeFileSync(join(wt, ".git"), "gitdir:/Users/x/repo/.git/worktrees/wt\r\n");
+    writeFileSync(join(wt, ".git"), "gitdir:/Users/dev/repo/.git/worktrees/wt\r\n");
     expect(resolveGitRoot(wt)).toMatchObject({
-      rootPath: "/Users/x/repo",
+      rootPath: "/Users/dev/repo",
       worktreeLabel: "wt",
     });
   });
@@ -402,24 +402,24 @@ describe("resolveWorktreeRoots", () => {
   test("links intree and external worktrees to roots", () => {
     const db = tempDb();
     db.exec(`
-      INSERT INTO project(path, name) VALUES ('/home/x/dosu/dosu', 'dosu');
+      INSERT INTO project(path, name) VALUES ('/home/dev/dosu/dosu', 'dosu');
       INSERT INTO project(path, name) VALUES
-        ('/home/x/dosu/dosu/.claude-worktrees/feature-auth', 'feature-auth');
+        ('/home/dev/dosu/dosu/.claude-worktrees/feature-auth', 'feature-auth');
       INSERT INTO project(path, name) VALUES
-        ('/home/x/.warp-worktrees/dosu-feature-api', 'dosu-feature-api');
+        ('/home/dev/.warp-worktrees/dosu-feature-api', 'dosu-feature-api');
     `);
     resolveWorktreeRoots(db);
 
-    expect(pathRow(db, "/home/x/dosu/dosu")).toEqual([0, "/home/x/dosu/dosu", null, "self"]);
-    expect(pathRow(db, "/home/x/dosu/dosu/.claude-worktrees/feature-auth")).toEqual([
+    expect(pathRow(db, "/home/dev/dosu/dosu")).toEqual([0, "/home/dev/dosu/dosu", null, "self"]);
+    expect(pathRow(db, "/home/dev/dosu/dosu/.claude-worktrees/feature-auth")).toEqual([
       1,
-      "/home/x/dosu/dosu",
+      "/home/dev/dosu/dosu",
       "claude",
       "intree",
     ]);
-    expect(pathRow(db, "/home/x/.warp-worktrees/dosu-feature-api")).toEqual([
+    expect(pathRow(db, "/home/dev/.warp-worktrees/dosu-feature-api")).toEqual([
       1,
-      "/home/x/dosu/dosu",
+      "/home/dev/dosu/dosu",
       "warp",
       "namematch",
     ]);
@@ -432,7 +432,7 @@ describe("resolveWorktreeRoots", () => {
       INSERT INTO project(path, name, is_worktree, root_path, worktree_label, worktree_tool, root_source)
       VALUES ('/gone/wt', 'wt', 1, '/real/dosu', 'wt', 'git', 'git');
       INSERT INTO project(path, name)
-      VALUES ('/home/x/.warp-worktrees/dosu-feature-api', 'dosu-feature-api');
+      VALUES ('/home/dev/.warp-worktrees/dosu-feature-api', 'dosu-feature-api');
     `);
     resolveWorktreeRoots(db);
     resolveWorktreeRoots(db);
@@ -456,7 +456,7 @@ describe("resolveWorktreeRoots", () => {
 
     const external = db
       .query(
-        "SELECT root_path, root_source FROM project WHERE path = '/home/x/.warp-worktrees/dosu-feature-api'",
+        "SELECT root_path, root_source FROM project WHERE path = '/home/dev/.warp-worktrees/dosu-feature-api'",
       )
       .get() as { root_path: string; root_source: string };
     expect(external).toEqual({ root_path: "/real/dosu", root_source: "namematch" });

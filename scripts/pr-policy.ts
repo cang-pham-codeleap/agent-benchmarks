@@ -4,7 +4,7 @@ import { join } from "node:path";
 export const DOCS_OVERRIDE_LABEL = "docs-not-needed";
 
 export interface Finding {
-  rule: "frozen-migration" | "docs" | "private-data";
+  rule: "frozen-migration" | "docs" | "private-data" | "stray-file";
   file: string;
   message: string;
 }
@@ -167,9 +167,20 @@ export function checkDocs(
   return findings;
 }
 
-export const PRIVATE_DATA_ROOTS = ["fixtures/", "test/golden/"];
+const SCAN_ROOTS = ["fixtures", "test"];
+const POLICY_TESTS = /^test\/pr-policy[\w-]*\.test\.ts$/;
 
-const SYNTHETIC_HOMES = new Set(["dev", "user", "example", "test", "runner"]);
+// Test code legitimately holds git remotes and fake credentials, so only home paths are scanned there.
+const isCodePath = (path: string): boolean => !/^(?:fixtures|test\/golden)\//.test(path);
+
+// The policy tests feed real-looking values to the scanner on purpose.
+export function isPrivateDataPath(path: string): boolean {
+  if (path.startsWith("fixtures/") || path.startsWith("test/golden/")) return true;
+  return /^test\/.+\.tsx?$/.test(path) && !POLICY_TESTS.test(path);
+}
+
+// Keep in step with the home directories .coderabbit.yaml tells reviewers to accept.
+const SYNTHETIC_HOMES = new Set(["dev"]);
 const SYNTHETIC_SECRETS = new Set(["ghp_AAAAitsasecrettoken0000000000000000"]);
 const SYNTHETIC_EMAIL_DOMAINS =
   /@(?:example\.(?:com|org|net)|[a-z0-9-]+\.(?:test|invalid|example))$/i;
@@ -199,6 +210,7 @@ export function scanForPrivateData(path: string, content: string): Finding[] {
       );
     }
   }
+  if (isCodePath(path)) return unique(findings);
   for (const match of content.matchAll(EMAIL)) {
     if (!SYNTHETIC_EMAIL_DOMAINS.test(match[0])) {
       report(`email address at a real-looking domain. Use an example.com address.`);
@@ -211,9 +223,66 @@ export function scanForPrivateData(path: string, content: string): Finding[] {
       }
     }
   }
+  return unique(findings);
+}
+
+function unique(findings: Finding[]): Finding[] {
   return findings.filter(
     (finding, index) => findings.findIndex((other) => other.message === finding.message) === index,
   );
+}
+
+// Every file that may sit at the repository root. Add a file here only when the project itself needs it there.
+export const ROOT_FILE_ALLOWLIST = new Set([
+  ".bun-version",
+  ".coderabbit.yaml",
+  ".dockerignore",
+  ".editorconfig",
+  ".gitignore",
+  ".pre-commit-config.yaml",
+  "AGENTS.md",
+  "CHANGELOG.md",
+  "CLAUDE.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "Dockerfile",
+  "LICENSE",
+  "NOTICE",
+  "README.md",
+  "SECURITY.md",
+  "biome.json",
+  "bun.lock",
+  "bunfig.toml",
+  "components.json",
+  "justfile",
+  "package.json",
+  "t3.json",
+  "tsconfig.json",
+]);
+
+const SCRATCH_PATH =
+  /(?:^|\/)(?:node_modules|\.omp|\.DS_Store)(?:\/|$)|^\.claude\/(?!skills\/)|\.local\.json$|\.(?:orig|rej)$/;
+
+export function checkStrayFiles(added: string[]): Finding[] {
+  const findings: Finding[] = [];
+  for (const path of added) {
+    if (SCRATCH_PATH.test(path)) {
+      findings.push({
+        rule: "stray-file",
+        file: path,
+        message:
+          "local tooling or scratch file. Remove it from the change and add it to .gitignore instead.",
+      });
+    } else if (!path.includes("/") && !ROOT_FILE_ALLOWLIST.has(path)) {
+      findings.push({
+        rule: "stray-file",
+        file: path,
+        message:
+          "new file at the repository root. Move it into its own directory, or add it to ROOT_FILE_ALLOWLIST in scripts/pr-policy.ts if the project needs it there.",
+      });
+    }
+  }
+  return findings;
 }
 
 function git(args: string[], cwd: string): string {
@@ -236,6 +305,12 @@ export function runPolicy({ root, base, labels }: PolicyInput): Finding[] {
   const untracked = git(["ls-files", "--others", "--exclude-standard"], root)
     .split("\n")
     .filter(Boolean);
+  const added = [
+    ...git(["diff", "--name-only", "--diff-filter=A", "--no-renames", mergeBase], root)
+      .split("\n")
+      .filter(Boolean),
+    ...untracked,
+  ];
   const changed: ChangedFile[] = [
     ...tracked.map((path) => ({
       path,
@@ -261,11 +336,11 @@ export function runPolicy({ root, base, labels }: PolicyInput): Finding[] {
     );
   }
   findings.push(...checkDocs(changed, labels));
+  findings.push(...checkStrayFiles(added));
 
-  const files = [
-    ...git(["ls-files", ...PRIVATE_DATA_ROOTS], root).split("\n"),
-    ...untracked.filter((path) => PRIVATE_DATA_ROOTS.some((prefix) => path.startsWith(prefix))),
-  ].filter(Boolean);
+  const files = [...git(["ls-files", ...SCAN_ROOTS], root).split("\n"), ...untracked].filter(
+    (path) => path !== "" && isPrivateDataPath(path),
+  );
   for (const path of new Set(files)) {
     if (!existsSync(join(root, path))) continue;
     findings.push(...scanForPrivateData(path, readFileSync(join(root, path), "utf8")));

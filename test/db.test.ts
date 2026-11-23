@@ -1046,17 +1046,17 @@ describe("openDb", () => {
     let db = openDb(path);
     db.exec(`
       INSERT INTO session (tool, source_session_id, source_path)
-      VALUES ('claude_code', 'wf-journal', '/home/u/.claude/projects/p/s/subagents/workflows/wf_1/journal.jsonl');
+      VALUES ('claude_code', 'wf-journal', '/home/dev/.claude/projects/p/s/subagents/workflows/wf_1/journal.jsonl');
       INSERT INTO session (tool, source_session_id, source_path, parent_session_id)
-      VALUES ('claude_code', 'child-of-phantom', '/home/u/.claude/projects/p/s/subagents/agent-aa.jsonl',
+      VALUES ('claude_code', 'child-of-phantom', '/home/dev/.claude/projects/p/s/subagents/agent-aa.jsonl',
               (SELECT id FROM session WHERE source_session_id = 'wf-journal'));
       INSERT INTO session (tool, source_session_id, source_path)
-      VALUES ('claude_code', 'real-session', '/home/u/.claude/projects/p/s.jsonl');
+      VALUES ('claude_code', 'real-session', '/home/dev/.claude/projects/p/s.jsonl');
       INSERT INTO message (session_id, seq, raw)
       VALUES ((SELECT id FROM session WHERE source_session_id = 'wf-journal'), 0, '{}');
-      INSERT INTO ingest_source (path, tool) VALUES ('/home/u/.claude/projects/p/s/subagents/workflows/wf_1/journal.jsonl', 'claude_code');
+      INSERT INTO ingest_source (path, tool) VALUES ('/home/dev/.claude/projects/p/s/subagents/workflows/wf_1/journal.jsonl', 'claude_code');
       INSERT INTO ingest_issue (source_path, line_no, error, raw_line, created_at)
-      VALUES ('/home/u/.claude/projects/p/s/subagents/workflows/wf_1/journal.jsonl', 1, 'x', '{}', datetime('now'));
+      VALUES ('/home/dev/.claude/projects/p/s/subagents/workflows/wf_1/journal.jsonl', 1, 'x', '{}', datetime('now'));
       DELETE FROM schema_migrations WHERE version >= 16;
     `);
     db.close();
@@ -1557,7 +1557,7 @@ describe("deleting a session", () => {
     db: Database,
     spec: { sourceSessionId: string; parentId?: number; text?: string; toolInput?: string },
   ): number {
-    const sourcePath = `/home/u/.claude/projects/p/${spec.sourceSessionId}.jsonl`;
+    const sourcePath = `/home/dev/.claude/projects/p/${spec.sourceSessionId}.jsonl`;
     const sessionId = Number(
       db
         .query(
@@ -1665,7 +1665,7 @@ describe("deleting a session", () => {
   test("keeps the ingest_source tombstone so a later sync cannot resurrect it", () => {
     const db = openDb(freshPath());
     const sessionId = seedSessionThroughRealTables(db, { sourceSessionId: "root" });
-    const sourcePath = "/home/u/.claude/projects/p/root.jsonl";
+    const sourcePath = "/home/dev/.claude/projects/p/root.jsonl";
 
     expect(setSessionUserState(db, sessionId, "deleted")).toBe(true);
 

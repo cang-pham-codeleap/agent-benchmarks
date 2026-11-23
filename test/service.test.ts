@@ -218,7 +218,7 @@ describe("unit files", () => {
       }
     }
     expect(() => systemdUnit({ ...spec, dbPath: injected })).toThrow("control character");
-    expect(() => launchdPlist(spec, { homeDir: "/Users/a\nb" })).toThrow(UnsafeServicePathError);
+    expect(() => launchdPlist(spec, { homeDir: "/Users/dev\nb" })).toThrow(UnsafeServicePathError);
   });
 
   test("the URL comes from the unit's --port", () => {

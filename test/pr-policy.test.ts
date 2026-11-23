@@ -5,8 +5,10 @@ import { join } from "node:path";
 import {
   checkDocs,
   checkFrozenMigrations,
+  checkStrayFiles,
   DOCS_OVERRIDE_LABEL,
   extractMigrations,
+  isPrivateDataPath,
   runPolicy,
   scanForPrivateData,
 } from "../scripts/pr-policy.ts";
@@ -236,6 +238,51 @@ describe("private data scan", () => {
   });
 });
 
+describe("private data scan scope", () => {
+  test("covers fixtures, goldens, and test code but not the policy tests", () => {
+    expect(isPrivateDataPath("fixtures/claude/a.jsonl")).toBe(true);
+    expect(isPrivateDataPath("test/golden/rows/a.json")).toBe(true);
+    expect(isPrivateDataPath("test/pi.test.ts")).toBe(true);
+    expect(isPrivateDataPath("test/helpers/seed.ts")).toBe(true);
+    expect(isPrivateDataPath("test/pr-policy.test.ts")).toBe(false);
+    expect(isPrivateDataPath("src/cli.ts")).toBe(false);
+  });
+
+  test("flags the home names PR 220 and PR 293 reviews caught in test code", () => {
+    for (const home of ["/home/alice", "/home/al", "/home/example", "/Users/x"]) {
+      expect(scanForPrivateData("test/pi.test.ts", `const cwd = "${home}/p";`)).toHaveLength(1);
+    }
+  });
+
+  test("leaves git remotes and credential-shaped test inputs alone in test code", () => {
+    const content = `normalize("git@github.com:acme/widget.git") ${fakeGithubToken}`;
+    expect(scanForPrivateData("test/repo-remote.test.ts", content)).toEqual([]);
+  });
+});
+
+describe("stray files", () => {
+  test("flags a new root file outside the allowlist", () => {
+    const findings = checkStrayFiles(["xaa", "README.md", "src/new.ts", "docs/xaa"]);
+    expect(findings.map((finding) => finding.file)).toEqual(["xaa"]);
+    expect(findings[0]?.message).toContain("ROOT_FILE_ALLOWLIST in scripts/pr-policy.ts");
+  });
+
+  test("flags local tooling files wherever they sit", () => {
+    const paths = [
+      "node_modules",
+      ".claude/settings.local.json",
+      ".claude/worktrees/x/a.ts",
+      "docs/.DS_Store",
+      "a.orig",
+    ];
+    expect(checkStrayFiles(paths).map((finding) => finding.file)).toEqual(paths);
+  });
+
+  test("accepts the project skills under .claude/skills", () => {
+    expect(checkStrayFiles([".claude/skills/verify-sync-protocol/SKILL.md"])).toEqual([]);
+  });
+});
+
 function git(cwd: string, ...args: string[]): void {
   const result = Bun.spawnSync(["git", ...args], { cwd, stdout: "pipe", stderr: "pipe" });
   if (result.exitCode !== 0) {
@@ -269,9 +316,11 @@ describe("runPolicy", () => {
 
     writeFileSync(join(repo, "src", "db.ts"), base.replace("ADD y", "ADD w"));
     writeFileSync(join(repo, "fixtures", "new.jsonl"), '{"cwd":"/home/realperson/p"}\n');
+    writeFileSync(join(repo, "xaa"), "pasted review snippet\n");
     const findings = runPolicy({ root: repo, base: "main", labels: new Set() });
     expect(findings.map((finding) => `${finding.rule} ${finding.file}`)).toEqual([
       "frozen-migration src/db.ts",
+      "stray-file xaa",
       "private-data fixtures/new.jsonl",
     ]);
   });

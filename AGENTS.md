@@ -141,8 +141,11 @@ A change is ready when:
 - End the description with the model and harness that wrote the change.
 - `bun run scripts/pr-policy.ts` runs the same policy checks as CI: committed
   migrations unchanged, docs updated alongside rate and route-manifest
-  changes, and a pattern scan of fixtures for real-looking home paths, emails,
-  and credentials. Passing the scan does not prove a fixture is synthetic.
+  changes, a pattern scan of fixtures for real-looking home paths, emails,
+  and credentials (test code is scanned for home paths; only `/Users/dev` and
+  `/home/dev` pass), and no new root-level or local-tooling files outside
+  `ROOT_FILE_ALLOWLIST`. Passing the scan does not prove a fixture is
+  synthetic.
 - When babysitting a pull request, wait for check and review events instead of
   polling. Check each bot finding against the source, fix the real ones, and
   answer false positives with a reason.
