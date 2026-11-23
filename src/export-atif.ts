@@ -5,6 +5,7 @@ import { MESSAGE_METADATA_SQL } from "./message-storage.ts";
 import type { Json } from "./model.ts";
 import { getSession, type SessionDetail, type SubagentDetail } from "./query.ts";
 import { ATIF_AGENT_NAMES } from "./sources/atif.ts";
+import { isoFromZoned } from "./sources/shared.ts";
 
 // ATIF (Agent Trajectory Interchange Format) emission, following Harbor's
 // rfcs/0001-trajectory-format.md and the Pydantic models under
@@ -162,15 +163,6 @@ function stepMetrics(usage: Usage): AtifMetrics {
     cached_tokens: usage.cacheRead,
     extra: { cache_write_tokens: usage.cacheCreation },
   };
-}
-
-function toIso(raw: string | null): string | undefined {
-  if (raw == null) {
-    return undefined;
-  }
-  const withZone = /(Z|[+-]\d{2}(?::?\d{2})?)$/.test(raw) ? raw : `${raw}Z`;
-  const date = new Date(withZone);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 /** ATIF requires `arguments` to be an object. Agent Benchmarks stores tool input as
@@ -386,7 +378,7 @@ function buildTrajectory(db: Database, detail: SessionDetail, state: BuildState)
     step.observation?.results.find((result) => result.source_call_id === callId);
 
   for (const message of detail.messages) {
-    const timestamp = toIso(message.timestamp);
+    const timestamp = isoFromZoned(message.timestamp) ?? undefined;
     const sidechain = message.is_sidechain ? { is_sidechain: true } : undefined;
 
     if (message.role === "assistant") {
@@ -710,7 +702,7 @@ function spawningCall(child: SubagentDetail, calls: CallSite[] | undefined): Cal
   if (calls.length === 1) {
     return calls[0];
   }
-  const started = toIso(child.summary.started_at);
+  const started = isoFromZoned(child.summary.started_at) ?? undefined;
   if (started == null || calls.some((call) => call.at == null)) {
     return undefined;
   }

@@ -21,6 +21,7 @@ import {
   block,
   contentText,
   countUnknown,
+  isoFromZoned,
   type UnknownTypes,
   unknownTypeIssues,
 } from "./shared.ts";
@@ -356,7 +357,7 @@ function parseTrajectory(node: Node, identity: TrajectoryIdentity): ParsedSessio
       copied += 1;
       continue;
     }
-    const timestamp = isoTimestamp(asString(step.timestamp));
+    const timestamp = isoFromZoned(asString(step.timestamp));
     if (timestamp != null) {
       startedAt ??= timestamp;
       endedAt = timestamp;
@@ -752,15 +753,6 @@ function firstCount(extra: unknown, keys: readonly string[]): number | null {
     }
   }
   return null;
-}
-
-function isoTimestamp(raw: string | null): string | null {
-  if (raw == null) {
-    return null;
-  }
-  const zoned = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i.test(raw) ? raw : `${raw}Z`;
-  const date = new Date(zoned);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function valueLabel(value: string | null): string {

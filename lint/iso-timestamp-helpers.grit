@@ -1,0 +1,9 @@
+language js;
+
+`Number.isNaN($date.getTime())` as $guard where {
+    register_diagnostic(
+        span = $guard,
+        message = "Do not hand-roll timestamp validation. Use isoFromMillis(ms) or isoFromZoned(raw) from src/sources/shared.ts; both return an ISO string or null.",
+        severity = "error"
+    )
+}
