@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
+import { BUNDLED_AUGMENT_FILES, BUNDLED_AUGMENTS } from "./bundled-augments.ts";
 import {
   type AugmentDefinition,
   type AugmentFile,
@@ -16,7 +17,7 @@ import type {
   EvalProvenance,
 } from "./types.ts";
 
-export const BUNDLED_AUGMENTS_DIR = join(import.meta.dir, "..", "..", "evals", "augments");
+type ResolveFrom = (from: string, field: string) => string;
 export const EVAL_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const KINDS: readonly AugmentKind[] = ["shell-proxy", "mcp", "prompt-mode", "harness-flag"];
 const DEFINITION_KEYS = ["label", "kind", "description", "sourceUrl", "binary", "recipes"];
@@ -48,15 +49,27 @@ export function evalConfigDir(dbPath: string, env: NodeJS.ProcessEnv = process.e
 /** Bundled definitions first; a user file with the same id replaces the bundled one. Null reads bundled only. */
 export function loadAugments(evalDir: string | null): AugmentRegistry {
   const registry = new Map<AugmentId, LoadedAugment>();
-  const roots: [string, AugmentSource][] = [[BUNDLED_AUGMENTS_DIR, "bundled"]];
-  if (evalDir != null) roots.push([join(evalDir, "augments"), "user"]);
-  for (const [dir, source] of roots) {
-    if (!existsSync(dir)) continue;
-    for (const name of readdirSync(dir).sort()) {
-      if (!name.endsWith(".json")) continue;
-      const id = name.slice(0, -".json".length);
-      registry.set(id, loadAugment(join(dir, name), id, source));
-    }
+  for (const [id, raw] of Object.entries(BUNDLED_AUGMENTS))
+    registry.set(
+      id,
+      loadAugment(
+        `evals/augments/${id}.json`,
+        id,
+        "bundled",
+        () => structuredClone(raw),
+        resolveBundled,
+      ),
+    );
+  const userDir = evalDir == null ? null : join(evalDir, "augments");
+  if (userDir == null || !existsSync(userDir)) return registry;
+  for (const name of readdirSync(userDir).sort()) {
+    if (!name.endsWith(".json")) continue;
+    const id = name.slice(0, -".json".length);
+    const path = join(userDir, name);
+    registry.set(
+      id,
+      loadAugment(path, id, "user", () => readJson(path), resolveIn(userDir)),
+    );
   }
   return registry;
 }
@@ -91,23 +104,31 @@ export function runAugments(provenance: EvalProvenance): Record<AugmentId, Augme
   return augmentSnapshot(bundled, bundled.keys());
 }
 
-function loadAugment(path: string, id: AugmentId, source: AugmentSource): LoadedAugment {
+function loadAugment(
+  location: string,
+  id: AugmentId,
+  source: AugmentSource,
+  read: () => unknown,
+  resolveFrom: ResolveFrom,
+): LoadedAugment {
   try {
     if (!EVAL_ID_PATTERN.test(id))
       throw new Error("file name must be 1-64 lowercase letters, digits, or hyphens");
-    const text = readFileSync(path, "utf8");
-    let raw: unknown;
-    try {
-      raw = JSON.parse(text);
-    } catch (error) {
-      throw new Error(`invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    const definition = parseDefinition(raw, dirname(path));
+    const definition = parseDefinition(read(), resolveFrom);
     const hash = createHash("sha256").update(canonical(definition)).digest("hex");
     return { id, source, definition, hash, problem: null };
   } catch (error) {
-    const problem = `${path}: ${error instanceof Error ? error.message : String(error)}`;
+    const problem = `${location}: ${error instanceof Error ? error.message : String(error)}`;
     return { id, source, definition: null, hash: null, problem };
+  }
+}
+
+function readJson(path: string): unknown {
+  const text = readFileSync(path, "utf8");
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(`invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -152,7 +173,7 @@ function onlyKeys(value: Record<string, unknown>, allowed: string[], field: stri
   if (extra != null) throw new Error(`${field}.${extra} is not a known field`);
 }
 
-function parseDefinition(raw: unknown, dir: string): AugmentDefinition {
+function parseDefinition(raw: unknown, resolveFrom: ResolveFrom): AugmentDefinition {
   const value = object(raw, "augment");
   onlyKeys(value, DEFINITION_KEYS, "augment");
   const label = string(value.label, "label");
@@ -165,7 +186,7 @@ function parseDefinition(raw: unknown, dir: string): AugmentDefinition {
   for (const [harness, recipe] of Object.entries(object(value.recipes, "recipes"))) {
     if (EVAL_HARNESSES[harness] == null)
       throw new Error(`recipes.${harness} is not a known harness`);
-    recipes[harness as EvalHarness] = parseRecipe(recipe, `recipes.${harness}`, dir);
+    recipes[harness as EvalHarness] = parseRecipe(recipe, `recipes.${harness}`, resolveFrom);
   }
   return {
     label,
@@ -177,7 +198,7 @@ function parseDefinition(raw: unknown, dir: string): AugmentDefinition {
   };
 }
 
-function parseRecipe(raw: unknown, field: string, dir: string): AugmentRecipe {
+function parseRecipe(raw: unknown, field: string, resolveFrom: ResolveFrom): AugmentRecipe {
   const value = object(raw, field);
   onlyKeys(value, RECIPE_KEYS, field);
   const recipe: AugmentRecipe = {};
@@ -205,13 +226,18 @@ function parseRecipe(raw: unknown, field: string, dir: string): AugmentRecipe {
   if (value.files !== undefined) {
     const files: Record<string, AugmentFile> = {};
     for (const [name, file] of Object.entries(object(value.files, `${field}.files`)))
-      files[name] = parseFile(name, file, `${field}.files.${name}`, dir);
+      files[name] = parseFile(name, file, `${field}.files.${name}`, resolveFrom);
     recipe.files = files;
   }
   return recipe;
 }
 
-function parseFile(name: string, raw: unknown, field: string, dir: string): AugmentFile {
+function parseFile(
+  name: string,
+  raw: unknown,
+  field: string,
+  resolveFrom: ResolveFrom,
+): AugmentFile {
   // The name becomes a path inside the run's augments directory.
   if (name === "." || name === ".." || /[/\\]/.test(name))
     throw new Error(`${field} must be a plain file name`);
@@ -220,12 +246,23 @@ function parseFile(name: string, raw: unknown, field: string, dir: string): Augm
     return { json: object(value.json, `${field}.json`) };
   if (!("from" in value) || Object.keys(value).length !== 1)
     throw new Error(`${field} must be { "from": path } or { "json": object }`);
-  const from = string(value.from, `${field}.from`);
-  const home = homedir();
-  const [base, path] = from.startsWith("~/")
-    ? [home, resolve(home, from.slice(2))]
-    : [dir, resolve(dir, from)];
-  if (path !== base && !path.startsWith(`${base}${sep}`))
-    throw new Error(`${field}.from resolves outside ${base}`);
-  return { from: path };
+  return { from: resolveFrom(string(value.from, `${field}.from`), `${field}.from`) };
+}
+
+function resolveBundled(from: string, field: string): string {
+  const path = BUNDLED_AUGMENT_FILES[from];
+  if (path == null) throw new Error(`${field} must name a file in evals/augments`);
+  return path;
+}
+
+function resolveIn(dir: string): ResolveFrom {
+  return (from, field) => {
+    const home = homedir();
+    const [base, path] = from.startsWith("~/")
+      ? [home, resolve(home, from.slice(2))]
+      : [dir, resolve(dir, from)];
+    if (path !== base && !path.startsWith(`${base}${sep}`))
+      throw new Error(`${field} resolves outside ${base}`);
+    return path;
+  };
 }

@@ -3,6 +3,16 @@ declare module "*.css" {
   export default path;
 }
 
+declare module "*.md" {
+  const path: string;
+  export default path;
+}
+
+declare module "*.txt" {
+  const path: string;
+  export default path;
+}
+
 declare module "*.ico" {
   const path: string;
   export default path;

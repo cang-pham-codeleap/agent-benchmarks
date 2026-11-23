@@ -141,3 +141,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+Vendored RTK extension
+----------------------
+
+evals/augments/rtk-omp-extension.txt is hooks/pi/rtk.ts from
+https://github.com/rtk-ai/rtk at commit
+12a7cf09463cac32c7e302bab547a8e9606f7563, unmodified.
+Copyright (c) rtk-ai contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).

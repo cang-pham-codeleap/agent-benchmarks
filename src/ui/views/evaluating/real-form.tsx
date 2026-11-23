@@ -490,6 +490,17 @@ export function RealTaskForm({
                                 {augment.problem}
                               </span>
                             )}
+                            {!augment.available && augment.sourceUrl && (
+                              <a
+                                href={augment.sourceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={augment.problem ?? undefined}
+                                className="underline"
+                              >
+                                Install
+                              </a>
+                            )}
                           </label>
                         );
                       })}
