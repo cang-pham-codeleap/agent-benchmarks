@@ -367,8 +367,9 @@ once per process and started when `serve` starts: `copilot help config`,
 Codex's `models_cache.json`, `opencode models`, `omp models --json`, and
 `droid exec --help`. Claude Code has no listing, so it gets its aliases, the
 models cached in `~/.claude.json`, and the `claude-*` models from its archived
-sessions. A harness whose scan finds nothing falls back to the models of its
-archived sessions.
+sessions. Copilot's list also starts with `copilot-fusion`, which runs as
+`--model auto`. A harness whose scan finds nothing falls back to the models of
+its archived sessions.
 
 `GET /api/evals/catalog` also lists `combos`, saved benchmark inputs read from
 `<evalDir>/combos/<id>.json`, each with the `problem` that starting it as saved

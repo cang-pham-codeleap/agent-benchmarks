@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { COPILOT_FUSION_MODEL } from "../sources/copilot.ts";
 import type { EvalHarness } from "./types.ts";
 
 type ScannedHarness = EvalHarness | "null";
@@ -73,12 +74,15 @@ function codexCachedModels(): string[] {
     : [];
 }
 
-/** The `model` entry of `copilot help config` enumerates every model the CLI accepts. */
+/**
+ * The `model` entry of `copilot help config` enumerates every model the CLI accepts. Fusion is absent
+ * there because the CLI selects it as `auto`; the eval shim maps the archive's Fusion label to it.
+ */
 export function parseCopilotConfigHelp(text: string): string[] {
   const lines = text.split(/\r?\n/);
   const start = lines.findIndex((line) => /^\s*`model`:/.test(line));
   if (start < 0) return [];
-  const models: string[] = [];
+  const models = [COPILOT_FUSION_MODEL];
   for (const line of lines.slice(start + 1)) {
     const model = /^\s*- "([^"]+)"\s*$/.exec(line)?.[1];
     if (model == null) break;
