@@ -124,7 +124,9 @@ Do not weaken or remove tests to make a change pass.
 - Fill in every section of the pull request template. Verification names the
   commands and checks you ran and what you saw.
 - Link the issue the pull request closes when one exists.
-- Keep `main` green, as every pull request needs passing CI and review.
+- Keep `main` green. There is no hosted CI, so run `just check` (and
+  `just smoke-docker` for Docker changes) before you push, and install the
+  hooks with `just hooks`.
 
 CodeRabbit reviews every pull request once it leaves draft. Its approval is
 enough to merge unless the change touches a path in `.github/CODEOWNERS`, which

@@ -1,4 +1,4 @@
-# Pre-commit hooks for agent-benchmarks. CI remains the source of truth.
+# Pre-commit hooks for agent-benchmarks. There is no hosted CI: these hooks and `just check` are the gates.
 minimum_pre_commit_version: "3.5.0"
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
@@ -39,5 +39,29 @@ repos:
         entry: bun test
         language: system
         files: '^(src|test|fixtures)/.*|^(package\.json|bun\.lock)$'
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: pr-policy
+        name: PR policy against origin/main
+        entry: bun run scripts/pr-policy.ts --base origin/main
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: sync-model
+        name: Sync protocol model (TLC)
+        entry: bun run scripts/check-sync-model.ts
+        language: system
+        files: '^(models/sync-protocol/|src/ui/sync-events\.ts|src/server/sync\.ts)'
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: smoke-binary
+        name: Compiled binary smoke
+        entry: bun run scripts/smoke-binary.ts
+        language: system
+        files: '^(src|evals|scripts)/|^(package\.json|bun\.lock|bunfig\.toml)$'
         pass_filenames: false
         stages: [pre-push]

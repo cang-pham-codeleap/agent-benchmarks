@@ -28,7 +28,8 @@ For each pull request, collect:
 - the diff (`gh pr diff <n>`)
 - comments and reviews, including bot findings
 - linked issues and discussions, and what a maintainer said in them
-- the CI results for the head commit, especially the PR policy job
+- the result of `just check` on the head commit, especially
+  `scripts/pr-policy.ts`
 
 Record the head commit you assessed. If anything could not be retrieved, say
 so and stop. An incomplete read is a reason to retry, not to close.

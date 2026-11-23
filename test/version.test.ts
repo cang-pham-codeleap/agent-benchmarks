@@ -37,18 +37,15 @@ describe("version resolution", () => {
         entry,
         `import { AGENT_BENCHMARKS_VERSION } from ${JSON.stringify(join(import.meta.dir, "..", "src", "version.ts"))};\nconsole.log(AGENT_BENCHMARKS_VERSION);\n`,
       );
-      const build = Bun.spawnSync(
-        [
-          "bun",
-          "build",
-          "--compile",
-          "--env=AGENT_BENCHMARKS_BUILD_VERSION*",
-          entry,
-          "--outfile",
-          binary,
-        ],
-        { env: { ...process.env, AGENT_BENCHMARKS_BUILD_VERSION: "9.8.7-test" } },
-      );
+      const build = Bun.spawnSync([
+        "bun",
+        "build",
+        "--compile",
+        `--define=process.env.AGENT_BENCHMARKS_BUILD_VERSION=${JSON.stringify("9.8.7-test")}`,
+        entry,
+        "--outfile",
+        binary,
+      ]);
       expect(build.exitCode).toBe(0);
       const { AGENT_BENCHMARKS_BUILD_VERSION: _unset, ...runEnv } = process.env;
       const run = Bun.spawnSync([binary], { env: runEnv });

@@ -689,7 +689,7 @@ The rules behind the **Sync** and **Update** buttons are model-checked: a TLA+
 model in `models/sync-protocol/` covers the server's sync and `archive_updated`
 events and the page's `reduceSync` in `src/ui/sync-events.ts`.
 `bun run scripts/check-sync-model.ts` runs TLC on it (Java 11 or later), and
-CI runs it in the `sync-model` job. The
+`just check` and the pre-push hook run it. The
 `.claude/skills/verify-sync-protocol` skill lists the rules, what code each
 model step stands for, and how to read a failure.
 

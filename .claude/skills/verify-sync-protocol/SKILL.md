@@ -54,8 +54,8 @@ bun run scripts/check-sync-model.ts
 
 It needs Java 11 or later as `java` on PATH, or set `JAVA` to a java binary.
 It downloads `tla2tools.jar` 1.7.4 once into `~/.cache/agent-benchmarks/` and
-checks its sha256. CI runs the same command in the `sync-model` job of
-`.github/workflows/ci.yml`. It takes about 15 seconds. Pass config file names
+checks its sha256. `just check` and the pre-push hook run the same command.
+It takes about 15 seconds. Pass config file names
 to run only those, as in `bun run scripts/check-sync-model.ts SyncProtocol.cfg`.
 
 Each `.cfg` in `models/sync-protocol/` names its expected outcome on its first
@@ -111,7 +111,7 @@ started by a read, a session archive, a stream drop, a failed status read),
 on top of a startup sync that may be running at page load and any number of
 the steps those cause. A deeper run with `MaxStimuli = 2` found no violation
 on the current code at the sync commit (93,519,541 distinct states, about
-seven minutes on ten cores); it is too slow for CI.
+seven minutes on ten cores); it is too slow for `just check`.
 
 Assumed: no server activity before the page's EventSource first connects
 (`ActivityWhileConnecting = FALSE`). The `connecting` config drops that

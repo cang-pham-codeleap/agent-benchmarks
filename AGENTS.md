@@ -47,7 +47,10 @@ only needed when validating the container image.
 - `bun test` runs the test suite.
 - `bunx tsc --noEmit` runs the type check.
 - `bunx biome check .` runs the formatting and lint check.
-- `just check` runs the local test and typecheck gates.
+- `just check` runs every gate: tests, typecheck, Biome, PR policy, the sync
+  model, and the compiled-binary smoke. There is no hosted CI, so this and the
+  pre-push hooks (`just hooks`) are the only checks that run.
+- `just smoke-docker` builds the image and smokes it (needs Docker).
 
 The default archive is `~/.agent-benchmarks/agent-benchmarks.db`. Override it with `AGENT_BENCHMARKS_DB` or
 `--db`. Set `AGENT_BENCHMARKS_NO_SYNC` or pass `--no-sync` whenever a command points at a
@@ -59,13 +62,10 @@ Agent, and Pi directories.
 
 A change is ready when:
 
-- `bun test` passes.
-- `bunx tsc --noEmit` passes.
-- `bunx biome check .` passes.
+- `just check` passes.
 - New behavior has focused tests. Do not weaken or delete tests to make a
   change pass.
-- Standalone binary changes get a native smoke test. Docker changes also get
-  a local `docker build` and `docker run --help` smoke when Docker is available.
+- Docker changes also pass `just smoke-docker`.
 - User-visible command, route, configuration, or metric changes update their
   corresponding public docs.
 
@@ -119,7 +119,7 @@ Drop a row once its mistake cannot be written at all.
 | Sources convert timestamps through one helper | `lint/iso-timestamp-helpers.grit`, `isoFromMillis` and `isoFromZoned` in `src/sources/shared.ts` | `bunx biome ci .` |
 | Derived rows change only with the version that re-derives them | `test/golden/revision-lock.json`, checked by `test/golden.test.ts` | `bun test test/golden.test.ts` |
 | Every API response carries the security headers | `GuardedResponse` in `src/server/http.ts`, `test/route-responses.test.ts` | `bunx tsc --noEmit`, `bun test test/route-responses.test.ts` |
-| A compiled binary serves the same styled UI as a source run and starts outside its build tree | binary smoke steps in `.github/workflows/ci.yml`, `test/server-ui.test.ts` | the CI TypeScript and Docker jobs |
+| A compiled binary serves the same styled UI as a source run and starts outside its build tree | `scripts/smoke-binary.ts`, `scripts/smoke-docker.sh`, `test/server-ui.test.ts` | `just smoke-binary`, `just smoke-docker` |
 | Sync, Update, and completion state change in one place | `reduceSync` in `src/ui/sync-events.ts`, `models/sync-protocol/SyncProtocol.tla` | `bun test test/ui-sync-events.test.ts`, `bun run scripts/check-sync-model.ts` |
 | Tests use synthetic home paths, and no scratch or root files are committed | `private-data` and `stray-file` rules in `scripts/pr-policy.ts` | `bun run scripts/pr-policy.ts` |
 | A Claude request is billed once | `billAssistant` in `src/sources/claude.ts`, `billed_request` in `src/billed-requests.ts` | `bun test test/billed-requests.test.ts test/claude.test.ts` |
@@ -149,7 +149,7 @@ Drop a row once its mistake cannot be written at all.
   code cannot express. Say everything else with names, types, and tests, and
   enforce a "keep in sync" or "do not change" rule with a test instead of a
   comment.
-- Branch from `main`, open a pull request, and keep CI green.
+- Branch from `main`, open a pull request, and run `just check` before pushing.
 - Do not edit unrelated user changes in a dirty worktree.
 
 ## Pull requests
@@ -163,14 +163,14 @@ Drop a row once its mistake cannot be written at all.
   (`gh pr edit <n> --body-file <file> --attach <image>`). Never commit PR-only
   assets.
 - End the description with the model and harness that wrote the change.
-- `bun run scripts/pr-policy.ts` runs the same policy checks as CI: committed
+- `bun run scripts/pr-policy.ts` runs the policy checks: committed
   migrations unchanged, docs updated alongside rate and route-manifest
   changes, a pattern scan of fixtures for real-looking home paths, emails,
   and credentials (test code is scanned for home paths; only `/Users/dev` and
   `/home/dev` pass), and no new root-level or local-tooling files outside
   `ROOT_FILE_ALLOWLIST`. Passing the scan does not prove a fixture is
   synthetic.
-- When babysitting a pull request, wait for check and review events instead of
+- When babysitting a pull request, wait for review events instead of
   polling. Check each bot finding against the source, fix the real ones, and
   answer false positives with a reason.
 
