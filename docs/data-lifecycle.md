@@ -685,6 +685,14 @@ to the top. If a refresh fails, the rows stay up under a notice with a
 transcripts, and analytics, background activity only lights the **Update**
 button, so it never reshuffles a page while you are reading it.
 
+The rules behind the **Sync** and **Update** buttons are model-checked: a TLA+
+model in `models/sync-protocol/` covers the server's sync and `archive_updated`
+events and the page's `reduceSync` in `src/ui/sync-events.ts`.
+`bun run scripts/check-sync-model.ts` runs TLC on it (Java 11 or later), and
+CI runs it in the `sync-model` job. The
+`.claude/skills/verify-sync-protocol` skill lists the rules, what code each
+model step stands for, and how to read a failure.
+
 Set `AGENT_BENCHMARKS_NO_SYNC` or pass `--no-sync` to suppress syncs Agent Benchmarks starts on its
 own. With `serve`, this also disables the source watcher, and an evaluation run
 that finishes syncs only the sessions it recorded under its own run directory,
