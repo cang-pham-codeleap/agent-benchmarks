@@ -7,6 +7,7 @@
 
 # Local agent/workflow orchestration scripts (machine-specific paths)
 .workflows/
+.specify/
 
 # Per-developer coding-agent configuration may contain credentials.
 .claude/settings.local.json
