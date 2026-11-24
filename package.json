@@ -1,9 +1,19 @@
 {
   "name": "agent-benchmarks",
   "version": "0.1.0",
-  "private": true,
-  "description": "Private research app for benchmarking models, harnesses, and agentic workflows from local agent session logs.",
+  "description": "Benchmark models, harnesses, and agentic workflows from local coding-agent session logs.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cang-pham-codeleap/agent-benchmarks.git"
+  },
+  "files": [
+    "src",
+    "docs/api/openapi.yaml",
+    "evals/tasks",
+    "tsconfig.json",
+    "!src/**/*.test.ts"
+  ],
   "packageManager": "bun@1.4.4",
   "type": "module",
   "bin": {
