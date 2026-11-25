@@ -5,14 +5,29 @@ default:
 
 # Quality gates
 [group('gates')]
-check: ts-check
+check: ts-check sync-model smoke-binary
 
 [group('gates')]
 ts-check:
     bun test
     bunx tsc --noEmit
-    bunx biome check .
-    bun run scripts/pr-policy.ts
+    bunx biome ci .
+    bun run scripts/pr-policy.ts --base origin/main
+
+# Model-check the sync protocol with TLC (needs Java)
+[group('gates')]
+sync-model *CONFIGS:
+    bun run scripts/check-sync-model.ts {{CONFIGS}}
+
+# Build the native binary and check it serves the styled UI and bundled augments
+[group('gates')]
+smoke-binary:
+    bun run scripts/smoke-binary.ts
+
+# Build the amd64 image and check identity, ownership, and /api/health (needs Docker)
+[group('gates')]
+smoke-docker:
+    scripts/smoke-docker.sh
 
 
 # TypeScript
@@ -89,7 +104,7 @@ hooks:
 doctor *ARGS:
     bun run src/cli.ts doctor {{ARGS}}
 
-# The CI policy checks against origin/main (or BASE)
+# Policy checks against origin/main (or BASE)
 [group('gates')]
 policy BASE="origin/main":
     bun run scripts/pr-policy.ts --base {{BASE}}

@@ -198,9 +198,11 @@ describe("server routes", () => {
       const favicon = await fetch(`${base}/favicon.ico`);
       expect(favicon.status).toBe(200);
       expect(favicon.headers.get("content-type")).toBe("image/x-icon");
+      expect(favicon.headers.get("x-content-type-options")).toBe("nosniff");
       const touchIcon = await fetch(`${base}/apple-touch-icon.png`);
       expect(touchIcon.status).toBe(200);
       expect(touchIcon.headers.get("content-type")).toBe("image/png");
+      expect(touchIcon.headers.get("x-content-type-options")).toBe("nosniff");
 
       const unknown = await fetch(`${base}/no-page-here`);
       expect(unknown.status).toBe(404);
@@ -599,7 +601,9 @@ describe("server routes", () => {
       const frames =
         new TextDecoder().decode((await reader.read()).value) +
         new TextDecoder().decode((await reader.read()).value);
-      expect(frames).toContain("event: archive_updated");
+      expect(frames).toContain(
+        'event: archive_updated\ndata: {"type":"archive_updated","reason":"manual"',
+      );
     } finally {
       await reader.cancel();
       await economics.dispose();

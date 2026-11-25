@@ -43,10 +43,11 @@ Use this checklist when adding support for another coding-agent CLI.
    notices new sessions.
 5. **Analytics and exports** add the source to `SESSION_SOURCES`,
    `sessionSourceLabel`, and `sessionSourcePredicate` in `src/source-filter.ts`.
-   A source with no predicate case gets an empty SQL fragment that breaks the
-   Analytics source list. Add it to the `source` enums in
-   `docs/api/openapi.yaml` and `docs/api/routes.md`. Give it labels in the
-   source maps in `src/export.ts` and `ATIF_AGENT_NAMES` in
+   Each of these, `TRAJECTORY_SOURCES` in
+   `src/export.ts`, and `TOOL_LABELS` in `src/ui/badges.tsx` is typed by the
+   source union, so `bunx tsc --noEmit` names the one you missed. Add it to the `source` enums in
+   `docs/api/openapi.yaml` and `docs/api/routes.md`. Give it a label in
+   `ATIF_AGENT_NAMES` in
    `src/sources/atif.ts`, which both the ATIF export and import read, and a row
    in the source directories `agent-benchmarks doctor` reports from `src/doctor.ts`.
 6. **Capability report** includes the table below in the pull-request
@@ -124,7 +125,10 @@ bun run scripts/regen-goldens.ts --i-reviewed-the-diff
 ```
 
 Review the generated diff before committing it. An unreviewed golden update can
-hide a parser regression.
+hide a parser regression. New fixture sessions only add keys to
+`test/golden/revision-lock.json` and need no `INGEST_PIPELINE_REVISION` bump; a
+changed row for an existing fixture session does (see
+[Rebuilds and migrations](data-lifecycle.md#rebuilds-and-migrations)).
 
 ## Definition of done
 

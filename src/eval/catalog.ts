@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { exceptionAttributes, getAgentBenchmarksLogger } from "../logging.ts";
 import { getAchDir } from "../settings.ts";
 import { evalConfigDir, loadAugments } from "./augments.ts";
 import { readCombos } from "./combos.ts";
@@ -22,6 +23,8 @@ import {
   type EvalHarnessInfo,
   type EvalTask,
 } from "./types.ts";
+
+const logger = getAgentBenchmarksLogger("eval");
 
 export async function readCatalog(
   db: Database,
@@ -132,7 +135,11 @@ function tasksFrom(root: string): EvalTaskSource[] {
         },
       });
     } catch (error) {
-      console.error(`[eval/catalog] ${id}: ignoring invalid meta.json`, error);
+      logger.warning("Ignoring invalid meta.json.", {
+        "event.name": "agent-benchmarks.eval.catalog_meta_invalid",
+        "eval.id": id,
+        ...exceptionAttributes(error),
+      });
     }
   }
   return tasks;
@@ -168,7 +175,12 @@ async function commandVersion(command: string, args: readonly string[]): Promise
   ]);
   clearTimeout(timer);
   if (exitCode !== 0) {
-    console.error(`[eval/catalog] ${command} version failed (${exitCode}): ${stderr.trim()}`);
+    logger.warning("Harness version command failed.", {
+      "event.name": "agent-benchmarks.eval.catalog_version_failed",
+      "process.command": command,
+      "process.exit.code": exitCode,
+      "error.message": stderr.trim(),
+    });
     return null;
   }
   return `${stdout}${stderr}`.trim().split(/\r?\n/, 1)[0] || null;

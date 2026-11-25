@@ -5,7 +5,7 @@ export type EvalHarness = "claude" | "codex" | "copilot" | "opencode" | "omp" | 
 /** `clean` keeps the user's login but drops their hooks, plugins, MCP servers, and instructions. */
 export type EvalConfigMode = "current" | "default" | "clean";
 
-/** An augment file name without `.json`, validated at load: /^[a-z0-9][a-z0-9-]{0,63}$/. */
+/** An augment file name without `.json`; see EVAL_ID_PATTERN. */
 export type AugmentId = string;
 
 export type AugmentSource = "bundled" | "user";

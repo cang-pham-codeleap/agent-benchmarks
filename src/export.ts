@@ -1,6 +1,8 @@
 import type { Database } from "bun:sqlite";
 import { MESSAGE_METADATA_SQL } from "./message-storage.ts";
+import type { Tool } from "./model.ts";
 import { getSession, type SessionDetail } from "./query.ts";
+import { isoFromZoned } from "./sources/shared.ts";
 
 export function toMarkdown(detail: SessionDetail): string {
   const summary = detail.summary;
@@ -44,7 +46,7 @@ export function toMarkdown(detail: SessionDetail): string {
 // index 0 exactly once, args always a serialized JSON object, globally unique
 // tool-call ids, results only for calls that exist, >=1 user and >=1 assistant.
 
-const TRAJECTORY_SOURCES: Record<string, string> = {
+const TRAJECTORY_SOURCES: Record<Tool, string> = {
   claude_code: "claude-code",
   codex: "codex",
   gemini: "gemini-cli",
@@ -55,6 +57,8 @@ const TRAJECTORY_SOURCES: Record<string, string> = {
   atif: "atif",
   hermes: "hermes",
   pi: "pi",
+  omp: "omp",
+  droid: "droid",
 };
 
 const TRAJECTORY_NOISE_PREFIXES = [
@@ -370,19 +374,8 @@ export function exportTrajectory(db: Database, sessionId: number): TrajectoryExp
   // Their library always emits Date#toISOString() output; normalize source
   // timestamps the same way. Unparseable values count as missing and are
   // filled (last-seen, then session start, then their synthetic-base ladder).
-  const toIsoZ = (raw: string | null): string | null => {
-    if (raw == null) {
-      return null;
-    }
-    // Bare ±hh is a valid ISO-8601 offset: recognize it so we never corrupt
-    // it with an appended Z. (Bun's Date cannot parse bare ±hh either way, so
-    // such stamps still fall through to the fill ladder — but as themselves.)
-    const withZone = /(Z|[+-]\d{2}(?::?\d{2})?)$/.test(raw) ? raw : `${raw}Z`;
-    const date = new Date(withZone);
-    return Number.isNaN(date.getTime()) ? null : date.toISOString();
-  };
   const timestampFor = (raw: string | null): string => {
-    const normalized = toIsoZ(raw);
+    const normalized = isoFromZoned(raw);
     if (normalized != null) {
       lastTimestamp = normalized;
       return normalized;
@@ -391,7 +384,7 @@ export function exportTrajectory(db: Database, sessionId: number): TrajectoryExp
     if (lastTimestamp != null) {
       return lastTimestamp;
     }
-    const started = toIsoZ(detail.summary.started_at);
+    const started = isoFromZoned(detail.summary.started_at);
     if (started != null) {
       lastTimestamp = started;
       return started;
@@ -502,7 +495,7 @@ export function exportTrajectory(db: Database, sessionId: number): TrajectoryExp
 
   const meta: Record<string, string> = {
     role: "meta",
-    source: TRAJECTORY_SOURCES[detail.summary.tool] ?? detail.summary.tool,
+    source: TRAJECTORY_SOURCES[detail.summary.tool],
   };
   if (row?.cwd != null && row.cwd !== "") {
     meta.cwd = row.cwd;

@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  alignToSeries,
-  buildDaySeries,
-  isolatedPoints,
-  WEEKLY_AFTER_DAYS,
-  weekStart,
-} from "../src/day-series.ts";
+import { alignToSeries, buildDaySeries, isolatedPoints, weekStart } from "../src/day-series.ts";
 
 const row = (key: string, sessions: number, usageSessions = sessions, cost = sessions) => ({
   key,
@@ -51,7 +45,6 @@ describe("buildDaySeries", () => {
     expect(series.points[0]).toEqual({ key: "2025-12-29", sessions: 1, cost: 1 });
     expect(series.points.at(-1)).toEqual({ key: "2026-12-28", sessions: 2, cost: 2 });
     expect(series.points.reduce((sum, point) => sum + point.sessions, 0)).toBe(3);
-    expect(WEEKLY_AFTER_DAYS).toBe(92);
     const edge = buildDaySeries([row("2026-01-01", 1)], { from: "2026-01-01", to: "2026-04-02" });
     expect(edge.granularity).toBe("day");
     expect(edge.points).toHaveLength(92);

@@ -49,6 +49,17 @@ interface ApiError {
   status: number;
 }
 
+declare const guardedBrand: unique symbol;
+
+/** Only `guarded()` mints this, so every route response carries the security headers. */
+export type GuardedResponse = Response & { readonly [guardedBrand]: true };
+
+export function guarded(body: BodyInit | null, init: ResponseInit = {}): GuardedResponse {
+  const headers = new Headers(init.headers);
+  headers.set("x-content-type-options", "nosniff");
+  return new Response(body, { ...init, headers }) as GuardedResponse;
+}
+
 class RequestBodyError extends Error {
   constructor() {
     super("request body must be valid JSON");
@@ -56,7 +67,7 @@ class RequestBodyError extends Error {
   }
 }
 
-export function notFoundResponse(): Response {
+export function notFoundResponse(): GuardedResponse {
   return errorResponse("not_found", "not found", {}, 404);
 }
 
@@ -65,11 +76,11 @@ export function errorResponse(
   message: string,
   extras: Record<string, unknown> = {},
   status = 400,
-): Response {
+): GuardedResponse {
   return json({ error: message, code, ...extras }, status);
 }
 
-export function serviceStartingResponse(): Response {
+export function serviceStartingResponse(): GuardedResponse {
   return errorResponse(
     "service_starting",
     "Agent Benchmarks is still starting. Please try again.",
@@ -78,7 +89,7 @@ export function serviceStartingResponse(): Response {
   );
 }
 
-export function responseForError(error: unknown): Response {
+export function responseForError(error: unknown): GuardedResponse {
   const mapped = classifyError(error);
   return errorResponse(mapped.code, mapped.message, mapped.extras, mapped.status);
 }
@@ -131,17 +142,14 @@ function isArchiveLockedError(error: unknown, normalizedMessage: string): boolea
   );
 }
 
-export function json(value: unknown, status = 200): Response {
-  return new Response(JSON.stringify(value), {
+export function json(value: unknown, status = 200): GuardedResponse {
+  return guarded(JSON.stringify(value), {
     status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "x-content-type-options": "nosniff",
-    },
+    headers: { "content-type": "application/json; charset=utf-8" },
   });
 }
 
-function requireJsonRequest(request: Request): Response | null {
+function requireJsonRequest(request: Request): GuardedResponse | null {
   const contentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
   return contentType === "application/json"
     ? null
@@ -151,15 +159,15 @@ function requireJsonRequest(request: Request): Response | null {
 export async function readJsonBody(
   request: Request,
   rejectExtras?: Record<string, unknown>,
-): Promise<Response | { body: Record<string, unknown> }>;
+): Promise<GuardedResponse | { body: Record<string, unknown> }>;
 export async function readJsonBody(
   request: Request,
   rejectExtras: null,
-): Promise<Response | { body: unknown }>;
+): Promise<GuardedResponse | { body: unknown }>;
 export async function readJsonBody(
   request: Request,
   rejectExtras: Record<string, unknown> | null = {},
-): Promise<Response | { body: unknown }> {
+): Promise<GuardedResponse | { body: unknown }> {
   const contentTypeFailure = requireJsonRequest(request);
   if (contentTypeFailure != null) {
     return contentTypeFailure;

@@ -60,6 +60,16 @@ describe("UI files", () => {
     expect(ui.asset("/missing.js")).toBeNull();
   });
 
+  test("the server UI module loads where the Tailwind native addon cannot", () => {
+    // Compiled binaries resolve the addon from the build machine's node_modules; this env var forces that miss.
+    const result = Bun.spawnSync([process.execPath, "-e", 'await import("./src/server/ui.ts")'], {
+      cwd: join(import.meta.dir, ".."),
+      env: { ...process.env, NAPI_RS_NATIVE_LIBRARY_PATH: "/nonexistent/tailwindcss-oxide.node" },
+    });
+    expect(result.stderr.toString()).toBe("");
+    expect(result.exitCode).toBe(0);
+  });
+
   test("a source run rebuilds per shell request and keeps the previous build's assets", async () => {
     let builds = 0;
     const ui = createUiFiles({ index: "/src/ui/index.html" }, async () => sourceBuild(++builds));

@@ -32,8 +32,10 @@
   ],
   "row_dumps": [
     "blocks",
+    "economics",
     "file_refs",
     "messages",
+    "model_usage",
     "recommendations",
     "sessions",
     "tool_calls"

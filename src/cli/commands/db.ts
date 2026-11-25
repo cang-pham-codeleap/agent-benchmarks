@@ -141,8 +141,7 @@ function dbInfo(archive: Archive, options: { includeFullScanTotals?: boolean } =
           .query(
             // OCTET_LENGTH, not LENGTH: LENGTH counts characters on a TEXT
             // column, which understates a non-ASCII archive by a third to a
-            // half. text_bytes is printed beside size_bytes, which is real
-            // bytes from statSync, so the two have to be the same unit.
+            // half.
             `SELECT (SELECT COUNT(*) FROM block_fts) AS fts_rows,
                     (SELECT COALESCE(SUM(COALESCE(raw_bytes, OCTET_LENGTH(raw))), 0) FROM message)
                     + (SELECT COALESCE(SUM(OCTET_LENGTH(COALESCE(text, ''))

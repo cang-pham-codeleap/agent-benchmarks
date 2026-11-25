@@ -1,6 +1,7 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { applyGlobalsCss, setupDom } from "./ui-dom.ts";
 
 const root = join(import.meta.dir, "..");
 const globals = readFileSync(join(root, "src", "ui", "globals.css"), "utf8");
@@ -20,10 +21,17 @@ test("the bundled Inter face includes its OFL license", () => {
   expect(license).toContain("SIL OPEN FONT LICENSE Version 1.1");
 });
 
-test("globals.css owns the sans and code font stacks", () => {
-  expect(globals).toMatch(/--app-font-sans:\s*"Inter", ui-sans-serif/);
-  expect(globals).toMatch(/--app-font-mono: ui-monospace/);
-  expect(globals).toMatch(/--font-sans: var\(--app-font-sans\)/);
-  expect(globals).toMatch(/--font-mono: var\(--app-font-mono\)/);
-  expect(globals).not.toMatch(/Northrup|Geist Mono|--font-serif/);
+describe("rendered text", () => {
+  setupDom();
+
+  test("body text uses the vendored Inter face first", () => {
+    applyGlobalsCss();
+    expect(getComputedStyle(document.body).fontFamily).toMatch(/^"?Inter"?,/);
+  });
+
+  test("code text uses the system monospace stack", () => {
+    applyGlobalsCss();
+    const mono = getComputedStyle(document.documentElement).getPropertyValue("--app-font-mono");
+    expect(mono.trim()).toStartWith("ui-monospace,");
+  });
 });

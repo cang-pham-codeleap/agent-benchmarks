@@ -4,8 +4,17 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "../src/db.ts";
+import { hotContext, timeline } from "../src/distill.ts";
 import type { Operation } from "../src/enrich.ts";
 import { upsertSession } from "../src/ingest.ts";
+import {
+  listProjects,
+  listSessions,
+  listToolCalls,
+  searchPage,
+  sessionSearchIndex,
+} from "../src/query.ts";
+import { signals } from "../src/recommendations.ts";
 import { sessionUserStatePredicateForDatabase } from "../src/session-user-state.ts";
 import { availableSessionSources, type SessionSource } from "../src/source-filter.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
@@ -24,6 +33,7 @@ import {
   toolUsage,
   totals,
 } from "../src/stats.ts";
+import { tokenEconomics } from "../src/token-economics.ts";
 
 const workDir = mkdtempSync(join(tmpdir(), "agent-benchmarks-stats-test-"));
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
@@ -169,21 +179,49 @@ describe("stats rollups", () => {
     db.close();
   });
 
-  test("all archive rollup modules use the database-aware visibility shortcut", () => {
-    for (const file of ["token-economics.ts", "recommendations.ts", "distill.ts", "query.ts"]) {
-      const source = readFileSync(join(import.meta.dir, "..", "src", file), "utf8");
-      expect(source).toContain("sessionUserStatePredicateForDatabase");
-      expect(source).not.toContain('sessionUserStatePredicate("s")');
-    }
+  test("archive rollups skip the recursive visibility lineage until a session has user state", () => {
+    const db = seeded();
+    const issued: string[] = [];
+    const query = db.query.bind(db);
+    const prepare = db.prepare.bind(db);
+    db.query = ((sql: string) => {
+      issued.push(sql);
+      return query(sql);
+    }) as typeof db.query;
+    db.prepare = ((sql: string) => {
+      issued.push(sql);
+      return prepare(sql);
+    }) as typeof db.prepare;
+    const rollups = {
+      tokenEconomics: () => tokenEconomics(db),
+      signals: () => signals(db),
+      timeline: () => timeline(db),
+      hotContext: () => hotContext(db),
+      listSessions: () => listSessions(db),
+      sessionSearchIndex: () => sessionSearchIndex(db),
+      searchPage: () => searchPage(db, "hello"),
+      listToolCalls: () => listToolCalls(db),
+      listProjects: () => listProjects(db),
+    };
+    const lineageQueries = () =>
+      Object.entries(rollups).flatMap(([name, run]) => {
+        issued.length = 0;
+        run();
+        return issued.some((sql) => /NOT IN \(WITH RECURSIVE state_lineage/.test(sql))
+          ? [name]
+          : [];
+      });
 
-    const query = readFileSync(join(import.meta.dir, "..", "src", "query.ts"), "utf8");
-    const projectsStart = query.indexOf("export function listProjects(");
-    const projects = query.slice(
-      projectsStart,
-      query.indexOf("function mapSessionSummary(", projectsStart),
-    );
-    expect(projects).toContain('sessionUserStatePredicateForDatabase(db, "s")');
-    expect(projects).not.toContain('sessionUserStatePredicate("s")');
+    expect(lineageQueries()).toEqual([]);
+    expect(listProjects(db)[0]?.sessions).toBe(1);
+
+    db.exec(`
+      INSERT INTO session_user_state(tool, source_session_id, state, updated_at)
+      SELECT tool, source_session_id, 'archived', datetime('now') FROM session;
+    `);
+    expect(lineageQueries()).toEqual(Object.keys(rollups));
+    expect(listProjects(db)[0]?.sessions).toBe(0);
+    db.close();
   });
 
   test("elides recursive visibility work while session user state is empty", () => {

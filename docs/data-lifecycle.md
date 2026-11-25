@@ -685,6 +685,14 @@ to the top. If a refresh fails, the rows stay up under a notice with a
 transcripts, and analytics, background activity only lights the **Update**
 button, so it never reshuffles a page while you are reading it.
 
+The rules behind the **Sync** and **Update** buttons are model-checked: a TLA+
+model in `models/sync-protocol/` covers the server's sync and `archive_updated`
+events and the page's `reduceSync` in `src/ui/sync-events.ts`.
+`bun run scripts/check-sync-model.ts` runs TLC on it (Java 11 or later), and
+`just check` and the pre-push hook run it. The
+`.claude/skills/verify-sync-protocol` skill lists the rules, what code each
+model step stands for, and how to read a failure.
+
 Set `AGENT_BENCHMARKS_NO_SYNC` or pass `--no-sync` to suppress syncs Agent Benchmarks starts on its
 own. With `serve`, this also disables the source watcher, and an evaluation run
 that finishes syncs only the sessions it recorded under its own run directory,
@@ -862,6 +870,24 @@ recorded figure with Agent Benchmarks's estimate on the next sync. The reverse n
 re-derive: rows derived while a model had a rate store no recorded figure, so
 removing a rate requires bumping `MODEL_USAGE_FORMAT_VERSION`, which rebuilds
 the rows from the stored messages without the source database.
+
+Three constants decide when stored rows are derived again:
+`INGEST_PIPELINE_REVISION` in `src/ingest.ts` (sessions, messages, blocks,
+tool calls, and file references, re-read from source),
+`MODEL_USAGE_FORMAT_VERSION` in `src/model-usage.ts` (`session_model_usage`),
+and `SESSION_ECONOMICS_FORMAT_VERSION` in `src/token-economics.ts` (economics
+vectors). Both format backfills rebuild from stored rows. A change that alters
+what any of them produces for unchanged input must bump the matching constant,
+or existing archives keep the old rows. `test/golden/revision-lock.json` holds
+each constant's value and, per fixture session (`<tool>/<source_session_id>`),
+a SHA-256 of the golden rows it governs, leaving out the session and vector
+costs that every sync reprices. `bun run scripts/regen-goldens.ts
+--i-reviewed-the-diff` refuses to refresh the lock when an existing session's
+rows changed but the constant did not, naming the constant and the sessions,
+and `test/golden.test.ts` fails on the same condition. New and removed fixture
+sessions need no bump: they say nothing about rows already in an archive. An
+`INGEST_PIPELINE_REVISION` bump covers all three, because a re-read session
+rebuilds its usage and economics rows.
 
 ## Evaluation runs
 

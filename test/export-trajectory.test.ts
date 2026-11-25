@@ -3,12 +3,14 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateTranscript } from "@letta-ai/trajectory";
-import { openDb } from "../src/db.ts";
+import { closeDb, openDb } from "../src/db.ts";
 import { exportTrajectory } from "../src/export.ts";
 import { upsertSession } from "../src/ingest.ts";
 import { parseClaudeSession } from "../src/sources/claude.ts";
 import { parseCodexSession } from "../src/sources/codex.ts";
+import { parseDroidSession } from "../src/sources/droid.ts";
 import { parseGeminiSession } from "../src/sources/gemini.ts";
+import { parseOmpSession } from "../src/sources/omp.ts";
 import { parseOpenCodeSession } from "../src/sources/opencode.ts";
 import { OpenCodeStore } from "../src/sources/opencode-store.ts";
 import { buildOpenCodeFixtureDb } from "./opencode-fixture.ts";
@@ -32,6 +34,52 @@ function assertBothLayers(records: unknown[]): void {
 }
 
 describe("exportTrajectory", () => {
+  test("omp and droid sessions export under their own source names", () => {
+    const db = openDb(join(workDir, "omp-droid.db"));
+    try {
+      const fixtures = join(import.meta.dir, "..", "fixtures");
+      const omp = parseOmpSession(
+        "omp-id",
+        [
+          { type: "session", id: "omp-id", timestamp: "2026-01-01T00:00:00.000Z", cwd: "/tmp/p" },
+          {
+            type: "message",
+            id: "m1",
+            timestamp: "2026-01-01T00:00:01.000Z",
+            message: { role: "user", content: [{ type: "text", text: "Hello" }] },
+          },
+          {
+            type: "message",
+            id: "m2",
+            timestamp: "2026-01-01T00:00:02.000Z",
+            message: { role: "assistant", content: [{ type: "text", text: "Done" }] },
+          },
+        ]
+          .map((entry) => JSON.stringify(entry))
+          .join("\n"),
+        "/synthetic/omp.jsonl",
+      );
+      const droid = parseDroidSession(
+        "droid-id",
+        readFileSync(join(fixtures, "droid", "sample.jsonl"), "utf8"),
+        readFileSync(join(fixtures, "droid", "sample.settings.json"), "utf8"),
+        "{}",
+      );
+      for (const [parsed, source] of [
+        [omp, "omp"],
+        [droid, "droid"],
+      ] as const) {
+        const id = upsertSession(db, parsed, `/synthetic/${source}.jsonl`, 1, 2);
+        const out = exportTrajectory(db, id);
+        if (!out.ok) throw new Error(out.reason);
+        assertBothLayers(out.records);
+        expect(out.records[0]).toMatchObject({ role: "meta", source });
+      }
+    } finally {
+      closeDb(db);
+    }
+  });
+
   test("stray results cannot shift exported call ids or outcomes", () => {
     const db = openDb(join(workDir, "stray-results.db"));
     try {
@@ -627,6 +675,25 @@ describe("exportTrajectory", () => {
     );
     const out = exportTrajectory(db, sessionId);
     expect(out).toEqual({ ok: false, reason: "missing_user_records" });
+    const userOnly = upsertSession(
+      db,
+      parseClaudeSession(
+        "traj-5",
+        JSON.stringify({
+          type: "user",
+          timestamp: "2026-07-01T00:00:00.000Z",
+          message: { role: "user", content: [{ type: "text", text: "anyone there?" }] },
+        }),
+      ),
+      "/t5.jsonl",
+      1,
+      2,
+      "h",
+    );
+    expect(exportTrajectory(db, userOnly)).toEqual({
+      ok: false,
+      reason: "missing_assistant_records",
+    });
     expect(exportTrajectory(db, 999999)).toEqual({ ok: false, reason: "not_found" });
     db.close();
   });

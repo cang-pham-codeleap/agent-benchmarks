@@ -32,6 +32,21 @@ const augment = (recipes: object, extra: object = {}) =>
   });
 
 describe("user augments", () => {
+  test("a file name outside 1-64 lowercase letters, digits, or hyphens is unavailable", () => {
+    const body = augment({ claude: {} });
+    const dir = userDir("bad-ids", {
+      "Bad_Name.json": body,
+      "-leading.json": body,
+      [`${"a".repeat(65)}.json`]: body,
+      [`${"a".repeat(64)}.json`]: body,
+    });
+    const registry = loadAugments(dir);
+    expect(registry.get("Bad_Name")?.problem).toContain("file name must be 1-64 lowercase");
+    expect(registry.get("-leading")?.definition).toBeNull();
+    expect(registry.get("a".repeat(65))?.definition).toBeNull();
+    expect(registry.get("a".repeat(64))?.problem).toBeNull();
+  });
+
   test("a from file counts by content, not by where the checkout lives", () => {
     const files = (prompt: string) => ({
       "demo.json": augment({ claude: { files: { "p.md": { from: "p.md" } } } }),

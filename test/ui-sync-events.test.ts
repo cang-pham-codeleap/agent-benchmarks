@@ -1,12 +1,18 @@
 import { describe, expect, test } from "bun:test";
+import { ApiError } from "../src/ui/api.ts";
 import {
+  INITIAL_SYNC_STATE,
   isForegroundSync,
   LIVE_SESSIONS_REFRESH_MS,
   liveSessionsAction,
   parseSyncFailure,
   planArchiveUpdate,
+  reduceSync,
   restoreSync,
   SYNC_NOTICE_DELAY_MS,
+  type SyncEffect,
+  type SyncEvent,
+  type SyncState,
   sessionsAutoRefresh,
   showsSync,
   showsSyncComplete,
@@ -68,66 +74,243 @@ test("activity the page has not loaded makes later stats rebuilds wait for an Up
   });
 });
 
-function replay(events: (string | "click")[]): { refreshes: number; updateOffered: boolean } {
-  let caughtUp = true;
-  let refreshes = 0;
-  let updateOffered = false;
+const progress: SyncProgress = { scanned: 312, ingested: 300, skipped: 12, failed: 0, total: 1254 };
+const syncStatus = (overrides: Partial<SyncStatus> = {}): SyncStatus => ({
+  in_progress: false,
+  last_error: null,
+  reason: null,
+  progress: null,
+  archive_synced: true,
+  ...overrides,
+});
+const archive = (reason: string): SyncEvent => ({
+  type: "archive_updated",
+  reason,
+  liveSessions: false,
+});
+const update: SyncEvent = { type: "update_clicked" };
+const shownSync = (reason: string): SyncEvent => ({ type: "sync_progress", reason, progress });
+const dropped: SyncEvent = { type: "stream_dropped" };
+const message = (failedSlices = false): SyncEvent => ({
+  type: "stream_message",
+  opened: false,
+  failedSlices,
+});
+
+function run(
+  events: SyncEvent[],
+  from: SyncState = INITIAL_SYNC_STATE,
+): { state: SyncState; effects: SyncEffect[] } {
+  let state = from;
+  const effects: SyncEffect[] = [];
   for (const event of events) {
-    if (event === "click") {
-      caughtUp = true;
-      updateOffered = false;
-      refreshes += 1;
-      continue;
-    }
-    const plan = planArchiveUpdate(event, caughtUp, false);
-    caughtUp = plan.caughtUp;
-    if (plan.refresh) {
-      refreshes += 1;
-      updateOffered = false;
-    } else if (plan.offerUpdate) {
-      updateOffered = true;
-    }
+    const step = reduceSync(state, event);
+    state = step.state;
+    effects.push(...step.effects);
   }
-  return { refreshes, updateOffered };
+  return { state, effects };
 }
 
-test("the stats rebuild after a clicked Update loads without offering Update again", () => {
-  expect(replay(["watch", "click", "stats"])).toEqual({ refreshes: 2, updateOffered: false });
-});
+function refreshes(effects: SyncEffect[]): number {
+  return effects.filter((effect) => effect.type === "refresh").length;
+}
 
-test("a follow-up rebuild queued mid-build or started by a read loads too", () => {
-  expect(replay(["watch", "watch", "click", "stats", "stats"])).toEqual({
-    refreshes: 3,
-    updateOffered: false,
+function answer(
+  effects: SyncEffect[],
+  status: SyncStatus,
+  pick: (read: number) => boolean = () => true,
+): SyncEvent {
+  const sent = effects.filter(
+    (effect): effect is Extract<SyncEffect, { type: "read_status" }> =>
+      effect.type === "read_status" && pick(effect.read),
+  );
+  const { read, endedBefore, reconnect } = sent[sent.length - 1] as (typeof sent)[number];
+  return { type: "status_answered", read, endedBefore, reconnect, status };
+}
+
+describe("Update offers after background activity (ce8a8a3)", () => {
+  test("the stats rebuild after a clicked Update loads without offering Update again", () => {
+    const { state, effects } = run([archive("watch"), update, archive("stats")]);
+    expect(state.updateOffered).toBe(false);
+    expect(refreshes(effects)).toBe(2);
   });
-  expect(replay(["watch", "click", "stats", "stats"])).toEqual({
-    refreshes: 3,
-    updateOffered: false,
+
+  test("a follow-up rebuild queued mid-build or started by a read loads too", () => {
+    for (const events of [
+      [archive("watch"), archive("watch"), update, archive("stats"), archive("stats")],
+      [archive("watch"), update, archive("stats"), archive("stats")],
+    ]) {
+      const { state, effects } = run(events);
+      expect(state.updateOffered).toBe(false);
+      expect(refreshes(effects)).toBe(3);
+    }
+  });
+
+  test("archiving a session refreshes once its stats rebuild lands instead of offering Update", () => {
+    const { state, effects } = run([archive("session_state"), archive("stats")]);
+    expect(state.updateOffered).toBe(false);
+    expect(refreshes(effects)).toBe(2);
+  });
+
+  test("a failed rebuild leaves nothing waiting, so later background syncs still ask first", () => {
+    const { state, effects } = run([
+      archive("watch"),
+      update,
+      archive("watch"),
+      archive("stats"),
+      archive("watch"),
+      archive("stats"),
+    ]);
+    expect(state.updateOffered).toBe(true);
+    expect(refreshes(effects)).toBe(1);
+  });
+
+  test("a stats rebuild nobody refreshed for still waits for an Update click", () => {
+    const { state, effects } = run([archive("watch"), archive("stats")]);
+    expect(state.updateOffered).toBe(true);
+    expect(refreshes(effects)).toBe(0);
+  });
+
+  test("a foreground sync that ended while the stream was down loads its stats rebuild quietly", () => {
+    const down = run([shownSync("startup"), dropped, message()]);
+    expect(down.state).toMatchObject({ updateOffered: true, caughtUp: false });
+    const { state, effects } = run(
+      [answer(down.effects, syncStatus()), archive("stats")],
+      down.state,
+    );
+    expect(state).toMatchObject({ syncing: false, updateOffered: false });
+    expect(refreshes(effects)).toBe(2);
+  });
+
+  test("background updates during a foreground sync wait for that sync's refresh", () => {
+    const { state } = run([{ type: "sync_clicked" }, archive("watch"), archive("stats")]);
+    expect(state).toMatchObject({ syncing: true, updateOffered: false });
+  });
+
+  test("the unfiltered Sessions list loads background activity itself, throttled", () => {
+    const live = reduceSync(INITIAL_SYNC_STATE, {
+      type: "archive_updated",
+      reason: "watch",
+      liveSessions: true,
+    });
+    expect(live.effects).toEqual([{ type: "live_refresh" }]);
+    expect(live.state.updateOffered).toBe(false);
+    const due = (nearTop: boolean): SyncEvent => ({
+      type: "live_sessions_due",
+      autoRefresh: true,
+      viewer: { nearTop, visible: true },
+    });
+    expect(refreshes(reduceSync(live.state, due(true)).effects)).toBe(1);
+    expect(reduceSync(live.state, due(false)).state.updateOffered).toBe(true);
   });
 });
 
-test("archiving a session refreshes once its stats rebuild lands instead of offering Update", () => {
-  expect(replay(["session_state", "stats"])).toEqual({ refreshes: 2, updateOffered: false });
-});
-
-test("a failed rebuild leaves nothing waiting, so later background syncs still ask first", () => {
-  expect(replay(["watch", "click", "watch", "stats", "watch", "stats"])).toEqual({
-    refreshes: 1,
-    updateOffered: true,
+describe("sync progress across reloads and reconnects (854ab2b, 920482f)", () => {
+  test("a server sync failure ends the foreground sync and shows the error", () => {
+    const { state } = run([
+      shownSync("startup"),
+      { type: "sync_failed", reason: "startup", error: "disk full" },
+    ]);
+    expect(state.syncing).toBe(false);
+    expect(state.error).toEqual(new ApiError(500, "internal_error", "disk full"));
   });
-});
 
-test("a stats rebuild nobody refreshed for still waits for an Update click", () => {
-  expect(replay(["watch", "stats"])).toEqual({ refreshes: 0, updateOffered: true });
-});
-
-test("background updates during a foreground sync wait for that sync's refresh", () => {
-  expect(planArchiveUpdate("stats", false, true)).toEqual({
-    refresh: false,
-    offerUpdate: false,
-    caughtUp: false,
+  test("a stream-only sync stops showing when the reconnect cannot read the status", () => {
+    const down = run([shownSync("startup"), dropped, message()]);
+    expect(down.state.syncing).toBe(true);
+    const failed = run([{ type: "status_failed", error: "offline" }], down.state).state;
+    expect(failed).toMatchObject({ syncing: false, error: "offline" });
+    const manual = run([{ type: "sync_clicked" }, dropped, message()]);
+    expect(run([{ type: "status_failed", error: "offline" }], manual.state).state).toMatchObject({
+      syncing: true,
+      error: null,
+    });
   });
-  expect(planArchiveUpdate("watch", false, true).offerUpdate).toBe(false);
+
+  test("a startup sync that ends before the stream connects does not leave Sync spinning", () => {
+    const loaded = run([{ type: "page_loaded" }]);
+    const running = syncStatus({ in_progress: true, reason: "startup", progress });
+    const shown = run([answer(loaded.effects, running)], loaded.state);
+    expect(shown.state.syncing).toBe(true);
+    const opened = run(
+      [{ type: "stream_message", opened: true, failedSlices: false }],
+      shown.state,
+    );
+    const failed = run([{ type: "status_failed", error: "offline" }], opened.state).state;
+    expect(failed).toMatchObject({ syncing: false, error: "offline" });
+  });
+
+  test("a reconnect reloads failed slices at once and otherwise offers Update", () => {
+    const failed = run([dropped, message(true)]);
+    expect(failed.state.updateOffered).toBe(false);
+    expect(refreshes(failed.effects)).toBe(1);
+    expect(run([dropped, message()]).state).toMatchObject({ updateOffered: true, caughtUp: false });
+    const clicked = run([dropped, { type: "reconnect_clicked" }]);
+    expect(clicked.state.liveDropped).toBe(false);
+    expect(refreshes(clicked.effects)).toBe(1);
+  });
+
+  test("a watcher sync filling a never-synced archive shows and ends on its terminal event", () => {
+    const loaded = run([{ type: "page_loaded" }]);
+    const { state, effects } = run(
+      [
+        answer(loaded.effects, syncStatus({ archive_synced: false })),
+        shownSync("watch"),
+        { type: "sync_ended", reason: "watch" },
+      ],
+      loaded.state,
+    );
+    expect(state).toMatchObject({ syncing: false, complete: true, archiveSynced: true });
+    expect(refreshes(effects)).toBe(1);
+  });
+
+  test("a sync only an overtaken status answer saw running loads its results when it ends", () => {
+    const running = syncStatus({ in_progress: true, reason: "startup", progress });
+    const sent = run([
+      { type: "page_loaded" },
+      { type: "stream_message", opened: true, failedSlices: false },
+    ]);
+    const first = (read: number) => read === 1;
+    const overtakenFirst = run(
+      [answer(sent.effects, running, first), answer(sent.effects, syncStatus())],
+      sent.state,
+    );
+    expect(overtakenFirst.state.syncing).toBe(false);
+    expect(refreshes(overtakenFirst.effects)).toBe(1);
+
+    const newerFirst = run(
+      [answer(sent.effects, syncStatus()), answer(sent.effects, running, first)],
+      sent.state,
+    );
+    expect(refreshes(newerFirst.effects)).toBe(0);
+    const reread = run([answer(newerFirst.effects, syncStatus())], newerFirst.state);
+    expect(refreshes(reread.effects)).toBe(1);
+  });
+
+  test("a sync that starts inside the last one's completion window reads as running", () => {
+    const ended = run([shownSync("startup"), { type: "sync_ended", reason: "startup" }]);
+    expect(ended.state.complete).toBe(true);
+    const next = run([shownSync("startup")], ended.state);
+    expect(next.state).toMatchObject({ syncing: true, complete: false });
+    const late = reduceSync(next.state, {
+      type: "complete_elapsed",
+      completion: ended.state.completion,
+    });
+    expect(late.state).toBe(next.state);
+    expect(late.effects).toEqual([]);
+  });
+
+  test("a failed manual sync shows its error and the retry posts again", () => {
+    const failure = new Error("offline");
+    const clicked = run([{ type: "sync_clicked" }]);
+    expect(clicked.effects).toContainEqual({ type: "post_sync" });
+    expect(run([{ type: "sync_clicked" }], clicked.state).effects).toEqual([]);
+    const failed = run([{ type: "manual_sync_failed", error: failure }], clicked.state);
+    expect(failed.state).toMatchObject({ syncing: false, error: failure });
+    const retried = run([{ type: "sync_clicked" }], failed.state);
+    expect(retried.state).toMatchObject({ syncing: true, error: null });
+    expect(retried.effects).toContainEqual({ type: "post_sync" });
+  });
 });
 
 test("server sync failures are told apart from EventSource connection errors", () => {

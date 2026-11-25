@@ -408,8 +408,8 @@ describe("VS Code naming helpers", () => {
   test("turns serialized URIs into paths", () => {
     expect(uriPath("file:///synthetic/a%20b/c.ts")).toBe("/synthetic/a b/c.ts");
     expect(uriPath("file:///c%3A/synthetic/project")).toBe("c:/synthetic/project");
-    expect(uriPath({ scheme: "vscode-remote", path: "/home/example/project" })).toBe(
-      "/home/example/project",
+    expect(uriPath({ scheme: "vscode-remote", path: "/home/dev/project" })).toBe(
+      "/home/dev/project",
     );
     expect(uriPath("not a uri")).toBeNull();
   });

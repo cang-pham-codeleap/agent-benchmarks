@@ -10,11 +10,11 @@ import {
   type ParsedSession,
   type Role,
 } from "../model.ts";
-import { isoFromMillis } from "./opencode.ts";
 import {
   block,
   countUnknown,
   diagnosticRawLine,
+  isoFromMillis,
   jsonProblem,
   MAX_RECORD_BYTES,
   parseSourceJson,

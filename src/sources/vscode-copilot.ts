@@ -18,6 +18,7 @@ import { preview } from "../tools.ts";
 import {
   block,
   countUnknown,
+  isoFromMillis,
   jsonProblem,
   parseJsonLine,
   parseSourceJson,
@@ -990,6 +991,5 @@ function epochIso(value: Json | undefined): string | null {
   if (ms == null || ms <= 0) {
     return null;
   }
-  const date = new Date(ms);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  return isoFromMillis(ms);
 }

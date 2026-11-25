@@ -1,7 +1,10 @@
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { configureLogging, exceptionAttributes, getAgentBenchmarksLogger } from "../logging.ts";
 import { apiCellId, artifactDir, isGroupKey } from "./paths.ts";
 import type { CheckResult, DiffStat, RealCellSummary, RepoProfile } from "./types.ts";
+
+const logger = getAgentBenchmarksLogger("eval");
 
 export interface RealSpec {
   runDir: string;
@@ -113,7 +116,6 @@ export async function verifyCell(
   git(workspace, "add", "-A");
   const branch = spec.branches?.[apiCellId(group, cellId)];
   if (branch != null) {
-    // A failed push (the user made the branch mid-run) must not cost the cell its grade.
     try {
       const tree = git(workspace, "write-tree").trim();
       const commit = git(
@@ -131,7 +133,11 @@ export async function verifyCell(
       ).trim();
       git(workspace, "push", "-q", spec.repoPath, `${commit}:refs/heads/${branch}`);
     } catch (error) {
-      console.error(`could not write branch ${branch}:`, error);
+      logger.warning("Could not write cell branch.", {
+        "event.name": "agent-benchmarks.eval.cell_branch_failed",
+        "eval.branch": branch,
+        ...exceptionAttributes(error),
+      });
     }
   }
   writeFileSync(
@@ -179,6 +185,7 @@ export async function verifyCell(
 }
 
 if (import.meta.main) {
+  configureLogging({ level: process.env.AGENT_BENCHMARKS_LOG_LEVEL });
   try {
     const specPath = process.argv[2] ?? process.env.AGENT_BENCHMARKS_REAL_SPEC;
     const group = process.argv[3] ?? process.env.AGENT_BENCHMARKS_REAL_GROUP;
@@ -200,7 +207,10 @@ if (import.meta.main) {
     );
     process.exit(result.hidden == null || result.hidden.passed === result.hidden.total ? 0 : 1);
   } catch (error) {
-    console.error(error);
+    logger.error("Cell verification failed.", {
+      "event.name": "agent-benchmarks.eval.verify_failed",
+      ...exceptionAttributes(error),
+    });
     // A signal makes ach record verify "error" (excluded from pass rates) instead of a graded "fail".
     process.kill(process.pid, "SIGABRT");
   }

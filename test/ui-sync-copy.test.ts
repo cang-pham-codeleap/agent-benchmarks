@@ -15,85 +15,17 @@ test("sync stays visually icon-led while retaining a hidden live announcement", 
   expect(main).not.toContain("Synced ·");
   expect(main).not.toContain('? "Synced" : "Sync"');
   expect(main).toContain("const LIVE_DISCONNECT_GRACE_MS = 15_000");
-  expect(main).toMatch(
-    /setArchiveUpdateAvailable\(false\);\s*setLocalSyncing\(false\);\s*setSyncError\(null\);\s*setSyncComplete\(true\);/,
-  );
+  expect(main).toContain('label={archiveUpdateAvailable ? "Update" : "Sync"}');
+  expect(main).toContain('const TOPBAR_SYNC_LABELS = ["Sync", "Update"] as const;');
+  expect(main).toContain("archiveUpdateAvailable ? loadArchiveUpdates : runSync");
   expect(main).toContain('className="sr-only"');
   expect(globals).toContain('@import "tailwindcss"');
 });
 
-test("background archive activity waits for an explicit update", () => {
-  expect(main).toContain("const [archiveUpdateAvailable, setArchiveUpdateAvailable]");
-  expect(main.match(/showsSync\(payload\.reason, archiveSyncedRef\.current\)/g)).toHaveLength(2);
-  expect(main).toMatch(
-    /planArchiveUpdate\(\s*payload\.reason,\s*caughtUpRef\.current,\s*localSyncingRef\.current,?\s*\);\s*caughtUpRef\.current = plan\.caughtUp;/,
-  );
-  expect(main).toMatch(
-    /const requestRefresh = useCallback\(\(\) => \{\s*caughtUpRef\.current = true;/,
-  );
-  expect(main.match(/caughtUpRef\.current = true;/g)).toHaveLength(1);
-  expect(main).toMatch(/setArchiveUpdateAvailable\(true\);\s*caughtUpRef\.current = false;\s*\}/);
-  expect(main).toContain("localSyncingRef.current = localSyncing;");
-  expect(main).toContain("const failure = parseSyncFailure(event);");
-  expect(main).toMatch(
-    /if \(!manualSyncPendingRef\.current\) \{\s*progressThrottle\.cancel\(\);\s*setLocalSyncing\(false\);/,
-  );
-  expect(main).toContain('events.addEventListener("archive_updated", handleArchiveUpdated');
-  expect(main).not.toContain('events.addEventListener("archive_updated", requestRefresh)');
-  expect(main).toContain('label={archiveUpdateAvailable ? "Update" : "Sync"}');
-  expect(main).toContain('const TOPBAR_SYNC_LABELS = ["Sync", "Update"] as const;');
-  expect(main).toContain("archiveUpdateAvailable ? loadArchiveUpdates : runSync");
-  expect(main).not.toContain("/api/analytics/now");
-});
-
-test("the unfiltered Sessions list loads background activity itself, throttled", () => {
-  expect(main).toMatch(
-    /if \(liveSessionsRef\.current && liveRefresh != null\) \{\s*liveRefresh\.push\(null\);\s*\} else \{\s*setArchiveUpdateAvailable\(true\);\s*\}/,
-  );
-  expect(main).toMatch(
-    /createLatestThrottle<null>\(\(\) => \{\s*const action = liveSessionsAction\(\s*liveSessionsRef\.current,\s*localSyncingRef\.current,\s*liveSessionsViewer\(\),\s*\);/,
-  );
+test("a held Sessions refresh resumes when the reader scrolls back or the tab returns", () => {
   expect(main).toContain('window.addEventListener("scroll", resume, { passive: true });');
   expect(main).toContain('document.addEventListener("visibilitychange", resume);');
-  expect(main).toContain("}, LIVE_SESSIONS_REFRESH_MS);");
-  expect(main).toMatch(
-    /if \(action === "refresh"\) \{\s*setArchiveUpdateAvailable\(false\);\s*requestRefresh\(\);/,
-  );
-  expect(main).toMatch(
-    /if \(liveSessions && archiveUpdateAvailable\) \{\s*liveSessionsThrottleRef\.current\?\.push\(null\);/,
-  );
   expect(main).toContain("onTextFilterChange?.(textFilterActive);");
-});
-
-test("sync state is restored from the status route on load and reconnect", () => {
-  const shell = readUiFile("main.tsx");
-  expect(shell).toContain("status = await getSyncStatus();");
-  expect(shell).toContain("const restored = restoreSync(status, {");
-  expect(shell.indexOf("void readSyncStatus();")).toBeLessThan(
-    shell.indexOf("loadSlicesIndependently<DataSlice, DashboardData>("),
-  );
-  expect(shell).toMatch(
-    /void readSyncStatus\(\)\.then\(\(read\) => \{\s*if \(read\) \{\s*return;\s*\}\s*if \(!manualSyncPendingRef\.current\) \{/,
-  );
-  expect(shell).toMatch(/if \(!dropped\) \{\s*void readSyncStatus\(\);\s*\}/);
-  expect(shell).toMatch(
-    /if \(restored\.ended\) \{[^}]*setArchiveUpdateAvailable\(false\);\s*requestRefresh\(\);/,
-  );
-  expect(shell).toContain("const superseded = supersededStatus(status, {");
-  expect(shell).toContain("sawSync: sawSyncRef.current,");
-});
-
-test("a new sync replaces the last one's completion notice and cancels its timer", () => {
-  const shell = readUiFile("main.tsx");
-  expect(shell).toMatch(/syncEndedRef\.current \+= 1;\s*dismissSyncComplete\(\);/);
-  expect(shell).toMatch(
-    /setSyncError\(null\);\s*dismissSyncComplete\(\);\s*if \(restored\.progress/,
-  );
-  expect(shell).toMatch(
-    /setSyncError\(null\);\s*dismissSyncComplete\(\);\s*syncProgressThrottleRef/,
-  );
-  expect(shell).toContain("window.clearTimeout(syncCompleteTimerRef.current);");
-  expect(shell).toContain("showsSyncComplete(syncComplete, syncInProgress)");
 });
 
 test("sync progress is visible without a second live announcement", () => {
